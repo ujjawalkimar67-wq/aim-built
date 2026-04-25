@@ -1,0 +1,10 @@
+node_modules/
+__pycache__/
+.vscode/
+*.log
+lan-server-err.log
+lan-server-out.log
+pyserver-error.log.txt
+serve.ps1
+serve (1).ps1
+Unity Hub/

@@ -1,0 +1,61 @@
+DEPLOYMENT NOTES
+
+Project type:
+- Static browser game
+- Pure HTML/CSS/JavaScript
+- Three.js via CDN
+- No npm build step required for the client
+- No backend required for the main game deployment
+
+Render setup:
+- Service type: Static Site
+- Root directory: the project folder that contains index.html
+- Build command: none / leave blank
+- Publish directory: .
+- Entry file: index.html
+- Do not use Render Web Service for the main game client
+
+Required runtime files/folders:
+- index.html
+- styles.css
+- src/
+- assets/
+
+Important hosting notes:
+- The main game client is static-host compatible.
+- Three.js and helper modules are loaded from jsDelivr CDN.
+- LocalStorage is used for settings, layouts, and saved client-side preferences.
+- Optional multiplayer relay/server code in server.js is not part of the Render Static Site deploy.
+- If you want multiplayer beyond local testing, use a reachable WebSocket relay/server address.
+
+GitHub / repo cleanup recommendations:
+- Do not commit node_modules/
+- Do not commit __pycache__/
+- Do not commit temporary log files unless needed:
+  - lan-server-err.log
+  - lan-server-out.log
+  - pyserver-error.log.txt
+- Review whether these should stay out of the deployment repo:
+  - .vscode/
+  - serve.ps1
+  - serve (1).ps1
+  - server.js
+  - package.json
+  - package-lock.json
+  - Unity Hub/
+  - assets/city/downloads/
+  - assets/downloads/
+
+Smoke test checklist:
+- Open index.html through a local static server
+- Check the browser console for missing asset warnings/errors
+- Push the repo to GitHub
+- Create a Render Static Site
+- Set the publish directory to .
+- Open the Render URL
+- Test PC Mode
+- Test Phone Mode
+- Test Settings
+- Test graphics settings
+- Test mobile controls
+- Test map loading
