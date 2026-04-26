@@ -18,6 +18,7 @@ window.onload = () => {
   const hud = document.getElementById("hud");
   const instructions = document.getElementById("instructions");
   const homePanel = instructions?.querySelector(".home-panel");
+  const homeCameraEntryButton = document.getElementById("home-camera-entry-button");
   const homeGunEntryButton = document.getElementById("home-gun-entry-button");
   const homeSettingsEntryButton = document.getElementById("home-settings-entry-button");
   const homeFullscreenButton = document.getElementById("home-fullscreen-button");
@@ -48,6 +49,7 @@ window.onload = () => {
   const interactionMenuCloseButton = document.getElementById("interaction-menu-close-button");
   const settingsMenu = document.getElementById("settings-menu");
   const settingsMenuCloseButton = document.getElementById("settings-menu-close-button");
+  const settingsHomeButton = document.getElementById("settings-home-button");
   const settingsFullscreenButton = document.getElementById("settings-fullscreen-button");
   const settingsControlsPanel = document.getElementById("settings-panel-controls");
   const settingsGraphicsPanel = document.getElementById("settings-panel-graphics");
@@ -146,6 +148,7 @@ window.onload = () => {
     !hud ||
     !instructions ||
     !homePanel ||
+    !homeCameraEntryButton ||
     !homeGunEntryButton ||
     !homeSettingsEntryButton ||
     !homeFullscreenButton ||
@@ -2572,14 +2575,9 @@ window.onload = () => {
   }
 
   function createCameraCustomizationControls() {
-    // Camera customisation right-side draggable panel
     cameraPreviewPanelHeader = document.createElement("div");
     cameraPreviewPanelHeader.className = "camera-preview-panel-header";
 
-    const cameraPreviewPanelTitle = document.createElement("div");
-    cameraPreviewPanelTitle.className = "camera-preview-panel-title";
-    cameraPreviewPanelTitle.textContent = "Camera Customization";
-    cameraPreviewPanelHeader.appendChild(cameraPreviewPanelTitle);
 
     cameraPreviewPanelCloseButton = document.createElement("button");
     cameraPreviewPanelCloseButton.type = "button";
@@ -2603,15 +2601,13 @@ window.onload = () => {
     title.style.fontWeight = "600";
     section.appendChild(title);
 
-    // Camera Customisation: Change In Game button placed below section heading
-    // Home camera customisation: Change In Game entry
     cameraCustomizationPreviewButton = document.createElement("button");
     cameraCustomizationPreviewButton.type = "button";
-    cameraCustomizationPreviewButton.textContent = "Change In Game";
+    cameraCustomizationPreviewButton.textContent = "Customise Camera View";
     cameraCustomizationPreviewButton.className = "home-camera-preview-entry";
     cameraCustomizationPreviewButton.style.marginTop = "0";
     cameraCustomizationPreviewButton.style.marginBottom = "14px";
-    section.appendChild(cameraCustomizationPreviewButton);
+    settingsControlsPanel.appendChild(cameraCustomizationPreviewButton);
 
     for (const config of cameraCustomizationControlConfigs) {
       const field = document.createElement("label");
@@ -4060,8 +4056,8 @@ window.onload = () => {
   }
 
   function attachMotusManToRemotePlayer(actor, accentColor = remotePlayerMotusManAccentColor) {
-    Promise.all([loadMotusManTemplate(), loadMotusManIdleClip()])
-      .then(([, idleClip]) => {
+    Promise.all([loadMotusManTemplate(), loadMotusManIdleClip(), loadMotusManCrouchIdleClip()])
+      .then(([, idleClip, crouchClip]) => {
         if (!actor?.root?.parent || remotePlayers.get(actor.playerId) !== actor) {
           return;
         }
@@ -4082,6 +4078,14 @@ window.onload = () => {
         actor.characterIdleAction = actor.characterMixer.clipAction(idleClip);
         actor.characterIdleAction.reset();
         actor.characterIdleAction.play();
+        if (crouchClip) {
+          actor.characterCrouchAction = actor.characterMixer.clipAction(crouchClip);
+          actor.characterCrouchAction.reset();
+          actor.characterCrouchAction.setLoop(THREE.LoopRepeat, Infinity);
+        } else {
+          actor.characterCrouchAction = null;
+        }
+        actor.remoteCrouchActive = false;
         actor.characterMixer.timeScale = actor.isDead ? 0 : 1;
         setRemoteVisualTransformDefaults(remoteVisual, 0.18, 0.12);
         actor.visual.visible = false;
@@ -9409,6 +9413,14 @@ window.onload = () => {
     cameraPreviewPanelDragPointerId = null;
   }
 
+  function resetCameraCustomizationCompactPanelUi() {
+    releaseCameraPreviewPanelDrag();
+    settingsMenu.classList.remove("camera-preview-panel");
+    settingsMenu.style.left = "";
+    settingsMenu.style.right = "";
+    cameraPreviewPanelLeft = null;
+  }
+
   function setCameraCustomizationPreviewPanelOpen(isOpen) {
     if (isOpen) {
       settingsMenu.classList.add("camera-preview-panel");
@@ -9430,17 +9442,28 @@ window.onload = () => {
       return;
     }
 
-    releaseCameraPreviewPanelDrag();
-    settingsMenu.classList.remove("camera-preview-panel");
-    settingsMenu.style.left = "";
-    settingsMenu.style.right = "";
-    cameraPreviewPanelLeft = null;
+    resetCameraCustomizationCompactPanelUi();
     settingsMenuOpen = false;
     syncMenuState();
     console.log("settings_menu_closed", {
       source: "camera-preview",
       tab: "controls"
     });
+  }
+
+  async function openCameraCustomizationForCurrentContext() {
+    if (cameraCustomizationPreviewMode || settingsMenu.classList.contains("camera-preview-panel")) {
+      return true;
+    }
+
+    const inMainMenu = document.body.classList.contains("main-menu-open");
+    if (inMainMenu || homeSettingsViewOpen || !gameStarted) {
+      await startCameraCustomizationPreviewMode();
+      return true;
+    }
+
+    setCameraCustomizationPreviewPanelOpen(true);
+    return true;
   }
 
   async function startCameraCustomizationPreviewMode() {
@@ -9480,7 +9503,7 @@ window.onload = () => {
       setHomeSettingsViewOpen(true);
     } finally {
       cameraCustomizationPreviewButton.disabled = false;
-      cameraCustomizationPreviewButton.textContent = "Change In Game";
+      cameraCustomizationPreviewButton.textContent = "Customise Camera View";
     }
   }
 
@@ -9628,6 +9651,9 @@ window.onload = () => {
       });
       queueSettingsMenuDiagnostics(`${settingsMenuSource}-open`);
     } else {
+      if (!cameraCustomizationPreviewMode) {
+        resetCameraCustomizationCompactPanelUi();
+      }
       console.log("settings_menu_closed", {
         source: settingsMenuSource,
         tab: activeSettingsTabId
@@ -9643,6 +9669,9 @@ window.onload = () => {
 
   function closeMenus() {
     const wasSettingsMenuOpen = settingsMenuOpen;
+    if (!cameraCustomizationPreviewMode) {
+      resetCameraCustomizationCompactPanelUi();
+    }
     interactionMenuOpen = false;
     settingsMenuOpen = false;
     setGunCustomizationPanelOpen(false);
@@ -10121,6 +10150,45 @@ window.onload = () => {
     gunAdvancedRecoilPanel.hidden = !isOpen;
     gunAdvancedRecoilPanel.classList.toggle("visible", isOpen);
     gunAdvancedRecoilPanel.setAttribute("aria-hidden", String(!isOpen));
+  }
+
+  function isOnlineGunLimitsActive() {
+    return isLanHost || isLanClient || lanConnectionStatus === "connected";
+  }
+
+  function clampGunSettingsForOnlineFairPlay(config) {
+    if (!isOnlineGunLimitsActive()) return config;
+
+    let clamped = { ...config };
+    let wasModified = false;
+
+    if (clamped.fireRate > 10) { clamped.fireRate = 10; wasModified = true; }
+    if (clamped.damage > 6) { clamped.damage = 6; wasModified = true; }
+    if (clamped.headshotMultiplier > 4.5) { clamped.headshotMultiplier = 4.5; wasModified = true; }
+    if (clamped.reloadTime < 2) { clamped.reloadTime = 2; wasModified = true; }
+    if (clamped.ammoCapacity > 50) { clamped.ammoCapacity = 50; wasModified = true; }
+    if (clamped.infiniteAmmo) { clamped.infiniteAmmo = false; wasModified = true; }
+
+    if (clamped.recoilEnabled === false) {
+      clamped.recoilEnabled = true;
+      wasModified = true;
+    }
+    if (clamped.recoilStrength < 1.6) { clamped.recoilStrength = 1.6; wasModified = true; }
+    if (clamped.recoilIntensityX < 0.06) { clamped.recoilIntensityX = 0.06; wasModified = true; }
+    if (clamped.recoilIntensityY < 0.55) { clamped.recoilIntensityY = 0.55; wasModified = true; }
+    if (clamped.recoilIntensityZ < 0.05) { clamped.recoilIntensityZ = 0.05; wasModified = true; }
+
+    if (wasModified) {
+      showStatusMessage("Online fair limit: unfair upgrades are capped.", 2000);
+    }
+
+    return clamped;
+  }
+
+  function enforceOnlineGunLimitsIfActive() {
+    if (isOnlineGunLimitsActive() && currentGun) {
+      applyGunConfig(currentGun, { refillAmmo: false, persistCurrent: true });
+    }
   }
 
   function normalizeGunConfig(config, fallbackName = getNextGunName()) {
@@ -11862,6 +11930,26 @@ window.onload = () => {
     }
 
     remotePlayer.targetCrouchBlend = state.crouching ? 1 : 0;
+    const nextRemoteCrouch = Boolean(state.crouching);
+    console.log("remote_crouch_state_received", { id, crouching: nextRemoteCrouch });
+
+    if (nextRemoteCrouch !== remotePlayer.remoteCrouchActive) {
+      remotePlayer.remoteCrouchActive = nextRemoteCrouch;
+      if (nextRemoteCrouch) {
+        if (remotePlayer.characterCrouchAction && remotePlayer.characterIdleAction) {
+          remotePlayer.characterIdleAction.fadeOut(0.18);
+          remotePlayer.characterCrouchAction.reset().fadeIn(0.18).play();
+          console.log("remote_crouch_animation_started", { id });
+        }
+      } else {
+        if (remotePlayer.characterCrouchAction && remotePlayer.characterIdleAction) {
+          remotePlayer.characterCrouchAction.fadeOut(0.18);
+          remotePlayer.characterIdleAction.reset().fadeIn(0.18).play();
+          console.log("remote_crouch_animation_stopped", { id });
+        }
+      }
+    }
+
     remotePlayer.movementState = {
       forward: Boolean(movement.forward),
       backward: Boolean(movement.backward),
@@ -11884,6 +11972,8 @@ window.onload = () => {
       remotePlayer.characterMixer.stopAllAction();
       remotePlayer.characterMixer = null;
       remotePlayer.characterIdleAction = null;
+      remotePlayer.characterCrouchAction = null;
+      remotePlayer.remoteCrouchActive = false;
     }
     clearActorPvpHitboxes(remotePlayer);
     removePlayerNameplate(remotePlayer.nameplate);
@@ -11944,12 +12034,30 @@ window.onload = () => {
       const crouchOffset = crouchVisual.userData.crouchOffset ?? 0.26;
       const crouchScaleAmount = crouchVisual.userData.crouchScale ?? 0.22;
 
+      // Crouch via animation. The Y scale-squish + downward offset is kept only as a
+      // hitbox/collision helper for the box-actor fallback (when motusMan has not loaded).
+      // When the motusMan visual is present and has a crouch action, compensate the
+      // downward position push so feet stay on the ground.
+      const hasAnimCrouch = Boolean(remotePlayer.characterCrouchAction);
+
       crouchVisual.scale.set(
         baseScaleX,
         baseScaleY * (1 - (crouchScaleAmount * remotePlayer.crouchBlend)),
         baseScaleZ
       );
-      crouchVisual.position.y = basePositionY - (crouchOffset * remotePlayer.crouchBlend);
+
+      if (hasAnimCrouch) {
+        // Animation drives the crouch pose — do NOT push the visual downward.
+        crouchVisual.position.y = basePositionY;
+      } else {
+        // Fallback box-actor: use offset but compensate upward so feet stay grounded.
+        const rawOffset = crouchOffset * remotePlayer.crouchBlend;
+        const compensatedOffset = rawOffset * (crouchScaleAmount * 0.5);
+        crouchVisual.position.y = basePositionY - rawOffset + compensatedOffset;
+        if (remotePlayer.crouchBlend > 0.01) {
+          console.log("remote_crouch_ground_offset_applied", { id, offset: crouchVisual.position.y });
+        }
+      }
       updateActorPvpHitboxes(remotePlayer, remotePlayer.crouchBlend);
     }
   }
@@ -12004,6 +12112,7 @@ window.onload = () => {
         isLanHost = parsedMessage.role === "host";
         isLanClient = parsedMessage.role === "client";
         lanConnectionStatus = isLanHost ? "hosting" : "connected";
+        enforceOnlineGunLimitsIfActive();
         lastSharedEnemyStateSentAt = 0;
 
         if (Number.isFinite(Number(parsedMessage.heartbeatIntervalMs))) {
@@ -12903,7 +13012,7 @@ window.onload = () => {
     camera.aspect = viewportWidth / viewportHeight;
     camera.updateProjectionMatrix();
     applyGraphicsSettingsRuntime({ reason, emitLog });
-    if (cameraCustomizationPreviewMode) {
+    if (settingsMenu.classList.contains("camera-preview-panel")) {
       dockCameraPreviewPanel();
     }
     applyMobileControlLayout();
@@ -13428,6 +13537,11 @@ window.onload = () => {
   }
 
   function syncGunInputs() {
+    const warningEls = document.querySelectorAll(".online-fair-limits-warning");
+    warningEls.forEach(el => {
+      el.style.display = isOnlineGunLimitsActive() ? "block" : "none";
+    });
+
     gunNameInput.value = currentGun.name;
     gunFireRateInput.value = String(currentGun.fireRate);
     gunDamageInput.value = String(currentGun.damage);
@@ -13474,7 +13588,8 @@ window.onload = () => {
     isReloading = false;
     reloadEndTimeMs = 0;
     reloadResumeAutoFire = false;
-    currentGun = normalizeGunConfig(config, currentGun.name || getNextGunName());
+    let normalizedConfig = normalizeGunConfig(config, currentGun?.name || getNextGunName());
+    currentGun = clampGunSettingsForOnlineFairPlay(normalizedConfig);
     fireCooldownMs = Math.round(1000 / currentGun.fireRate);
     damagePerBullet = currentGun.damage;
     headshotDamage = currentGun.damage * currentGun.headshotMultiplier;
@@ -17154,6 +17269,10 @@ window.onload = () => {
 
     listenersBound = true;
 
+    homeCameraEntryButton.addEventListener("click", async () => {
+      await openCameraCustomizationForCurrentContext();
+    });
+
     homeGunEntryButton.addEventListener("click", () => {
       setHomeGunViewOpen(true);
     });
@@ -17177,20 +17296,25 @@ window.onload = () => {
 
     if (cameraCustomizationPreviewButton) {
       cameraCustomizationPreviewButton.addEventListener("click", async () => {
-        await startCameraCustomizationPreviewMode();
+        await openCameraCustomizationForCurrentContext();
       });
     }
 
     if (cameraPreviewPanelCloseButton) {
       cameraPreviewPanelCloseButton.addEventListener("click", () => {
-        exitCameraCustomizationPreviewMode();
+        if (cameraCustomizationPreviewMode) {
+          exitCameraCustomizationPreviewMode();
+          return;
+        }
+
+        setCameraCustomizationPreviewPanelOpen(false);
       });
     }
 
     if (cameraPreviewPanelHeader) {
       cameraPreviewPanelHeader.addEventListener("pointerdown", (event) => {
         if (
-          !cameraCustomizationPreviewMode ||
+          !settingsMenu.classList.contains("camera-preview-panel") ||
           event.button !== 0 ||
           event.target === cameraPreviewPanelCloseButton
         ) {
@@ -17357,6 +17481,12 @@ window.onload = () => {
 
     settingsFullscreenButton.addEventListener("click", async () => {
       await toggleFullscreenMode();
+    });
+
+    settingsHomeButton?.addEventListener("click", () => {
+      exitCameraCustomizationPreviewMode();
+      closeMenus();
+      showMainMenu();
     });
 
     settingsMenuCloseButton.addEventListener("click", () => {
@@ -17822,7 +17952,7 @@ window.onload = () => {
       }
 
       if (
-        !cameraCustomizationPreviewMode ||
+        !settingsMenu.classList.contains("camera-preview-panel") ||
         cameraPreviewPanelDragPointerId === null ||
         event.pointerId !== cameraPreviewPanelDragPointerId
       ) {

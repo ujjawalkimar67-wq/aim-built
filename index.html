@@ -153,6 +153,7 @@
     <div id="instructions" aria-hidden="false">
       <!-- Home page settings entry button -->
       <div class="home-entry-actions">
+        <button id="home-camera-entry-button" type="button">Camera Customisation</button>
         <button id="home-gun-entry-button" type="button" aria-expanded="false">Gun Modification</button>
         <button id="home-settings-entry-button" type="button" aria-expanded="false">Settings</button>
         <button id="home-fullscreen-button" type="button">Fullscreen</button>
@@ -224,6 +225,7 @@
             <section class="home-settings-card" aria-labelledby="home-gun-settings-title">
               <p class="home-eyebrow">Loadout</p>
               <h3 id="home-gun-settings-title">Gun Modification</h3>
+              <p class="online-fair-limits-warning" style="color: #ffaa00; font-weight: bold; display: none; margin-bottom: 8px;">Online Fair Limits Active: unfair upgrades are capped.</p>
               <p class="home-settings-copy">Tune your current weapon here before deployment. This view reuses the live gun modification controls.</p>
               <div id="home-gun-customization-mount" class="home-shared-panel-slot"></div>
             </section>
@@ -287,6 +289,7 @@
           <h3>Gun Customization Panel</h3>
           <button id="gun-customization-close-button" class="menu-close-button" type="button" aria-label="Close gun customization">X</button>
         </div>
+        <p class="online-fair-limits-warning" style="color: #ffaa00; font-weight: bold; display: none; margin-bottom: 8px; padding: 0 16px;">Online Fair Limits Active: unfair upgrades are capped.</p>
         <label class="menu-field" for="savedGunList">
           <span>Saved Guns</span>
           <select id="savedGunList"></select>
@@ -373,6 +376,7 @@
             <p>Dial in controls, visuals, and advanced session options without leaving the game.</p>
           </div>
           <div class="settings-shell-header-actions">
+            <button id="settings-home-button" type="button">Home</button>
             <button id="settings-fullscreen-button" type="button">Fullscreen</button>
             <button id="settings-menu-close-button" class="menu-close-button" type="button" aria-label="Close settings">X</button>
           </div>
@@ -381,12 +385,12 @@
           <div class="settings-content settings-tabs-content settings-accordion" aria-label="Settings categories">
             <div class="settings-accordion-section" data-settings-section="controls">
               <button id="settings-tab-controls" class="settings-tab-button settings-accordion-button is-active" type="button" data-settings-tab="controls" aria-selected="true" aria-expanded="true">
-                Controls
+                Camera
               </button>
               <section id="settings-panel-controls" class="settings-tab-panel is-active" data-settings-tab-panel="controls" aria-labelledby="settings-tab-controls">
               <div class="settings-panel-copy">
-                <h3>Controls</h3>
-                <p>Camera, aiming, and general control sensitivity settings live here.</p>
+                <h3>Camera</h3>
+                <p>Camera view settings and related sensitivity options live here.</p>
               </div>
               <div class="settings-card">
                 <label class="menu-field" for="settings-fov-input">
