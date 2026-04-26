@@ -336,7 +336,8 @@ body.main-menu-open #game {
 #home-settings-entry-button,
 #home-fullscreen-button,
 #home-settings-back-button,
-#home-gun-back-button {
+#home-gun-back-button,
+#aim-training-home-button {
   pointer-events: auto;
   padding: 10px 16px;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -352,7 +353,8 @@ body.main-menu-open #game {
 .home-entry-actions button:hover,
 #home-fullscreen-button:hover,
 #home-settings-back-button:hover,
-#home-gun-back-button:hover {
+#home-gun-back-button:hover,
+#aim-training-home-button:hover {
   filter: brightness(1.06);
 }
 
@@ -509,7 +511,8 @@ body.main-menu-open #hud.settings-open #settings-menu .home-camera-preview-entry
   line-height: 1.7;
 }
 
-#ready-button {
+#ready-button,
+.action-button {
   pointer-events: auto;
   margin-top: 18px;
   padding: 10px 18px;
@@ -521,6 +524,61 @@ body.main-menu-open #hud.settings-open #settings-menu .home-camera-preview-entry
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(255, 107, 61, 0.28);
+}
+
+.action-button {
+  width: 100%;
+}
+
+.aim-training-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0 0 24px;
+}
+
+.aim-training-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.aim-mode-card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease;
+  min-height: 220px;
+}
+
+.aim-mode-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.aim-mode-preview {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.aim-mode-title {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
 }
 
 #ammo-ui {

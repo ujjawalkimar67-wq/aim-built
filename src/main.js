@@ -26,6 +26,10 @@ window.onload = () => {
   const homeGunBackButton = document.getElementById("home-gun-back-button");
   const homeSettingsView = document.getElementById("home-settings-view");
   const homeSettingsBackButton = document.getElementById("home-settings-back-button");
+  const aimTrainingView = document.getElementById("aim-training-view");
+  const trainAimButton = document.getElementById("train-aim-button");
+  const aimTrainingHomeButton = document.getElementById("aim-training-home-button");
+  const aimModeCards = document.querySelectorAll(".aim-mode-card");
   const homeSettingsMenuMount = document.getElementById("home-settings-menu-mount");
   const homeGunCustomizationMount = document.getElementById("home-gun-customization-mount");
   const homeOnlineModeMount = document.getElementById("home-online-mode-mount");
@@ -17679,6 +17683,46 @@ window.onload = () => {
     homeGunBackButton.addEventListener("click", () => {
       setHomeGunViewOpen(false);
     });
+
+    if (trainAimButton && aimTrainingView && homePanel) {
+      trainAimButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("[AIM TRAINING] Train Aim clicked");
+        homePanel.setAttribute("hidden", "true");
+        homePanel.setAttribute("aria-hidden", "true");
+        homePanel.hidden = true;
+        aimTrainingView.removeAttribute("hidden");
+        aimTrainingView.setAttribute("aria-hidden", "false");
+        aimTrainingView.hidden = false;
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
+    } else {
+      console.warn("[AIM TRAINING] Scaffolding elements missing", { trainAimButton, aimTrainingView, homePanel });
+    }
+
+    if (aimTrainingHomeButton && aimTrainingView && homePanel) {
+      aimTrainingHomeButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("[AIM TRAINING] Home clicked");
+        aimTrainingView.setAttribute("hidden", "true");
+        aimTrainingView.setAttribute("aria-hidden", "true");
+        aimTrainingView.hidden = true;
+        homePanel.removeAttribute("hidden");
+        homePanel.setAttribute("aria-hidden", "false");
+        homePanel.hidden = false;
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
+    }
+
+    if (aimModeCards && aimModeCards.length > 0) {
+      aimModeCards.forEach(card => {
+        card.addEventListener("click", () => {
+          alert("Aim Practice mode coming soon! This is a UI placeholder.");
+        });
+      });
+    }
 
     homeSettingsBackButton.addEventListener("click", () => {
       setHomeSettingsViewOpen(false);
