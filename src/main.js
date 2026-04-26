@@ -1628,6 +1628,7 @@ window.onload = () => {
     moveState.backward = false;
     moveState.left = false;
     moveState.right = false;
+    moveState.sprint = false;
     clearMobileJoystickRuntimeAnchor();
     resetMobileJoystickVisual();
     syncMobileHudActionAvailability();
@@ -1664,6 +1665,18 @@ window.onload = () => {
     moveState.right = invertedNormalizedX > deadZone;
     moveState.forward = invertedNormalizedY < -deadZone;
     moveState.backward = invertedNormalizedY > deadZone;
+
+    // Sprint based on joystick magnitude with hysteresis to prevent flickering.
+    // Uses same distance/maxRadius already computed above — no new DOM reads.
+    const normalizedMagnitude = Math.min(distance / maxRadius, 1);
+    const sprintStartThreshold = 0.85;
+    const sprintStopThreshold = 0.75;
+    if (!moveState.sprint && normalizedMagnitude >= sprintStartThreshold) {
+      moveState.sprint = true;
+    } else if (moveState.sprint && normalizedMagnitude < sprintStopThreshold) {
+      moveState.sprint = false;
+    }
+
     mobileControlJoystick.classList.toggle(
       "is-active",
       Math.abs(normalizedX) > deadZone || Math.abs(normalizedY) > deadZone
@@ -2063,6 +2076,8 @@ window.onload = () => {
         }
         verticalVelocity = moveConfig.jumpSpeed;
         isGrounded = false;
+        localJumpSequenceId += 1;
+        syncPlayerAimIdleAnimation(true, true);
         return true;
       case "reload":
         return canUseMobileHudAction("reload") && beginReload();
@@ -2976,6 +2991,7 @@ window.onload = () => {
   let recoilRoll = 0;
   let verticalVelocity = 0;
   let isGrounded = true;
+  let localJumpSequenceId = 0;
   let ammo = currentGun.ammoCapacity;
   let lastShotTime = -Infinity;
   let playerHp = 100;
@@ -3502,6 +3518,10 @@ window.onload = () => {
   const motusManResourceUrl = new URL("../assets/characters/motusman/MotusMan_v55.fbm/", import.meta.url).href;
   const motusManIdleAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Stand_Aim_Idle.fbx", import.meta.url).href;
   const motusManCrouchIdleAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Crouch_Aim_Idle_IPC.fbx", import.meta.url).href;
+  const motusManWalkAimAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Walk_Aim_F_Loop_IPC.fbx", import.meta.url).href;
+  const motusManJogAimAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Jog_Aim_F_Loop_IPC.fbx", import.meta.url).href;
+  const motusManJumpStartAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Stand_Aim_Jump_Start_IPC.fbx", import.meta.url).href;
+  const motusManJumpAirAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Stand_Aim_Jump_Air_IPC.fbx", import.meta.url).href;
   const cityAssetPaths = Object.freeze({
     roadStraight: new URL("../assets/city/kenney_roads/Models/GLB format/road-straight.glb", import.meta.url).href,
     roadCurve: new URL("../assets/city/kenney_roads/Models/GLB format/road-curve.glb", import.meta.url).href,
@@ -3561,9 +3581,22 @@ window.onload = () => {
   let motusManIdleLoadPromise = null;
   let motusManCrouchIdleClip = null;
   let motusManCrouchIdleLoadPromise = null;
+  let motusManWalkAimClip = null;
+  let motusManWalkAimLoadPromise = null;
+  let motusManJogAimClip = null;
+  let motusManJogAimLoadPromise = null;
+  let motusManJumpStartClip = null;
+  let motusManJumpStartLoadPromise = null;
+  let motusManJumpAirClip = null;
+  let motusManJumpAirLoadPromise = null;
   let playerAnimationMixer = null;
   let playerIdleAction = null;
   let playerCrouchIdleAction = null;
+  let playerWalkAction = null;
+  let playerJogAction = null;
+  let playerJumpStartAction = null;
+  let playerJumpAirAction = null;
+  let playerJumpStartFinished = false;
   let playerVisualReadyPromise = Promise.resolve(null);
   let playerCurrentAimIdleMode = "standing";
   const enemyMotusManBodyColor = 0x2f6bff;
@@ -3700,7 +3733,155 @@ window.onload = () => {
     return motusManCrouchIdleLoadPromise;
   }
 
-  function syncPlayerAimIdleAnimation(forceRestart = false) {
+  function loadMotusManWalkAimClip() {
+    if (motusManWalkAimClip) {
+      return Promise.resolve(motusManWalkAimClip);
+    }
+
+    if (motusManWalkAimLoadPromise) {
+      return motusManWalkAimLoadPromise;
+    }
+
+    const loader = new FBXLoader();
+    motusManWalkAimLoadPromise = new Promise((resolve, reject) => {
+      loader.load(
+        motusManWalkAimAnimationUrl,
+        (fbx) => {
+          const clip = fbx.animations?.[0];
+          if (!clip) {
+            motusManWalkAimLoadPromise = null;
+            const err = new Error("MotusMan walk-aim animation clip missing");
+            console.warn("MotusMan walk-aim animation load failed:", err);
+            reject(err);
+            return;
+          }
+          motusManWalkAimClip = clip;
+          resolve(motusManWalkAimClip);
+        },
+        undefined,
+        (error) => {
+          motusManWalkAimLoadPromise = null;
+          console.warn("MotusMan walk-aim animation load failed:", error);
+          reject(error);
+        }
+      );
+    });
+
+    return motusManWalkAimLoadPromise;
+  }
+
+  function loadMotusManJogAimClip() {
+    if (motusManJogAimClip) {
+      return Promise.resolve(motusManJogAimClip);
+    }
+
+    if (motusManJogAimLoadPromise) {
+      return motusManJogAimLoadPromise;
+    }
+
+    const loader = new FBXLoader();
+    motusManJogAimLoadPromise = new Promise((resolve, reject) => {
+      loader.load(
+        motusManJogAimAnimationUrl,
+        (fbx) => {
+          const clip = fbx.animations?.[0];
+          if (!clip) {
+            motusManJogAimLoadPromise = null;
+            const err = new Error("MotusMan jog-aim animation clip missing");
+            console.warn("MotusMan jog-aim animation load failed:", err);
+            reject(err);
+            return;
+          }
+          motusManJogAimClip = clip;
+          resolve(motusManJogAimClip);
+        },
+        undefined,
+        (error) => {
+          motusManJogAimLoadPromise = null;
+          console.warn("MotusMan jog-aim animation load failed:", error);
+          reject(error);
+        }
+      );
+    });
+
+    return motusManJogAimLoadPromise;
+  }
+
+  function loadMotusManJumpStartClip() {
+    if (motusManJumpStartClip) {
+      return Promise.resolve(motusManJumpStartClip);
+    }
+
+    if (motusManJumpStartLoadPromise) {
+      return motusManJumpStartLoadPromise;
+    }
+
+    const loader = new FBXLoader();
+    motusManJumpStartLoadPromise = new Promise((resolve, reject) => {
+      loader.load(
+        motusManJumpStartAnimationUrl,
+        (fbx) => {
+          const clip = fbx.animations?.[0];
+          if (!clip) {
+            motusManJumpStartLoadPromise = null;
+            const err = new Error("MotusMan jump-start animation clip missing");
+            console.warn("MotusMan jump-start animation load failed:", err);
+            reject(err);
+            return;
+          }
+          motusManJumpStartClip = clip;
+          resolve(motusManJumpStartClip);
+        },
+        undefined,
+        (error) => {
+          motusManJumpStartLoadPromise = null;
+          console.warn("MotusMan jump-start animation load failed:", error);
+          reject(error);
+        }
+      );
+    });
+
+    return motusManJumpStartLoadPromise;
+  }
+
+  function loadMotusManJumpAirClip() {
+    if (motusManJumpAirClip) {
+      return Promise.resolve(motusManJumpAirClip);
+    }
+
+    if (motusManJumpAirLoadPromise) {
+      return motusManJumpAirLoadPromise;
+    }
+
+    const loader = new FBXLoader();
+    motusManJumpAirLoadPromise = new Promise((resolve, reject) => {
+      loader.load(
+        motusManJumpAirAnimationUrl,
+        (fbx) => {
+          const clip = fbx.animations?.[0];
+          if (!clip) {
+            motusManJumpAirLoadPromise = null;
+            const err = new Error("MotusMan jump-air animation clip missing");
+            console.warn("MotusMan jump-air animation load failed:", err);
+            reject(err);
+            return;
+          }
+          motusManJumpAirClip = clip;
+          resolve(motusManJumpAirClip);
+        },
+        undefined,
+        (error) => {
+          motusManJumpAirLoadPromise = null;
+          console.warn("MotusMan jump-air animation load failed:", error);
+          reject(error);
+        }
+      );
+    });
+
+    return motusManJumpAirLoadPromise;
+  }
+
+  function syncPlayerAimIdleAnimation(forceRestart = false, triggerJumpStart = false) {
     if (!playerIdleAction) {
       return;
     }
@@ -3709,10 +3890,24 @@ window.onload = () => {
       ensurePlayerCrouchIdleAction();
     }
 
-    // Safe crouch aim idle branch
-    // Use crouch aim idle only while C is held
-    // Preserve existing standing aim animation
-    const nextMode = isCrouching && playerCrouchIdleAction ? "crouch" : "standing";
+    // Priority: crouch > jumpStart > jumpAir > jog (sprint) > walk (move) > standing
+    const isSprinting = isMoving && Boolean(moveState.sprint);
+    let nextMode = "standing";
+
+    if (isCrouching && playerCrouchIdleAction) {
+      nextMode = "crouch";
+    } else if (triggerJumpStart && playerJumpStartAction) {
+      nextMode = "jumpStart";
+    } else if (playerCurrentAimIdleMode === "jumpStart" && !isGrounded && !playerJumpStartFinished) {
+      nextMode = "jumpStart";
+    } else if (!isGrounded && playerJumpAirAction) {
+      nextMode = "jumpAir";
+    } else if (isMoving && !isShooting && isSprinting && playerJogAction) {
+      nextMode = "jog";
+    } else if (isMoving && !isShooting && playerWalkAction) {
+      nextMode = "walk";
+    }
+
     if (!forceRestart && playerCurrentAimIdleMode === nextMode) {
       return;
     }
@@ -3720,17 +3915,63 @@ window.onload = () => {
     playerCurrentAimIdleMode = nextMode;
 
     if (nextMode === "crouch") {
-      playerIdleAction.stop();
-      playerCrouchIdleAction.reset();
-      playerCrouchIdleAction.play();
+      if (playerWalkAction) playerWalkAction.fadeOut(0.18);
+      if (playerJogAction) playerJogAction.fadeOut(0.18);
+      if (playerJumpStartAction) playerJumpStartAction.fadeOut(0.18);
+      if (playerJumpAirAction) playerJumpAirAction.fadeOut(0.18);
+      playerIdleAction.fadeOut(0.18);
+      playerCrouchIdleAction.reset().fadeIn(0.18).play();
       return;
     }
 
-    if (playerCrouchIdleAction) {
-      playerCrouchIdleAction.stop();
+    if (nextMode === "jumpStart") {
+      playerJumpStartFinished = false;
+      if (playerCrouchIdleAction) playerCrouchIdleAction.fadeOut(0.18);
+      if (playerWalkAction) playerWalkAction.fadeOut(0.18);
+      if (playerJogAction) playerJogAction.fadeOut(0.18);
+      if (playerJumpAirAction) playerJumpAirAction.fadeOut(0.18);
+      playerIdleAction.fadeOut(0.18);
+      playerJumpStartAction.reset().fadeIn(0.18).play();
+      return;
     }
-    playerIdleAction.reset();
-    playerIdleAction.play();
+
+    if (nextMode === "jumpAir") {
+      if (playerCrouchIdleAction) playerCrouchIdleAction.fadeOut(0.18);
+      if (playerWalkAction) playerWalkAction.fadeOut(0.18);
+      if (playerJogAction) playerJogAction.fadeOut(0.18);
+      if (playerJumpStartAction) playerJumpStartAction.fadeOut(0.18);
+      playerIdleAction.fadeOut(0.18);
+      playerJumpAirAction.reset().fadeIn(0.18).play();
+      return;
+    }
+
+    if (nextMode === "jog") {
+      if (playerCrouchIdleAction) playerCrouchIdleAction.fadeOut(0.18);
+      if (playerWalkAction) playerWalkAction.fadeOut(0.20);
+      if (playerJumpStartAction) playerJumpStartAction.fadeOut(0.18);
+      if (playerJumpAirAction) playerJumpAirAction.fadeOut(0.18);
+      playerIdleAction.fadeOut(0.18);
+      playerJogAction.reset().fadeIn(0.18).play();
+      return;
+    }
+
+    if (nextMode === "walk") {
+      if (playerCrouchIdleAction) playerCrouchIdleAction.fadeOut(0.18);
+      if (playerJogAction) playerJogAction.fadeOut(0.20);
+      if (playerJumpStartAction) playerJumpStartAction.fadeOut(0.18);
+      if (playerJumpAirAction) playerJumpAirAction.fadeOut(0.18);
+      playerIdleAction.fadeOut(0.18);
+      playerWalkAction.reset().fadeIn(0.18).play();
+      return;
+    }
+
+    // standing
+    if (playerCrouchIdleAction) playerCrouchIdleAction.fadeOut(0.18);
+    if (playerWalkAction) playerWalkAction.fadeOut(0.18);
+    if (playerJogAction) playerJogAction.fadeOut(0.18);
+    if (playerJumpStartAction) playerJumpStartAction.fadeOut(0.18);
+    if (playerJumpAirAction) playerJumpAirAction.fadeOut(0.18);
+    playerIdleAction.reset().fadeIn(0.18).play();
   }
 
   function ensurePlayerCrouchIdleAction(actor = playerActor) {
@@ -3760,9 +4001,13 @@ window.onload = () => {
     const attachmentPromise = Promise.all([
       loadMotusManTemplate(),
       loadMotusManIdleClip(),
-      loadMotusManCrouchIdleClip()
+      loadMotusManCrouchIdleClip(),
+      loadMotusManWalkAimClip().catch(() => null),
+      loadMotusManJogAimClip().catch(() => null),
+      loadMotusManJumpStartClip().catch(() => null),
+      loadMotusManJumpAirClip().catch(() => null)
     ])
-      .then(([template, idleClip, crouchClip]) => {
+      .then(([template, idleClip, crouchClip, walkClip, jogClip, jumpStartClip, jumpAirClip]) => {
         if (playerActor !== actor || !actor.root.parent) {
           return null;
         }
@@ -3781,11 +4026,35 @@ window.onload = () => {
           setStartupPhase("Preparing player actions", "Binding standing and crouch actions.");
         }
         playerAnimationMixer = new THREE.AnimationMixer(template);
+        playerAnimationMixer.addEventListener('finished', (e) => {
+          if (e.action === playerJumpStartAction && playerCurrentAimIdleMode === "jumpStart") {
+            playerJumpStartFinished = true;
+            syncPlayerAimIdleAnimation(true);
+          }
+        });
         playerIdleAction = playerAnimationMixer.clipAction(idleClip);
         playerCrouchIdleAction = crouchClip ? playerAnimationMixer.clipAction(crouchClip) : null;
+        playerWalkAction = walkClip ? playerAnimationMixer.clipAction(walkClip) : null;
+        if (playerWalkAction) {
+          playerWalkAction.setLoop(THREE.LoopRepeat, Infinity);
+        }
+        playerJogAction = jogClip ? playerAnimationMixer.clipAction(jogClip) : null;
+        if (playerJogAction) {
+          playerJogAction.setLoop(THREE.LoopRepeat, Infinity);
+        }
+        playerJumpStartAction = jumpStartClip ? playerAnimationMixer.clipAction(jumpStartClip) : null;
+        if (playerJumpStartAction) {
+          playerJumpStartAction.setLoop(THREE.LoopOnce, 1);
+          playerJumpStartAction.clampWhenFinished = true;
+        }
+        playerJumpAirAction = jumpAirClip ? playerAnimationMixer.clipAction(jumpAirClip) : null;
+        if (playerJumpAirAction) {
+          playerJumpAirAction.setLoop(THREE.LoopRepeat, Infinity);
+        }
+        playerJumpStartFinished = false;
         playerCurrentAimIdleMode = "standing";
         syncPlayerAimIdleAnimation(true);
-        console.log("MotusMan attached to live player");
+        console.log("MotusMan attached to live player, walkAction:", Boolean(playerWalkAction), "jogAction:", Boolean(playerJogAction), "jumpStartAction:", Boolean(playerJumpStartAction), "jumpAirAction:", Boolean(playerJumpAirAction));
         if (!startupReady) {
           setStartupReadiness("playerModelReady", true, {
             statusMessage: "Loading player",
@@ -4056,8 +4325,16 @@ window.onload = () => {
   }
 
   function attachMotusManToRemotePlayer(actor, accentColor = remotePlayerMotusManAccentColor) {
-    Promise.all([loadMotusManTemplate(), loadMotusManIdleClip(), loadMotusManCrouchIdleClip()])
-      .then(([, idleClip, crouchClip]) => {
+    Promise.all([
+      loadMotusManTemplate(),
+      loadMotusManIdleClip(),
+      loadMotusManCrouchIdleClip(),
+      loadMotusManWalkAimClip().catch(() => null),
+      loadMotusManJogAimClip().catch(() => null),
+      loadMotusManJumpStartClip().catch(() => null),
+      loadMotusManJumpAirClip().catch(() => null)
+    ])
+      .then(([, idleClip, crouchClip, walkClip, jogClip, jumpStartClip, jumpAirClip]) => {
         if (!actor?.root?.parent || remotePlayers.get(actor.playerId) !== actor) {
           return;
         }
@@ -4075,6 +4352,11 @@ window.onload = () => {
         actor.root.add(remoteVisual);
         actor.motusManVisual = remoteVisual;
         actor.characterMixer = new THREE.AnimationMixer(remoteVisual);
+        actor.characterMixer.addEventListener('finished', (e) => {
+          if (e.action === actor.characterJumpStartAction) {
+            actor.remoteJumpStartFinished = true;
+          }
+        });
         actor.characterIdleAction = actor.characterMixer.clipAction(idleClip);
         actor.characterIdleAction.reset();
         actor.characterIdleAction.play();
@@ -4085,7 +4367,38 @@ window.onload = () => {
         } else {
           actor.characterCrouchAction = null;
         }
+        if (walkClip) {
+          actor.characterWalkAction = actor.characterMixer.clipAction(walkClip);
+          actor.characterWalkAction.reset();
+          actor.characterWalkAction.setLoop(THREE.LoopRepeat, Infinity);
+        } else {
+          actor.characterWalkAction = null;
+        }
+        if (jogClip) {
+          actor.characterJogAction = actor.characterMixer.clipAction(jogClip);
+          actor.characterJogAction.reset();
+          actor.characterJogAction.setLoop(THREE.LoopRepeat, Infinity);
+        } else {
+          actor.characterJogAction = null;
+        }
+        if (jumpStartClip) {
+          actor.characterJumpStartAction = actor.characterMixer.clipAction(jumpStartClip);
+          actor.characterJumpStartAction.reset();
+          actor.characterJumpStartAction.setLoop(THREE.LoopOnce, 1);
+        } else {
+          actor.characterJumpStartAction = null;
+        }
+        if (jumpAirClip) {
+          actor.characterJumpAirAction = actor.characterMixer.clipAction(jumpAirClip);
+          actor.characterJumpAirAction.reset();
+          actor.characterJumpAirAction.setLoop(THREE.LoopRepeat, Infinity);
+        } else {
+          actor.characterJumpAirAction = null;
+        }
         actor.remoteCrouchActive = false;
+        actor.remoteJumpActiveMode = "idle";
+        actor.remoteJumpSequenceId = 0;
+        actor.remoteJumpStartFinished = false;
         actor.characterMixer.timeScale = actor.isDead ? 0 : 1;
         setRemoteVisualTransformDefaults(remoteVisual, 0.18, 0.12);
         actor.visual.visible = false;
@@ -4116,6 +4429,11 @@ window.onload = () => {
     }
     playerIdleAction = null;
     playerCrouchIdleAction = null;
+    playerWalkAction = null;
+    playerJogAction = null;
+    playerJumpStartAction = null;
+    playerJumpAirAction = null;
+    playerJumpStartFinished = false;
     playerCurrentAimIdleMode = "standing";
 
     const actor = buildBoxActor({
@@ -11748,6 +12066,8 @@ window.onload = () => {
         pitch: Number(pitch.toFixed(4))
       },
       crouching: Boolean(isCrouching),
+      isGrounded: Boolean(isGrounded),
+      jumpSequenceId: localJumpSequenceId,
       movement: {
         forward: Boolean(moveState.forward),
         backward: Boolean(moveState.backward),
@@ -11888,6 +12208,9 @@ window.onload = () => {
     const now = performance.now();
     const hasExistingPacket = lastPacketTimestamps.has(id);
 
+    remotePlayer.isGrounded = state.isGrounded;
+    remotePlayer.jumpSequenceId = state.jumpSequenceId;
+
     remotePlayer.playerName =
       typeof state.name === "string" && state.name.trim()
         ? state.name.trim()
@@ -11973,7 +12296,12 @@ window.onload = () => {
       remotePlayer.characterMixer = null;
       remotePlayer.characterIdleAction = null;
       remotePlayer.characterCrouchAction = null;
+      remotePlayer.characterWalkAction = null;
+      remotePlayer.characterJogAction = null;
+      remotePlayer.characterJumpStartAction = null;
+      remotePlayer.characterJumpAirAction = null;
       remotePlayer.remoteCrouchActive = false;
+      remotePlayer.remoteJumpActiveMode = "idle";
     }
     clearActorPvpHitboxes(remotePlayer);
     removePlayerNameplate(remotePlayer.nameplate);
@@ -12024,6 +12352,62 @@ window.onload = () => {
       );
       if (remotePlayer.characterMixer) {
         remotePlayer.characterMixer.update(delta);
+      }
+
+      // --- Remote movement animation (walk/jog/jump based on network state) ---
+      if (remotePlayer.characterIdleAction) {
+        const isRemoteGrounded = remotePlayer.isGrounded !== false;
+        const isRemoteMoving = remotePlayer.movementState.moving && !remotePlayer.remoteCrouchActive;
+        const isRemoteSprinting = isRemoteMoving && Boolean(remotePlayer.movementState.sprint);
+
+        let jumpTriggered = false;
+        const incomingJumpSeq = remotePlayer.jumpSequenceId ?? 0;
+        if (incomingJumpSeq > (remotePlayer.remoteJumpSequenceId ?? 0)) {
+          jumpTriggered = true;
+          remotePlayer.remoteJumpSequenceId = incomingJumpSeq;
+          remotePlayer.remoteJumpStartFinished = false;
+        }
+
+        // Determine target movement mode: "jumpStart" | "jumpAir" | "jog" | "walk" | "idle"
+        let targetMoveMode = "idle";
+
+        if (jumpTriggered && remotePlayer.characterJumpStartAction) {
+          targetMoveMode = "jumpStart";
+        } else if (remotePlayer.remoteJumpActiveMode === "jumpStart" && !isRemoteGrounded && !remotePlayer.remoteJumpStartFinished) {
+          targetMoveMode = "jumpStart";
+        } else if (!isRemoteGrounded && remotePlayer.characterJumpAirAction) {
+          targetMoveMode = "jumpAir";
+        } else if (isRemoteMoving && isRemoteSprinting && remotePlayer.characterJogAction) {
+          targetMoveMode = "jog";
+        } else if (isRemoteMoving && remotePlayer.characterWalkAction) {
+          targetMoveMode = "walk";
+        }
+
+        const prevMoveMode = remotePlayer.remoteJumpActiveMode ?? "idle";
+
+        if (targetMoveMode !== prevMoveMode) {
+          remotePlayer.remoteJumpActiveMode = targetMoveMode;
+
+          // Fade out previous
+          if (prevMoveMode === "jumpStart" && remotePlayer.characterJumpStartAction) remotePlayer.characterJumpStartAction.fadeOut(0.18);
+          if (prevMoveMode === "jumpAir" && remotePlayer.characterJumpAirAction) remotePlayer.characterJumpAirAction.fadeOut(0.18);
+          if (prevMoveMode === "jog" && remotePlayer.characterJogAction) remotePlayer.characterJogAction.fadeOut(0.20);
+          if (prevMoveMode === "walk" && remotePlayer.characterWalkAction) remotePlayer.characterWalkAction.fadeOut(0.20);
+          if (prevMoveMode === "idle") remotePlayer.characterIdleAction.fadeOut(0.18);
+
+          // Fade in next
+          if (targetMoveMode === "jumpStart") {
+            remotePlayer.characterJumpStartAction.reset().fadeIn(0.18).play();
+          } else if (targetMoveMode === "jumpAir") {
+            remotePlayer.characterJumpAirAction.reset().fadeIn(0.18).play();
+          } else if (targetMoveMode === "jog") {
+            remotePlayer.characterJogAction.reset().fadeIn(0.18).play();
+          } else if (targetMoveMode === "walk") {
+            remotePlayer.characterWalkAction.reset().fadeIn(0.18).play();
+          } else {
+            remotePlayer.characterIdleAction.reset().fadeIn(0.18).play();
+          }
+        }
       }
 
       const crouchVisual = remotePlayer.motusManVisual ?? remotePlayer.visual;
@@ -15148,6 +15532,7 @@ window.onload = () => {
   }
 
   function resolvePlayerVerticalMovement(delta) {
+    const wasGrounded = isGrounded;
     const previousFeetY = playerPosition.y;
     const previousHeadY = previousFeetY + playerHalfExtents.y;
     let nextFeetY = previousFeetY + verticalVelocity * delta;
@@ -15211,6 +15596,10 @@ window.onload = () => {
     playerPosition.y = Math.max(0, nextFeetY);
     isGrounded = grounded;
     isJumping = !grounded;
+
+    if (!wasGrounded && isGrounded) {
+      syncPlayerAimIdleAnimation();
+    }
   }
 
   function resolvePlayerPenetration() {
@@ -16878,6 +17267,7 @@ window.onload = () => {
       horizontalVelocity.lerp(zeroVector, Math.min(1, moveConfig.damping * delta));
       isMoving = false;
     }
+    syncPlayerAimIdleAnimation();
 
     nextPlayerPosition.copy(playerPosition);
     horizontalStep.copy(horizontalVelocity).multiplyScalar(delta);
@@ -18184,6 +18574,8 @@ window.onload = () => {
           if (isGrounded) {
             verticalVelocity = moveConfig.jumpSpeed;
             isGrounded = false;
+            localJumpSequenceId += 1;
+            syncPlayerAimIdleAnimation(true, true);
           }
           event.preventDefault();
           break;
