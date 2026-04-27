@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,8 @@
   <link rel="preload" as="image" href="./assets/ui/loading-screen-background.png">
   <style>
     /* Loading overlay visible by default on first paint */
-    html, body {
+    html,
+    body {
       margin: 0;
       width: 100%;
       height: 100%;
@@ -108,18 +110,12 @@
   </script>
   <link rel="stylesheet" href="./styles.css">
 </head>
+
 <body class="startup-loading main-menu-open">
   <!-- Loading overlay visible by default on first paint -->
   <div id="startup-loading-overlay" aria-hidden="false">
-    <img
-      id="startup-loading-background-image"
-      src="./assets/ui/loading-screen-background.png"
-      alt=""
-      loading="eager"
-      fetchpriority="high"
-      decoding="async"
-      onerror="this.hidden=true;"
-    >
+    <img id="startup-loading-background-image" src="./assets/ui/loading-screen-background.png" alt="" loading="eager"
+      fetchpriority="high" decoding="async" onerror="this.hidden=true;">
     <div id="startup-loading-background-overlay" aria-hidden="true"></div>
     <div class="startup-loading-shell">
       <h1 class="startup-loading-title">LOADING</h1>
@@ -133,10 +129,12 @@
   </div>
   <div id="device-mode-overlay" class="device-mode-overlay" aria-hidden="true" hidden>
     <div class="device-mode-overlay-backdrop" aria-hidden="true"></div>
-    <div class="device-mode-panel" role="dialog" aria-modal="true" aria-labelledby="device-mode-title" aria-describedby="device-mode-subtitle">
+    <div class="device-mode-panel" role="dialog" aria-modal="true" aria-labelledby="device-mode-title"
+      aria-describedby="device-mode-subtitle">
       <p class="device-mode-eyebrow">Startup Setup</p>
       <h2 id="device-mode-title">Choose Device Mode</h2>
-      <p id="device-mode-subtitle" class="device-mode-subtitle">PC Mode = Keyboard + Mouse<br>Phone Mode = Touch Controls + Mobile UI</p>
+      <p id="device-mode-subtitle" class="device-mode-subtitle">PC Mode = Keyboard + Mouse<br>Phone Mode = Touch
+        Controls + Mobile UI</p>
       <div class="device-mode-actions">
         <button id="device-mode-pc-button" class="device-mode-button" type="button">
           <span class="device-mode-button-title">PC Mode</span>
@@ -161,7 +159,8 @@
       <div class="home-panel home-surface-panel">
         <p class="home-eyebrow">Browser Third-Person Shooter</p>
         <h1>Cube Village Stand-Off</h1>
-        <p class="home-intro">Suit up before deployment, review the controls, choose your map, and launch into the arena only when you are ready to start the fight.</p>
+        <p class="home-intro">Suit up before deployment, review the controls, choose your map, and launch into the arena
+          only when you are ready to start the fight.</p>
         <div class="home-grid">
           <section class="home-section">
             <h2>Controls</h2>
@@ -197,7 +196,8 @@
           <section class="home-section home-online-mode-section" aria-labelledby="home-online-mode-title">
             <p class="home-eyebrow">Shared Multiplayer</p>
             <h2 id="home-online-mode-title">ONLINE MODE</h2>
-            <p>Use the same server address for both buttons below. Leave it blank to use the default multiplayer endpoint for the current environment, or enter a LAN/server address manually.</p>
+            <p>Use the same server address for both buttons below. Leave it blank to use the default multiplayer
+              endpoint for the current environment, or enter a LAN/server address manually.</p>
             <div id="home-online-mode-mount" class="home-shared-panel-slot" aria-label="Online multiplayer panel"></div>
           </section>
         </div>
@@ -230,8 +230,11 @@
             <section class="home-settings-card" aria-labelledby="home-gun-settings-title">
               <p class="home-eyebrow">Loadout</p>
               <h3 id="home-gun-settings-title">Gun Modification</h3>
-              <p class="online-fair-limits-warning" style="color: #ffaa00; font-weight: bold; display: none; margin-bottom: 8px;">Online Fair Limits Active: unfair upgrades are capped.</p>
-              <p class="home-settings-copy">Tune your current weapon here before deployment. This view reuses the live gun modification controls.</p>
+              <p class="online-fair-limits-warning"
+                style="color: #ffaa00; font-weight: bold; display: none; margin-bottom: 8px;">Online Fair Limits Active:
+                unfair upgrades are capped.</p>
+              <p class="home-settings-copy">Tune your current weapon here before deployment. This view reuses the live
+                gun modification controls.</p>
               <div id="home-gun-customization-mount" class="home-shared-panel-slot"></div>
             </section>
           </div>
@@ -247,18 +250,38 @@
             <button id="aim-training-home-button" type="button">Back to Home</button>
           </div>
           <hr class="aim-training-divider">
+          <div class="aim-training-difficulty-container">
+            <label for="aim-training-difficulty-select">Difficulty:</label>
+            <select id="aim-training-difficulty-select">
+              <option value="easy">Easy</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
           <div id="aim-training-grid" class="aim-training-grid">
-            <button class="aim-mode-card" type="button" aria-label="Grid Shot">
-              <div class="aim-mode-preview">Preview Coming Soon</div>
+            <button id="start-grid-shot-button" class="aim-mode-card" type="button" aria-label="Grid Shot">
+              <div class="aim-mode-preview">
+                <video class="aim-mode-preview-video" autoplay loop muted playsinline preload="auto">
+                  <source src="gridshot-preview.mp4" type="video/mp4">
+                </video>
+              </div>
               <h3 class="aim-mode-title">GRID SHOT</h3>
             </button>
-            <button class="aim-mode-card" type="button" aria-label="Tracking Ball">
-              <div class="aim-mode-preview">Preview Coming Soon</div>
+            <button id="start-tracking-ball-button" class="aim-mode-card" type="button" aria-label="Tracking Ball">
+              <div class="aim-mode-preview">
+                <video class="aim-mode-preview-video" autoplay loop muted playsinline preload="auto" onloadedmetadata="this.muted=true;this.volume=0">
+                  <source src="assets/videos/tracking-ball-preview.mp4" type="video/mp4">
+                </video>
+              </div>
               <h3 class="aim-mode-title">TRACKING BALL</h3>
             </button>
-            <button class="aim-mode-card" type="button" aria-label="Flick Targets">
-              <div class="aim-mode-preview">Preview Coming Soon</div>
-              <h3 class="aim-mode-title">FLICK TARGETS</h3>
+            <button id="start-jiggle-training-button" class="aim-mode-card" type="button" aria-label="Jiggle Training">
+              <div class="aim-mode-preview">
+                <video class="aim-mode-preview-video" autoplay loop muted playsinline preload="auto">
+                  <source src="assets/videos/jiggle-training-preview.mp4" type="video/mp4">
+                </video>
+              </div>
+              <h3 class="aim-mode-title">JIGGLE TRAINING</h3>
             </button>
           </div>
         </div>
@@ -268,8 +291,11 @@
       <span id="ammo-ui-text">Ammo: 60 / &infin;</span>
       <button class="layout-edit-resize-handle" type="button" aria-label="Resize ammo counter"></button>
     </div>
-    <div id="active-player-name-ui" class="status-card" aria-hidden="true">Name:</div>
-    <div id="player-hp-ui" class="status-card hud-layout-item layout-editable-item" data-layout-element-id="playerHpBar">
+    <div id="active-player-name-ui" class="active-player-name-ui hud-layout-item layout-editable-item"
+      data-layout-element-id="playerName" aria-hidden="true"></div>
+    <div id="online-kill-feed-message" class="online-kill-feed-message" aria-hidden="true" hidden></div>
+    <div id="player-hp-ui" class="status-card hud-layout-item layout-editable-item"
+      data-layout-element-id="playerHpBar">
       <div class="status-label">Player HP</div>
       <div class="hp-track">
         <div id="player-hp-fill" class="hp-fill player"></div>
@@ -282,7 +308,8 @@
     <div id="interaction-menu" class="menu-panel" aria-hidden="true">
       <div class="menu-panel-header">
         <h2>Interaction Menu</h2>
-        <button id="interaction-menu-close-button" class="menu-close-button" type="button" aria-label="Close interaction menu">X</button>
+        <button id="interaction-menu-close-button" class="menu-close-button" type="button"
+          aria-label="Close interaction menu">X</button>
       </div>
       <label class="menu-field" for="difficulty-select">
         <span>Difficulty</span>
@@ -318,9 +345,12 @@
       <div id="gun-customization-panel" aria-hidden="true">
         <div class="menu-panel-header menu-panel-subheader">
           <h3>Gun Customization Panel</h3>
-          <button id="gun-customization-close-button" class="menu-close-button" type="button" aria-label="Close gun customization">X</button>
+          <button id="gun-customization-close-button" class="menu-close-button" type="button"
+            aria-label="Close gun customization">X</button>
         </div>
-        <p class="online-fair-limits-warning" style="color: #ffaa00; font-weight: bold; display: none; margin-bottom: 8px; padding: 0 16px;">Online Fair Limits Active: unfair upgrades are capped.</p>
+        <p class="online-fair-limits-warning"
+          style="color: #ffaa00; font-weight: bold; display: none; margin-bottom: 8px; padding: 0 16px;">Online Fair
+          Limits Active: unfair upgrades are capped.</p>
         <label class="menu-field" for="savedGunList">
           <span>Saved Guns</span>
           <select id="savedGunList"></select>
@@ -356,19 +386,15 @@
         </div>
         <!-- Advanced recoil mini-panel added -->
         <div class="menu-subpanel-anchor">
-          <button
-            id="gunAdvancedRecoilButton"
-            class="menu-subpanel-button"
-            type="button"
-            aria-expanded="false"
-            aria-controls="gunAdvancedRecoilPanel"
-          >
+          <button id="gunAdvancedRecoilButton" class="menu-subpanel-button" type="button" aria-expanded="false"
+            aria-controls="gunAdvancedRecoilPanel">
             Recoil Intensity Customisation
           </button>
           <div id="gunAdvancedRecoilPanel" class="menu-subpanel" aria-hidden="true" hidden>
             <div class="menu-subpanel-header">
               <h4>Recoil Intensity Customisation</h4>
-              <button id="gunAdvancedRecoilCloseButton" class="menu-subpanel-close" type="button" aria-label="Close recoil intensity customisation">X</button>
+              <button id="gunAdvancedRecoilCloseButton" class="menu-subpanel-close" type="button"
+                aria-label="Close recoil intensity customisation">X</button>
             </div>
             <label class="menu-field" for="gunRecoilIntensityX">
               <span>X Recoil Intensity</span>
@@ -409,254 +435,246 @@
           <div class="settings-shell-header-actions">
             <button id="settings-home-button" type="button">Home</button>
             <button id="settings-fullscreen-button" type="button">Fullscreen</button>
-            <button id="settings-menu-close-button" class="menu-close-button" type="button" aria-label="Close settings">X</button>
+            <button id="settings-menu-close-button" class="menu-close-button" type="button"
+              aria-label="Close settings">X</button>
           </div>
         </div>
         <div class="settings-main settings-shell-body">
           <div class="settings-content settings-tabs-content settings-accordion" aria-label="Settings categories">
             <div class="settings-accordion-section" data-settings-section="controls">
-              <button id="settings-tab-controls" class="settings-tab-button settings-accordion-button is-active" type="button" data-settings-tab="controls" aria-selected="true" aria-expanded="true">
+              <button id="settings-tab-controls" class="settings-tab-button settings-accordion-button is-active"
+                type="button" data-settings-tab="controls" aria-selected="true" aria-expanded="true">
                 Camera
               </button>
-              <section id="settings-panel-controls" class="settings-tab-panel is-active" data-settings-tab-panel="controls" aria-labelledby="settings-tab-controls">
-              <div class="settings-panel-copy">
-                <h3>Camera</h3>
-                <p>Camera view settings and related sensitivity options live here.</p>
-              </div>
-              <div class="settings-card">
-                <label class="menu-field" for="settings-fov-input">
-                  <span>FOV</span>
-                  <input type="number" id="settings-fov-input" min="55" max="90" step="1" value="55">
-                </label>
-              </div>
-              <section id="mobile-controls-settings-section" aria-labelledby="mobile-controls-settings-title" hidden>
-                <h3 id="mobile-controls-settings-title">Phone Controls</h3>
-                <div class="settings-card mobile-settings-card" aria-labelledby="mobile-settings-subtitle">
-                  <h4 id="mobile-settings-subtitle">Mobile Settings</h4>
-                  <label class="menu-field" for="mobile-camera-sensitivity-input">
-                    <span class="menu-field-split">
-                      <span>Mobile Camera Sensitivity</span>
-                      <strong id="mobile-camera-sensitivity-value" class="menu-field-value">230%</strong>
-                    </span>
-                    <input
-                      type="range"
-                      id="mobile-camera-sensitivity-input"
-                      min="1"
-                      max="500"
-                      step="1"
-                      value="230"
-                    >
-                  </label>
-                  <div class="menu-help-text">
-                    Adjusts Phone Mode camera drag, Fire drag-to-aim, and desktop Phone Mode camera simulation.
-                  </div>
+              <section id="settings-panel-controls" class="settings-tab-panel is-active"
+                data-settings-tab-panel="controls" aria-labelledby="settings-tab-controls">
+                <div class="settings-panel-copy">
+                  <h3>Camera</h3>
+                  <p>Camera view settings and related sensitivity options live here.</p>
                 </div>
-              </section>
+                <div class="settings-card">
+                  <label class="menu-field" for="settings-fov-input">
+                    <span>FOV</span>
+                    <input type="number" id="settings-fov-input" min="55" max="90" step="1" value="55">
+                  </label>
+                </div>
+                <section id="mobile-controls-settings-section" aria-labelledby="mobile-controls-settings-title" hidden>
+                  <h3 id="mobile-controls-settings-title">Phone Controls</h3>
+                  <div class="settings-card mobile-settings-card" aria-labelledby="mobile-settings-subtitle">
+                    <h4 id="mobile-settings-subtitle">Mobile Settings</h4>
+                    <label class="menu-field" for="mobile-camera-sensitivity-input">
+                      <span class="menu-field-split">
+                        <span>Mobile Camera Sensitivity</span>
+                        <strong id="mobile-camera-sensitivity-value" class="menu-field-value">230%</strong>
+                      </span>
+                      <input type="range" id="mobile-camera-sensitivity-input" min="1" max="500" step="1" value="230">
+                    </label>
+                    <div class="menu-help-text">
+                      Adjusts Phone Mode camera drag, Fire drag-to-aim, and desktop Phone Mode camera simulation.
+                    </div>
+                  </div>
+                </section>
               </section>
             </div>
             <div class="settings-accordion-section" data-settings-section="graphics">
-              <button id="settings-tab-graphics" class="settings-tab-button settings-accordion-button" type="button" data-settings-tab="graphics" aria-selected="false" aria-expanded="false">
+              <button id="settings-tab-graphics" class="settings-tab-button settings-accordion-button" type="button"
+                data-settings-tab="graphics" aria-selected="false" aria-expanded="false">
                 Graphics
               </button>
-              <section id="settings-panel-graphics" class="settings-tab-panel" data-settings-tab-panel="graphics" aria-labelledby="settings-tab-graphics" hidden>
-              <div class="settings-panel-copy">
-                <h3>Graphics</h3>
-                <p>Manual graphics controls apply live to the active scene and stay synced in both menus.</p>
-              </div>
-              <section id="graphics-settings-section" aria-labelledby="graphics-settings-title">
-                <h3 id="graphics-settings-title">Graphics</h3>
-                <div class="settings-card graphics-settings-card" aria-labelledby="graphics-settings-subtitle">
-                  <h4 id="graphics-settings-subtitle">Manual Graphics</h4>
-                  <label class="menu-field" for="graphics-render-scale-input">
-                    <span class="menu-field-split">
-                      <span>Render Scale / Resolution</span>
-                      <strong id="graphics-render-scale-value" class="menu-field-value">100%</strong>
-                    </span>
-                    <input
-                      type="range"
-                      id="graphics-render-scale-input"
-                      min="1"
-                      max="100"
-                      step="1"
-                      value="100"
-                    >
-                  </label>
-                  <label class="menu-field" for="graphics-pixel-ratio-input">
-                    <span class="menu-field-split">
-                      <span>Pixel Ratio</span>
-                      <strong id="graphics-pixel-ratio-value" class="menu-field-value">1.5x</strong>
-                    </span>
-                    <input
-                      type="range"
-                      id="graphics-pixel-ratio-input"
-                      min="0.3"
-                      max="2.0"
-                      step="0.1"
-                      value="1.5"
-                    >
-                  </label>
-                  <label class="menu-check" for="graphics-shadows-toggle">
-                    <input type="checkbox" id="graphics-shadows-toggle" checked>
-                    <span>Shadows</span>
-                  </label>
-                  <label id="graphics-shadow-quality-field" class="menu-field" for="graphics-shadow-quality-select">
-                    <span>Shadow Quality</span>
-                    <select id="graphics-shadow-quality-select">
-                      <option value="ultra">Ultra</option>
-                      <option value="high" selected>High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </label>
-                  <label class="menu-field" for="graphics-render-distance-input">
-                    <span class="menu-field-split">
-                      <span>Render Distance</span>
-                      <strong id="graphics-render-distance-value" class="menu-field-value">600</strong>
-                    </span>
-                    <input
-                      type="range"
-                      id="graphics-render-distance-input"
-                      min="50"
-                      max="1000"
-                      step="10"
-                      value="600"
-                    >
-                  </label>
-                  <label class="menu-field" for="graphics-effect-quality-select">
-                    <span>Effect Quality</span>
-                    <select id="graphics-effect-quality-select">
-                      <option value="ultra" selected>Ultra</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                      <option value="ultraLow">Ultra Low</option>
-                    </select>
-                  </label>
-                  <div class="menu-help-text">
-                    Applies live in both Home Settings and the in-game Settings menu without reloading.
-                  </div>
+              <section id="settings-panel-graphics" class="settings-tab-panel" data-settings-tab-panel="graphics"
+                aria-labelledby="settings-tab-graphics" hidden>
+                <div class="settings-panel-copy">
+                  <h3>Graphics</h3>
+                  <p>Manual graphics controls apply live to the active scene and stay synced in both menus.</p>
                 </div>
-              </section>
+                <section id="graphics-settings-section" aria-labelledby="graphics-settings-title">
+                  <h3 id="graphics-settings-title">Graphics</h3>
+                  <div class="settings-card graphics-settings-card" aria-labelledby="graphics-settings-subtitle">
+                    <h4 id="graphics-settings-subtitle">Manual Graphics</h4>
+                    <label class="menu-field" for="graphics-render-scale-input">
+                      <span class="menu-field-split">
+                        <span>Render Scale / Resolution</span>
+                        <strong id="graphics-render-scale-value" class="menu-field-value">100%</strong>
+                      </span>
+                      <input type="range" id="graphics-render-scale-input" min="1" max="100" step="1" value="100">
+                    </label>
+                    <label class="menu-field" for="graphics-pixel-ratio-input">
+                      <span class="menu-field-split">
+                        <span>Pixel Ratio</span>
+                        <strong id="graphics-pixel-ratio-value" class="menu-field-value">1.5x</strong>
+                      </span>
+                      <input type="range" id="graphics-pixel-ratio-input" min="0.3" max="2.0" step="0.1" value="1.5">
+                    </label>
+                    <label class="menu-check" for="graphics-shadows-toggle">
+                      <input type="checkbox" id="graphics-shadows-toggle" checked>
+                      <span>Shadows</span>
+                    </label>
+                    <label id="graphics-shadow-quality-field" class="menu-field" for="graphics-shadow-quality-select">
+                      <span>Shadow Quality</span>
+                      <select id="graphics-shadow-quality-select">
+                        <option value="ultra">Ultra</option>
+                        <option value="high" selected>High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                      </select>
+                    </label>
+                    <label class="menu-field" for="graphics-render-distance-input">
+                      <span class="menu-field-split">
+                        <span>Render Distance</span>
+                        <strong id="graphics-render-distance-value" class="menu-field-value">600</strong>
+                      </span>
+                      <input type="range" id="graphics-render-distance-input" min="50" max="1000" step="10" value="600">
+                    </label>
+                    <label class="menu-field" for="graphics-effect-quality-select">
+                      <span>Effect Quality</span>
+                      <select id="graphics-effect-quality-select">
+                        <option value="ultra" selected>Ultra</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                        <option value="ultraLow">Ultra Low</option>
+                      </select>
+                    </label>
+                    <div class="menu-help-text">
+                      Applies live in both Home Settings and the in-game Settings menu without reloading.
+                    </div>
+                  </div>
+                </section>
               </section>
             </div>
             <div class="settings-accordion-section" data-settings-section="mobileLayout">
-              <button id="settings-tab-mobile-layout" class="settings-tab-button settings-accordion-button" type="button" data-settings-tab="mobileLayout" aria-selected="false" aria-expanded="false">
+              <button id="settings-tab-mobile-layout" class="settings-tab-button settings-accordion-button"
+                type="button" data-settings-tab="mobileLayout" aria-selected="false" aria-expanded="false">
                 Mobile Layout
               </button>
-              <section id="settings-panel-mobile-layout" class="settings-tab-panel" data-settings-tab-panel="mobileLayout" aria-labelledby="settings-tab-mobile-layout" hidden>
-              <div class="settings-panel-copy">
-                <h3>Mobile Layout</h3>
-                <p>Reposition the Phone Mode gameplay HUD and control buttons using the live in-game preview flow.</p>
-              </div>
-              <div id="mobile-layout-unavailable-note" class="settings-empty-state" hidden>
-                Mobile Layout is available only in Phone Mode.
-              </div>
-              <section id="mobile-layout-settings-section" aria-labelledby="mobile-layout-settings-title" hidden>
-                <h3 id="mobile-layout-settings-title">Phone HUD</h3>
-                <div class="menu-help-text">
-                  Reposition and resize the Phone Mode gameplay controls plus the main gameplay HUD, including
-                  HP and ammo.
+              <section id="settings-panel-mobile-layout" class="settings-tab-panel"
+                data-settings-tab-panel="mobileLayout" aria-labelledby="settings-tab-mobile-layout" hidden>
+                <div class="settings-panel-copy">
+                  <h3>Mobile Layout</h3>
+                  <p>Reposition the Phone Mode gameplay HUD and control buttons using the live in-game preview flow.</p>
                 </div>
-                <button id="open-mobile-layout-button" type="button">Custom Layout</button>
-              </section>
+                <div id="mobile-layout-unavailable-note" class="settings-empty-state" hidden>
+                  Mobile Layout is available only in Phone Mode.
+                </div>
+                <section id="mobile-layout-settings-section" aria-labelledby="mobile-layout-settings-title" hidden>
+                  <h3 id="mobile-layout-settings-title">Phone HUD</h3>
+                  <div class="menu-help-text">
+                    Reposition and resize the Phone Mode gameplay controls plus the main gameplay HUD, including
+                    HP and ammo.
+                  </div>
+                  <button id="open-mobile-layout-button" type="button">Custom Layout</button>
+                </section>
               </section>
             </div>
             <div class="settings-accordion-section" data-settings-section="gameplay">
-              <button id="settings-tab-gameplay" class="settings-tab-button settings-accordion-button" type="button" data-settings-tab="gameplay" aria-selected="false" aria-expanded="false">
+              <button id="settings-tab-gameplay" class="settings-tab-button settings-accordion-button" type="button"
+                data-settings-tab="gameplay" aria-selected="false" aria-expanded="false">
                 Gameplay
               </button>
-              <section id="settings-panel-gameplay" class="settings-tab-panel" data-settings-tab-panel="gameplay" aria-labelledby="settings-tab-gameplay" hidden>
-              <div class="settings-panel-copy">
-                <h3>Gameplay</h3>
-                <p>Session identity, shared-world access, and gameplay-adjacent settings stay grouped here.</p>
-              </div>
-              <div class="settings-card">
-                <label class="menu-field" for="player-name-input">
-                  <span>Player Name</span>
-                  <input
-                    type="text"
-                    id="player-name-input"
-                    placeholder="Enter your name"
-                    autocomplete="nickname"
-                    maxlength="24"
-                  >
-                </label>
-                <label class="menu-field" for="show-own-name-toggle">
-                  <span>Show Own Name In Game</span>
-                  <select id="show-own-name-toggle">
-                    <option value="on" selected>ON</option>
-                    <option value="off">OFF</option>
-                  </select>
-                </label>
-              </div>
-              <section id="lan-multiplayer-menu" aria-labelledby="lan-multiplayer-title">
-                <h3 id="lan-multiplayer-title">LAN / Online Multiplayer</h3>
-                <div id="lan-join-panel" class="lan-join-panel" aria-hidden="false">
-                  <label class="menu-field" for="lan-host-ip-input">
-                    <span>Shared Server Address</span>
-                    <input
-                      type="text"
-                      id="lan-host-ip-input"
-                      inputmode="url"
-                      placeholder="Leave blank for the default endpoint, or enter 192.168.1.7:8765 / wss://relay.example.com"
-                      autocomplete="off"
-                      spellcheck="false"
-                    >
-                    <div class="menu-help-text">
-                      This same address field is used for both buttons below. Leave it blank to use the default
-                      multiplayer endpoint for the current environment, or enter a LAN/server address to host or join manually.
-                    </div>
+              <section id="settings-panel-gameplay" class="settings-tab-panel" data-settings-tab-panel="gameplay"
+                aria-labelledby="settings-tab-gameplay" hidden>
+                <div class="settings-panel-copy">
+                  <h3>Gameplay</h3>
+                  <p>Session identity, shared-world access, and gameplay-adjacent settings stay grouped here.</p>
+                </div>
+                <div class="settings-card">
+                  <label class="menu-field" for="player-name-input">
+                    <span>Player Name</span>
+                    <input type="text" id="player-name-input" placeholder="Enter your name" autocomplete="nickname"
+                      maxlength="24">
+                  </label>
+                  <label class="menu-field" for="show-own-name-toggle">
+                    <span>Show Own Name In Game</span>
+                    <select id="show-own-name-toggle">
+                      <option value="on" selected>ON</option>
+                      <option value="off">OFF</option>
+                    </select>
                   </label>
                 </div>
-                <div class="lan-menu-actions">
-                  <button id="start-lan-game-button" type="button">Start Hosted Game</button>
-                  <button id="join-lan-game-button" type="button">Join Server</button>
-                </div>
-                <div id="lan-multiplayer-status" class="lan-status-text" aria-live="polite"></div>
-              </section>
+                <section id="lan-multiplayer-menu" aria-labelledby="lan-multiplayer-title">
+                  <h3 id="lan-multiplayer-title">LAN / Online Multiplayer</h3>
+                  <div id="lan-join-panel" class="lan-join-panel" aria-hidden="false">
+                    <label class="menu-field" for="lan-host-ip-input">
+                      <span>Shared Server Address</span>
+                      <input type="text" id="lan-host-ip-input" inputmode="url"
+                        placeholder="Leave blank for the default endpoint, or enter 192.168.1.7:8765 / wss://relay.example.com"
+                        autocomplete="off" spellcheck="false">
+                      <div class="menu-help-text">
+                        This same address field is used for both buttons below. Leave it blank to use the default
+                        multiplayer endpoint for the current environment, or enter a LAN/server address to host or join
+                        manually.
+                      </div>
+                    </label>
+                  </div>
+                  <div class="lan-menu-actions">
+                    <button id="start-lan-game-button" type="button">Start Hosted Game</button>
+                    <button id="join-lan-game-button" type="button">Join Server</button>
+                  </div>
+                  <div id="lan-multiplayer-status" class="lan-status-text" aria-live="polite"></div>
+                </section>
               </section>
             </div>
             <div class="settings-accordion-section" data-settings-section="audioEffects">
-              <button id="settings-tab-audio-effects" class="settings-tab-button settings-accordion-button" type="button" data-settings-tab="audioEffects" aria-selected="false" aria-expanded="false">
+              <button id="settings-tab-audio-effects" class="settings-tab-button settings-accordion-button"
+                type="button" data-settings-tab="audioEffects" aria-selected="false" aria-expanded="false">
                 UI
               </button>
-              <section id="settings-panel-audio-effects" class="settings-tab-panel" data-settings-tab-panel="audioEffects" aria-labelledby="settings-tab-audio-effects" hidden>
-              <div class="settings-panel-copy">
-                <h3>UI</h3>
-                <p>HUD polish and interface tuning stays separate from core graphics quality.</p>
-              </div>
-              <div class="settings-empty-state">
-                No extra UI options yet.
-              </div>
+              <section id="settings-panel-audio-effects" class="settings-tab-panel"
+                data-settings-tab-panel="audioEffects" aria-labelledby="settings-tab-audio-effects" hidden>
+                <div class="settings-panel-copy">
+                  <h3>UI</h3>
+                  <p>HUD polish and interface tuning stays separate from core graphics quality.</p>
+                </div>
+              </section>
+            </div>
+            <div class="settings-accordion-section" data-settings-section="crosshair">
+              <button id="crosshair-settings-section-toggle" class="settings-tab-button settings-accordion-button"
+                type="button" data-settings-tab="crosshair" aria-selected="false" aria-expanded="false">
+                Crosshair
+              </button>
+              <section id="crosshair-settings-section-content" class="settings-tab-panel"
+                data-settings-tab-panel="crosshair" aria-labelledby="crosshair-settings-section-toggle" hidden>
+                <div class="settings-panel-copy">
+                  <h3>Crosshair</h3>
+                  <p>Adjust visual targeting indicators including size, gap, and center dot visibility.</p>
+                </div>
+                <div class="settings-card">
+                  <button id="home-settings-crosshair-button" class="action-button" type="button">Customise
+                    Crosshair</button>
+                  <button id="ingame-settings-crosshair-button" class="action-button" type="button">Customise
+                    Crosshair</button>
+                </div>
               </section>
             </div>
             <div class="settings-accordion-section" data-settings-section="debugAdvanced">
-              <button id="settings-tab-debug-advanced" class="settings-tab-button settings-accordion-button" type="button" data-settings-tab="debugAdvanced" aria-selected="false" aria-expanded="false">
+              <button id="settings-tab-debug-advanced" class="settings-tab-button settings-accordion-button"
+                type="button" data-settings-tab="debugAdvanced" aria-selected="false" aria-expanded="false">
                 Debug / Advanced
               </button>
-              <section id="settings-panel-debug-advanced" class="settings-tab-panel" data-settings-tab-panel="debugAdvanced" aria-labelledby="settings-tab-debug-advanced" hidden>
-              <div class="settings-panel-copy">
-                <h3>Debug / Advanced</h3>
-                <p>Build info and developer-style status details live here without affecting gameplay systems.</p>
-              </div>
-              <div class="settings-card">
-                <h4>Build / Runtime</h4>
-                <div class="settings-readout-row">
-                  <span>Build</span>
-                  <strong id="settings-debug-build-value">-</strong>
+              <section id="settings-panel-debug-advanced" class="settings-tab-panel"
+                data-settings-tab-panel="debugAdvanced" aria-labelledby="settings-tab-debug-advanced" hidden>
+                <div class="settings-panel-copy">
+                  <h3>Debug / Advanced</h3>
+                  <p>Build info and developer-style status details live here without affecting gameplay systems.</p>
                 </div>
-                <div class="settings-readout-row">
-                  <span>Device Mode</span>
-                  <strong id="settings-debug-device-value">-</strong>
+                <div class="settings-card">
+                  <h4>Build / Runtime</h4>
+                  <div class="settings-readout-row">
+                    <span>Build</span>
+                    <strong id="settings-debug-build-value">-</strong>
+                  </div>
+                  <div class="settings-readout-row">
+                    <span>Device Mode</span>
+                    <strong id="settings-debug-device-value">-</strong>
+                  </div>
+                  <div class="settings-readout-row">
+                    <span>Camera Input</span>
+                    <strong id="settings-debug-camera-input-value">-</strong>
+                  </div>
+                  <div class="settings-readout-row">
+                    <span>Current Map</span>
+                    <strong id="settings-debug-map-value">-</strong>
+                  </div>
                 </div>
-                <div class="settings-readout-row">
-                  <span>Camera Input</span>
-                  <strong id="settings-debug-camera-input-value">-</strong>
-                </div>
-                <div class="settings-readout-row">
-                  <span>Current Map</span>
-                  <strong id="settings-debug-map-value">-</strong>
-                </div>
-              </div>
               </section>
             </div>
           </div>
@@ -668,8 +686,10 @@
       </div>
     </div>
     <div id="mobile-hud" aria-hidden="true" hidden>
-      <div id="mobile-layout-edit-bar" class="mobile-layout-edit-bar" aria-hidden="true" hidden data-scrollable-menu="true">
-        <button id="mobile-layout-close-button" class="menu-close-button mobile-layout-close-button" type="button" aria-label="Close mobile layout editor">X</button>
+      <div id="mobile-layout-edit-bar" class="mobile-layout-edit-bar" aria-hidden="true" hidden
+        data-scrollable-menu="true">
+        <button id="mobile-layout-close-button" class="menu-close-button mobile-layout-close-button" type="button"
+          aria-label="Close mobile layout editor">X</button>
         <div class="mobile-layout-edit-copy">
           <strong>Custom Layout</strong>
           <span>Drag controls and gameplay HUD to move them. Use the corner handle to resize.</span>
@@ -680,7 +700,8 @@
           <button id="mobile-layout-reset-button" type="button">Reset Layout</button>
         </div>
       </div>
-      <div id="mobile-control-joystick" class="mobile-hud-control mobile-hud-joystick layout-editable-item" data-layout-element-id="joystick">
+      <div id="mobile-control-joystick" class="mobile-hud-control mobile-hud-joystick layout-editable-item"
+        data-layout-element-id="joystick">
         <div class="mobile-hud-control-plate">
           <div class="mobile-hud-joystick-base">
             <div class="mobile-hud-joystick-thumb"></div>
@@ -689,7 +710,9 @@
         </div>
         <button class="layout-edit-resize-handle" type="button" aria-label="Resize joystick"></button>
       </div>
-      <div id="mobile-control-fire" class="mobile-hud-control mobile-hud-action mobile-hud-action-fire layout-editable-item" data-layout-element-id="fire" aria-label="Fire button">
+      <div id="mobile-control-fire"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-fire layout-editable-item"
+        data-layout-element-id="fire" aria-label="Fire button">
         <div class="mobile-hud-control-plate">
           <span class="mobile-hud-control-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -701,7 +724,9 @@
         </div>
         <button class="layout-edit-resize-handle" type="button" aria-label="Resize fire button"></button>
       </div>
-      <div id="mobile-control-jump" class="mobile-hud-control mobile-hud-action mobile-hud-action-jump layout-editable-item" data-layout-element-id="jump" aria-label="Jump button">
+      <div id="mobile-control-jump"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-jump layout-editable-item"
+        data-layout-element-id="jump" aria-label="Jump button">
         <div class="mobile-hud-control-plate">
           <span class="mobile-hud-control-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -714,7 +739,9 @@
         </div>
         <button class="layout-edit-resize-handle" type="button" aria-label="Resize jump button"></button>
       </div>
-      <div id="mobile-control-reload" class="mobile-hud-control mobile-hud-action mobile-hud-action-reload layout-editable-item" data-layout-element-id="reload" aria-label="Reload button">
+      <div id="mobile-control-reload"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-reload layout-editable-item"
+        data-layout-element-id="reload" aria-label="Reload button">
         <div class="mobile-hud-control-plate">
           <span class="mobile-hud-control-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -726,7 +753,9 @@
         </div>
         <button class="layout-edit-resize-handle" type="button" aria-label="Resize reload button"></button>
       </div>
-      <div id="mobile-control-sprint" class="mobile-hud-control mobile-hud-action mobile-hud-action-sprint layout-editable-item" data-layout-element-id="sprint" aria-label="Sprint button">
+      <div id="mobile-control-sprint"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-sprint layout-editable-item"
+        data-layout-element-id="sprint" aria-label="Sprint button">
         <div class="mobile-hud-control-plate">
           <span class="mobile-hud-control-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -742,7 +771,9 @@
         </div>
         <button class="layout-edit-resize-handle" type="button" aria-label="Resize sprint button"></button>
       </div>
-      <div id="mobile-control-crouch" class="mobile-hud-control mobile-hud-action mobile-hud-action-crouch layout-editable-item" data-layout-element-id="crouch" aria-label="Crouch button">
+      <div id="mobile-control-crouch"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-crouch layout-editable-item"
+        data-layout-element-id="crouch" aria-label="Crouch button">
         <div class="mobile-hud-control-plate">
           <span class="mobile-hud-control-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -758,7 +789,9 @@
         </div>
         <button class="layout-edit-resize-handle" type="button" aria-label="Resize crouch button"></button>
       </div>
-      <div id="mobile-control-camera" class="mobile-hud-control mobile-hud-action mobile-hud-action-camera mobile-hud-action-utility layout-editable-item" data-layout-element-id="cameraToggle" aria-label="Camera toggle button">
+      <div id="mobile-control-camera"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-camera mobile-hud-action-utility layout-editable-item"
+        data-layout-element-id="cameraToggle" aria-label="Camera toggle button">
         <div class="mobile-hud-control-plate">
           <span class="mobile-hud-control-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -771,7 +804,9 @@
         </div>
         <button class="layout-edit-resize-handle" type="button" aria-label="Resize camera button"></button>
       </div>
-      <div id="mobile-control-menu" class="mobile-hud-control mobile-hud-action mobile-hud-action-menu mobile-hud-action-utility layout-editable-item" data-layout-element-id="menu" aria-label="Menu button">
+      <div id="mobile-control-menu"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-menu mobile-hud-action-utility layout-editable-item"
+        data-layout-element-id="menu" aria-label="Menu button">
         <div class="mobile-hud-control-plate">
           <span class="mobile-hud-control-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -784,7 +819,9 @@
         </div>
         <button class="layout-edit-resize-handle" type="button" aria-label="Resize menu button"></button>
       </div>
-      <div id="mobile-control-settings" class="mobile-hud-control mobile-hud-action mobile-hud-action-settings mobile-hud-action-utility layout-editable-item" data-layout-element-id="settings" aria-label="Settings button">
+      <div id="mobile-control-settings"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-settings mobile-hud-action-utility layout-editable-item"
+        data-layout-element-id="settings" aria-label="Settings button">
         <div class="mobile-hud-control-plate">
           <span class="mobile-hud-control-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -811,11 +848,68 @@
       </div>
     </div>
     <div id="crosshair" aria-hidden="true">
-      <span></span>
-      <span></span>
+      <span class="crosshair-line crosshair-line-top"></span>
+      <span class="crosshair-line crosshair-line-right"></span>
+      <span class="crosshair-line crosshair-line-bottom"></span>
+      <span class="crosshair-line crosshair-line-left"></span>
+      <span class="crosshair-dot"></span>
+    </div>
+    <div id="crosshair-customization-panel" aria-label="Crosshair visual controls" hidden>
+      <div class="crosshair-panel-header">
+        <div class="crosshair-panel-title">Crosshair</div>
+        <button id="crosshair-customization-close-button" class="crosshair-panel-close" type="button"
+          aria-label="Close crosshair customization">X</button>
+      </div>
+      <label class="crosshair-control" for="crosshair-size-input">
+        <span>Size</span>
+        <input id="crosshair-size-input" type="range" min="6" max="42" step="1" value="18"
+          data-crosshair-var="--crosshair-size" data-crosshair-unit="px">
+      </label>
+      <label class="crosshair-control" for="crosshair-thickness-input">
+        <span>Thickness</span>
+        <input id="crosshair-thickness-input" type="range" min="1" max="8" step="1" value="3"
+          data-crosshair-var="--crosshair-thickness" data-crosshair-unit="px">
+      </label>
+      <label class="crosshair-control" for="crosshair-gap-input">
+        <span>Gap</span>
+        <input id="crosshair-gap-input" type="range" min="0" max="24" step="1" value="8"
+          data-crosshair-var="--crosshair-gap" data-crosshair-unit="px">
+      </label>
+      <label class="crosshair-control" for="crosshair-opacity-input">
+        <span>Opacity</span>
+        <input id="crosshair-opacity-input" type="range" min="0" max="1" step="0.05" value="1"
+          data-crosshair-var="--crosshair-opacity">
+      </label>
+      <label class="crosshair-control" for="crosshair-dot-size-input">
+        <span>Dot Size</span>
+        <input id="crosshair-dot-size-input" type="range" min="0" max="12" step="1" value="4"
+          data-crosshair-var="--crosshair-dot-size" data-crosshair-unit="px">
+      </label>
+      <label class="crosshair-control" for="crosshair-outline-thickness-input">
+        <span>Outline</span>
+        <input id="crosshair-outline-thickness-input" type="range" min="0" max="6" step="1" value="1"
+          data-crosshair-var="--crosshair-outline-thickness" data-crosshair-unit="px">
+      </label>
+      <label class="crosshair-control crosshair-color-control" for="crosshair-color-input">
+        <span>Color</span>
+        <input id="crosshair-color-input" type="color" value="#ff6b3d" data-crosshair-var="--crosshair-color">
+      </label>
+      <label class="crosshair-control crosshair-color-control" for="crosshair-outline-color-input">
+        <span>Outline Color</span>
+        <input id="crosshair-outline-color-input" type="color" value="#050b14"
+          data-crosshair-var="--crosshair-outline-color">
+      </label>
+    </div>
+    <div id="aim-training-hud" class="aim-training-mini-hud" aria-hidden="true" hidden>
+      <div id="aim-training-stats-text" class="aim-training-stats-text">(60s) (hit-0 miss-0)</div>
+      <div id="aim-training-results-container" class="aim-training-results-container" style="display: none;">
+        <button id="aim-training-restart-button" type="button" class="action-button mini-action">RESTART</button>
+        <button id="aim-training-back-button" type="button" class="action-button mini-action">BACK</button>
+      </div>
     </div>
   </div>
   <canvas id="game"></canvas>
   <script type="module" src="./src/main.js?diag=build-test-002"></script>
 </body>
+
 </html>

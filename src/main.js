@@ -28,7 +28,16 @@ window.onload = () => {
   const homeSettingsBackButton = document.getElementById("home-settings-back-button");
   const aimTrainingView = document.getElementById("aim-training-view");
   const trainAimButton = document.getElementById("train-aim-button");
+  const startGridShotButton = document.getElementById("start-grid-shot-button");
   const aimTrainingHomeButton = document.getElementById("aim-training-home-button");
+  const aimTrainingHud = document.getElementById("aim-training-hud");
+  const aimTrainingStatsText = document.getElementById("aim-training-stats-text");
+  const aimTrainingResultsContainer = document.getElementById("aim-training-results-container");
+  const aimTrainingRestartButton = document.getElementById("aim-training-restart-button");
+  const aimTrainingBackButton = document.getElementById("aim-training-back-button");
+  const startTrackingBallButton = document.getElementById("start-tracking-ball-button");
+  const startJiggleTrainingButton = document.getElementById("start-jiggle-training-button");
+  const aimTrainingDifficultySelect = document.getElementById("aim-training-difficulty-select");
   const aimModeCards = document.querySelectorAll(".aim-mode-card");
   const homeSettingsMenuMount = document.getElementById("home-settings-menu-mount");
   const homeGunCustomizationMount = document.getElementById("home-gun-customization-mount");
@@ -115,6 +124,8 @@ window.onload = () => {
   const playerNameInput = document.getElementById("player-name-input");
   const showOwnNameToggle = document.getElementById("show-own-name-toggle");
   const activePlayerNameUi = document.getElementById("active-player-name-ui");
+  const onlineKillFeedMessage = document.getElementById("online-kill-feed-message");
+  let onlineKillMessageTimeout = 0;
   const lanMultiplayerMenu = document.getElementById("lan-multiplayer-menu");
   const startLanGameButton = document.getElementById("start-lan-game-button");
   const joinLanGameButton = document.getElementById("join-lan-game-button");
@@ -146,6 +157,13 @@ window.onload = () => {
   const settingsTabButtons = Array.from(settingsMenu?.querySelectorAll(".settings-tab-button") || []);
   const settingsTabPanels = Array.from(settingsMenu?.querySelectorAll(".settings-tab-panel") || []);
   const settingsContent = settingsMenu?.querySelector(".settings-content, .settings-tabs-content") || null;
+  const crosshairCustomizationPanel = document.getElementById("crosshair-customization-panel");
+  const crosshairCustomizationCloseButton = document.getElementById("crosshair-customization-close-button");
+  const homeSettingsCrosshairButton = document.getElementById("home-settings-crosshair-button");
+  const ingameSettingsCrosshairButton = document.getElementById("ingame-settings-crosshair-button");
+  const crosshairVisualInputs = Array.from(
+    crosshairCustomizationPanel?.querySelectorAll("[data-crosshair-var]") || []
+  );
 
   if (
     !canvas ||
@@ -179,10 +197,14 @@ window.onload = () => {
     !deviceModeOverlay ||
     !deviceModePcButton ||
     !deviceModePhoneButton ||
+    !crosshairCustomizationPanel ||
+    !crosshairCustomizationCloseButton ||
     !interactionMenu ||
     !interactionMenuCloseButton ||
     !settingsMenu ||
     !settingsMenuCloseButton ||
+    !homeSettingsCrosshairButton ||
+    !ingameSettingsCrosshairButton ||
     !settingsFullscreenButton ||
     !settingsControlsPanel ||
     !settingsGraphicsPanel ||
@@ -198,8 +220,8 @@ window.onload = () => {
     !settingsDebugDeviceValue ||
     !settingsDebugCameraInputValue ||
     !settingsDebugMapValue ||
-    settingsTabButtons.length < 6 ||
-    settingsTabPanels.length < 6 ||
+    settingsTabButtons.length < 7 ||
+    settingsTabPanels.length < 7 ||
     !difficultySelect ||
     !spawnEnemyButton ||
     !enemyCountInput ||
@@ -501,15 +523,15 @@ window.onload = () => {
     const resolvedMode = mode === "phone" ? "phone" : "pc";
     const nextState = resolvedMode === "phone"
       ? {
-          deviceType: "phone",
-          controls: "mobile",
-          quality: "mobile"
-        }
+        deviceType: "phone",
+        controls: "mobile",
+        quality: "mobile"
+      }
       : {
-          deviceType: "pc",
-          controls: "desktop",
-          quality: "desktop"
-        };
+        deviceType: "pc",
+        controls: "desktop",
+        quality: "desktop"
+      };
 
     Object.assign(startupDeviceMode, nextState);
     document.body.dataset.deviceType = startupDeviceMode.deviceType;
@@ -2211,14 +2233,14 @@ window.onload = () => {
 
       const appliedEntry = elementId === "joystick" && mobileJoystickRuntimeAnchor && !mobileLayoutEditMode
         ? clampMobileControlLayoutEntry(
-            elementId,
-            {
-              ...nextEntry,
-              x: mobileJoystickRuntimeAnchor.x,
-              y: mobileJoystickRuntimeAnchor.y
-            },
-            metrics
-          )
+          elementId,
+          {
+            ...nextEntry,
+            x: mobileJoystickRuntimeAnchor.x,
+            y: mobileJoystickRuntimeAnchor.y
+          },
+          metrics
+        )
         : nextEntry;
 
       if (config.layoutType === "hud") {
@@ -2999,6 +3021,114 @@ window.onload = () => {
   let ammo = currentGun.ammoCapacity;
   let lastShotTime = -Infinity;
   let playerHp = 100;
+
+  // Grid Shot State
+  let isGridShotActive = false;
+  let gridShotHits = 0;
+  let gridShotMisses = 0;
+  let gridShotTimer = 60;
+  let gridShotIntervalId = 0;
+  const gridShotBalls = [];
+  const gridShotSpawn = new THREE.Vector3(0.2, 0.9, -0.6);
+  const GRID_SHOT_TARGET_BOUNDS = {
+    minX: -4.8, maxX: 5.2,
+    minY: 3.9, maxY: 6.9,
+    minZ: -14.6, maxZ: -10.6
+  };
+
+  // Tracking Ball State
+  let isTrackingBallActive = false;
+  let trackingBallScore = 0;
+  let trackingBallMisses = 0;
+  let trackingBallTimer = 60;
+  let trackingBallIntervalId = 0;
+  let trackingBallObject = null;
+  let trackingBallHp = 100;
+  let trackingBallMaxHp = 100;
+  let trackingBallMovementTime = 0;
+  let trackingBallHpBarFill = null;
+  const TRACKING_BALL_DAMAGE = 10;
+  let trackingBallMovePhase = "slow";
+  let trackingBallPhaseTimer = 0;
+  let trackingBallSpawnBurstTimer = 0;
+  const trackingBallDir = new THREE.Vector3();
+
+  // Jiggle Training State
+  let isJiggleTrainingActive = false;
+  let jiggleTrainingHits = 0;
+  let jiggleTrainingMisses = 0;
+  let jiggleTrainingTimer = 60;
+  let jiggleTrainingIntervalId = 0;
+  let jiggleTrainingEnemy = null;
+  let jiggleTrainingEnemySpawnCenter = new THREE.Vector3();
+  let jiggleTrainingSideDirection = new THREE.Vector3();
+  let jiggleTrainingMoveDirection = 1;
+  let jiggleTrainingCurrentOffset = 0;
+  const jiggleTrainingMaxSideDistance = 1.5;
+  const jiggleTrainingMoveSpeed = 3.5;
+
+  // Shared Aim Difficulty
+  let aimTrainingDifficulty = localStorage.getItem("aimTrainingDifficulty") || "moderate";
+  let aimTrainingManualInfiniteAmmoOverride = false;
+  if (aimTrainingDifficultySelect) aimTrainingDifficultySelect.value = aimTrainingDifficulty;
+
+  const JIGGLE_BLOCKER_OBJECT = {
+    minX: -2.9,
+    maxX: 2.9,
+    minZ: 8.0,
+    maxZ: 8.9
+  };
+
+  function isInsideJiggleBlockerObject(pos) {
+    return pos.x >= JIGGLE_BLOCKER_OBJECT.minX && pos.x <= JIGGLE_BLOCKER_OBJECT.maxX &&
+      pos.z >= JIGGLE_BLOCKER_OBJECT.minZ && pos.z <= JIGGLE_BLOCKER_OBJECT.maxZ;
+  }
+
+  function lineSegmentsIntersect(p1, p2, p3, p4) {
+    const det = (p2.x - p1.x) * (p4.z - p3.z) - (p2.z - p1.z) * (p4.x - p3.x);
+    if (det === 0) return false;
+    const lambda = ((p4.z - p3.z) * (p4.x - p1.x) + (p3.x - p4.x) * (p4.z - p1.z)) / det;
+    const gamma = ((p1.z - p2.z) * (p4.x - p1.x) + (p2.x - p1.x) * (p4.z - p1.z)) / det;
+    return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+  }
+
+  function lineSegmentIntersectsJiggleBlocker(p1, p2) {
+    // 4 edges of the AABB
+    const corners = [
+      { x: JIGGLE_BLOCKER_OBJECT.minX, z: JIGGLE_BLOCKER_OBJECT.minZ },
+      { x: JIGGLE_BLOCKER_OBJECT.maxX, z: JIGGLE_BLOCKER_OBJECT.minZ },
+      { x: JIGGLE_BLOCKER_OBJECT.maxX, z: JIGGLE_BLOCKER_OBJECT.maxZ },
+      { x: JIGGLE_BLOCKER_OBJECT.minX, z: JIGGLE_BLOCKER_OBJECT.maxZ }
+    ];
+    // Check if either end is inside
+    if (isInsideJiggleBlockerObject(p1) || isInsideJiggleBlockerObject(p2)) return true;
+    // Check intersection with each edge
+    for (let i = 0; i < 4; i++) {
+      if (lineSegmentsIntersect(p1, p2, corners[i], corners[(i + 1) % 4])) return true;
+    }
+    return false;
+  }
+
+  function getAimTrainingDifficultyConfig() {
+    if (aimTrainingDifficulty === "easy") {
+      return {
+        trackingSpeedMult: 0.65,
+        trackingUnpredictability: 0.4,
+        gridShotDistancing: 0 // No min distance bias
+      };
+    } else if (aimTrainingDifficulty === "hard") {
+      return {
+        trackingSpeedMult: 1.45,
+        trackingUnpredictability: 1.8,
+        gridShotDistancing: 4.5 // Prefer spawning balls at least 4.5 units away
+      };
+    }
+    return {
+      trackingSpeedMult: 1.0,
+      trackingUnpredictability: 1.0,
+      gridShotDistancing: 2.0
+    };
+  }
   let enemy = null;
   let enemies = [];
   let statusMessageTimeoutId = 0;
@@ -3024,7 +3154,8 @@ window.onload = () => {
     "controls",
     "graphics",
     "mobileLayout",
-    "audioEffects"
+    "audioEffects",
+    "crosshair"
   ]);
   const settingsTabOrder = Object.freeze([
     "controls",
@@ -3032,6 +3163,7 @@ window.onload = () => {
     "mobileLayout",
     "gameplay",
     "audioEffects",
+    "crosshair",
     "debugAdvanced"
   ]);
   const startupDeviceMode = {
@@ -5555,10 +5687,10 @@ window.onload = () => {
     const random = createSeededRandom(randomSeed);
     const canopyAnchors = collectCanopyAnchors
       ? [
-          trunkCurve.getPointAt(0.82),
-          trunkCurve.getPointAt(0.9),
-          trunkCurve.getPointAt(0.97)
-        ]
+        trunkCurve.getPointAt(0.82),
+        trunkCurve.getPointAt(0.9),
+        trunkCurve.getPointAt(0.97)
+      ]
       : [];
 
     for (let index = 0; index < branchCount; index += 1) {
@@ -5642,9 +5774,9 @@ window.onload = () => {
 
   function setMapSpawns(playerSpawn, spawns) {
     const activePlayerSpawn =
-      cameraCustomizationPreviewMode &&
-      temporaryPlayerSpawnOverride &&
-      selectedMap === settingsPreviewMapId
+      ((cameraCustomizationPreviewMode || isGridShotActive || isTrackingBallActive || isJiggleTrainingActive) &&
+        temporaryPlayerSpawnOverride &&
+        selectedMap === settingsPreviewMapId)
         ? temporaryPlayerSpawnOverride
         : playerSpawn;
 
@@ -9701,6 +9833,11 @@ window.onload = () => {
       updateLookDirection();
       aimLookTarget.copy(player.position).add(cameraCustomizationPreviewFacingDirection);
       player.lookAt(aimLookTarget);
+    } else if (isJiggleTrainingActive) {
+      // Jiggle Training needs to face positive Z (yaw = 0)
+      // Default training facing is typically Math.PI (negative Z)
+      yaw = 0;
+      updateLookDirection();
     }
   }
 
@@ -9786,6 +9923,739 @@ window.onload = () => {
 
     setCameraCustomizationPreviewPanelOpen(true);
     return true;
+  }
+
+  async function openCrosshairCustomizationForCurrentContext() {
+    // If we are already in the testing place for crosshair, just make sure panel is open
+    if (cameraCustomizationPreviewMode && activeSettingsPreviewFlow === "crosshair") {
+      setCrosshairCustomizationPanelOpen(true);
+      return true;
+    }
+
+    const inMainMenu = document.body.classList.contains("main-menu-open");
+    // If on home page OR home settings view is open OR game hasn't started yet
+    // we want to go to the Testing Place.
+    if (inMainMenu || homeSettingsViewOpen || !gameStarted) {
+      await startCrosshairCustomizationPreviewMode();
+    } else {
+      // Already in-game (real session), just show panel in place
+      setSettingsMenuOpen(false);
+      setCrosshairCustomizationPanelOpen(true);
+    }
+    return true;
+  }
+
+  async function startCrosshairCustomizationPreviewMode() {
+    // Close the settings menu first to avoid UI clutter during transition
+    if (homeSettingsViewOpen) {
+      setHomeSettingsViewOpen(false);
+    } else {
+      setSettingsMenuOpen(false);
+    }
+
+    commitPlayerIdentitySettings();
+    cameraCustomizationPreviewPreviousMapId = selectedMap;
+    cameraCustomizationPreviewMode = true;
+    activeSettingsPreviewFlow = "crosshair";
+
+    // IMPORTANT: Testing Place (0.2, 0.9, -0.6)
+    temporaryPlayerSpawnOverride = cameraCustomizationPreviewSpawn.clone();
+
+    try {
+      // settingsPreviewMapId is "industrialDome" (Testing Place)
+      await loadSelectedMap(settingsPreviewMapId, { forceReload: true });
+      gameStarted = true;
+      hideMainMenu();
+      resetPlayerToCurrentSpawn();
+      statusMessage.classList.remove("visible");
+
+      console.log("[CROSSHAIR] opened from home testing place");
+      // Ensure crosshair panel is shown AFTER teleport
+      setCrosshairCustomizationPanelOpen(true);
+    } catch (error) {
+      console.error("Failed to start crosshair customization preview mode:", error);
+      gameStarted = false;
+      cameraCustomizationPreviewMode = false;
+      activeSettingsPreviewFlow = "";
+      temporaryPlayerSpawnOverride = null;
+      selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+      mapSelect.value = selectedMap;
+      cameraCustomizationPreviewPreviousMapId = "";
+      showMainMenu();
+    }
+  }
+
+  function exitCrosshairCustomizationPreviewMode({ reopenHomeSettings = true } = {}) {
+    // Only return to home if we are actually in the crosshair preview flow
+    if (!cameraCustomizationPreviewMode || activeSettingsPreviewFlow !== "crosshair") {
+      setCrosshairCustomizationPanelOpen(false);
+      return;
+    }
+
+    cameraCustomizationPreviewMode = false;
+    activeSettingsPreviewFlow = "";
+    temporaryPlayerSpawnOverride = null;
+    gameStarted = false;
+    setCameraPreviewCursorHintVisible(false);
+    selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+    mapSelect.value = selectedMap;
+    cameraCustomizationPreviewPreviousMapId = "";
+
+    setCrosshairCustomizationPanelOpen(false);
+    showMainMenu();
+
+    if (reopenHomeSettings) {
+      setHomeSettingsViewOpen(true);
+    }
+  }
+
+  function setCrosshairCustomizationPanelOpen(isOpen) {
+    if (!crosshairCustomizationPanel) return;
+
+    if (isOpen) {
+      crosshairCustomizationPanel.hidden = false;
+      crosshairCustomizationPanel.style.display = "grid";
+    } else {
+      crosshairCustomizationPanel.hidden = true;
+      crosshairCustomizationPanel.style.display = "none";
+    }
+  }
+
+  function spawnGridShotBall(avoidPos = null) {
+    const minX = GRID_SHOT_TARGET_BOUNDS.minX;
+    const maxX = GRID_SHOT_TARGET_BOUNDS.maxX;
+    const minY = GRID_SHOT_TARGET_BOUNDS.minY;
+    const maxY = GRID_SHOT_TARGET_BOUNDS.maxY;
+    const minZ = GRID_SHOT_TARGET_BOUNDS.minZ;
+    const maxZ = GRID_SHOT_TARGET_BOUNDS.maxZ;
+
+    const diffConfig = getAimTrainingDifficultyConfig();
+    let x, y, z;
+    let found = false;
+    let attempts = 0;
+
+    while (!found && attempts < 15) {
+      x = Math.random() * (maxX - minX) + minX;
+      y = Math.random() * (maxY - minY) + minY;
+      z = Math.random() * (maxZ - minZ) + minZ;
+
+      if (!avoidPos || diffConfig.gridShotDistancing <= 0) {
+        found = true;
+      } else {
+        const dx = x - avoidPos.x;
+        const dy = y - avoidPos.y;
+        const dz = z - avoidPos.z;
+        const distSq = dx * dx + dy * dy + dz * dz;
+        if (distSq > diffConfig.gridShotDistancing * diffConfig.gridShotDistancing) {
+          found = true;
+        }
+      }
+      attempts++;
+    }
+
+    const geometry = new THREE.SphereGeometry(0.6, 16, 16);
+    const material = new THREE.MeshLambertMaterial({ color: 0xcc0000 });
+    const sphere = new THREE.Mesh(geometry, material);
+    sphere.position.set(x, y, z);
+    sphere.userData.isGridShotTarget = true;
+
+    // Add thin dark outline ring using BackSide scaling
+    const outlineMaterial = new THREE.MeshBasicMaterial({ color: 0x110000, side: THREE.BackSide });
+    const outlineMesh = new THREE.Mesh(geometry, outlineMaterial);
+    outlineMesh.scale.setScalar(1.06);
+    outlineMesh.userData.isGridShotOutline = true;
+    sphere.add(outlineMesh);
+
+    scene.add(sphere);
+    gridShotBalls.push(sphere);
+  }
+
+  function updateGridShotHudText() {
+    if (aimTrainingStatsText) {
+      aimTrainingStatsText.textContent = `(${gridShotTimer}s) (hit-${gridShotHits} miss-${gridShotMisses})`;
+    }
+  }
+
+  function updateJiggleTrainingHudText() {
+    if (aimTrainingStatsText) {
+      aimTrainingStatsText.textContent = `(${jiggleTrainingTimer}s) (hit-${jiggleTrainingHits} miss-${jiggleTrainingMisses})`;
+    }
+  }
+
+  async function startJiggleTrainingMode() {
+    console.log("[JIGGLE TRAINING] button clicked");
+    cleanupAimTrainingMode();
+    if (!startJiggleTrainingButton) {
+      return;
+    }
+
+    commitPlayerIdentitySettings();
+    startJiggleTrainingButton.disabled = true;
+    startJiggleTrainingButton.querySelector('.aim-mode-title').textContent = "Loading...";
+
+    try {
+      cameraCustomizationPreviewPreviousMapId = selectedMap;
+      isJiggleTrainingActive = true;
+      jiggleTrainingHits = 0;
+      jiggleTrainingMisses = 0;
+      jiggleTrainingTimer = 60;
+
+      if (!aimTrainingManualInfiniteAmmoOverride) {
+        currentGun.infiniteAmmo = true;
+        if (gunInfiniteAmmoInput) gunInfiniteAmmoInput.checked = true;
+        syncGunInputs();
+      }
+
+      if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "none";
+      if (aimTrainingHud) {
+        aimTrainingHud.removeAttribute("hidden");
+        aimTrainingHud.setAttribute("aria-hidden", "false");
+        aimTrainingHud.hidden = false;
+      }
+      updateJiggleTrainingHudText();
+
+      if (jiggleTrainingIntervalId) window.clearInterval(jiggleTrainingIntervalId);
+
+      jiggleTrainingIntervalId = window.setInterval(() => {
+        if (!isJiggleTrainingActive || jiggleTrainingTimer <= 0) return;
+        jiggleTrainingTimer--;
+        updateJiggleTrainingHudText();
+
+        if (jiggleTrainingTimer <= 0) {
+          window.clearInterval(jiggleTrainingIntervalId);
+          jiggleTrainingIntervalId = 0;
+          if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+        }
+      }, 1000);
+
+      temporaryPlayerSpawnOverride = gridShotSpawn.clone();
+      console.log("[JIGGLE TRAINING] using shared aim training spawn", temporaryPlayerSpawnOverride);
+
+      await loadSelectedMap(settingsPreviewMapId, { forceReload: true });
+      gameStarted = true;
+      hideMainMenu();
+      resetPlayerToCurrentSpawn();
+      statusMessage.classList.remove("visible");
+
+      spawnJiggleTrainingEnemy();
+      console.log("[JIGGLE TRAINING] barrier enabled");
+      console.log("[JIGGLE TRAINING] mode started");
+    } catch (error) {
+      console.error("Failed to start Jiggle Training mode:", error);
+      cleanupAimTrainingMode();
+      selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+      mapSelect.value = selectedMap;
+      cameraCustomizationPreviewPreviousMapId = "";
+    } finally {
+      resetAimTrainingCardLoadingStates();
+    }
+  }
+
+  function spawnJiggleTrainingEnemy() {
+    let spawnPos = new THREE.Vector3();
+    let validSpawn = false;
+    let attempts = 0;
+
+    // Close Spawn Band: 3 to 4 units from the wall (1.4 Z)
+    // Wall is at player.z + 2.0 = -0.6 + 2.0 = 1.4
+    // Min Z = 1.4 + 3.0 = 4.4
+    // Max Z = 1.4 + 4.0 = 5.4
+    // Absolute Max Z = 1.4 + 5.0 = 6.4
+
+    while (!validSpawn && attempts < 50) {
+      attempts++;
+
+      const xOffset = (Math.random() - 0.5) * 3.6; // -1.8 to 1.8
+      const zOffset = 5.0 + (Math.random() - 0.5) * 1.0; // 4.5 to 5.5 from player center
+
+      const targetX = gridShotSpawn.x + xOffset;
+      const targetZ = gridShotSpawn.z + zOffset;
+
+      spawnPos.set(targetX, gridShotSpawn.y, targetZ);
+      console.log("[JIGGLE TRAINING] close spawn candidate", spawnPos.clone());
+
+      // Compute temporary side direction for validation
+      const toCenter = new THREE.Vector3().subVectors(spawnPos, gridShotSpawn);
+      toCenter.y = 0;
+      toCenter.normalize();
+      const sideDir = new THREE.Vector3(-toCenter.z, 0, toCenter.x);
+
+      const leftEnd = spawnPos.clone().addScaledVector(sideDir, -jiggleTrainingMaxSideDistance);
+      const rightEnd = spawnPos.clone().addScaledVector(sideDir, jiggleTrainingMaxSideDistance);
+
+      // Rule 1 & 2: No point in footprint
+      if (isInsideJiggleBlockerObject(spawnPos)) {
+        console.log("[JIGGLE TRAINING] rejected close spawn", "center inside blocker", spawnPos.clone());
+        continue;
+      }
+      if (isInsideJiggleBlockerObject(leftEnd) || isInsideJiggleBlockerObject(rightEnd)) {
+        console.log("[JIGGLE TRAINING] rejected close spawn", "path end inside blocker", spawnPos.clone());
+        continue;
+      }
+
+      // Rule 4: Jiggle path segment must not cross footprint
+      if (lineSegmentIntersectsJiggleBlocker(leftEnd, rightEnd)) {
+        console.log("[JIGGLE TRAINING] rejected close spawn", "jiggle path crosses blocker", spawnPos.clone());
+        continue;
+      }
+
+      // Rule 3 & 4: Line of sight must not be blocked
+      const playerPos = { x: gridShotSpawn.x, z: gridShotSpawn.z };
+      if (lineSegmentIntersectsJiggleBlocker(playerPos, spawnPos) ||
+        lineSegmentIntersectsJiggleBlocker(playerPos, leftEnd) ||
+        lineSegmentIntersectsJiggleBlocker(playerPos, rightEnd)) {
+        console.log("[JIGGLE TRAINING] rejected close spawn", "behind blocker object", spawnPos.clone());
+        continue;
+      }
+
+      validSpawn = true;
+    }
+
+    if (!validSpawn) {
+      // Fallback to a safe close spot if somehow all attempts failed
+      spawnPos.set(gridShotSpawn.x, gridShotSpawn.y, gridShotSpawn.z + 4.5);
+    }
+
+    jiggleTrainingEnemy = createEnemy(spawnPos, {
+      difficultyKey: "moderate",
+      suppressStatus: true,
+      rotationY: 0
+    });
+
+    jiggleTrainingEnemy.isJiggleTrainingTarget = true;
+    jiggleTrainingEnemy.isTrainingModeTarget = true;
+    jiggleTrainingEnemySpawnCenter.copy(spawnPos);
+    jiggleTrainingCurrentOffset = 0;
+
+    const toCenterFinal = new THREE.Vector3().subVectors(jiggleTrainingEnemySpawnCenter, gridShotSpawn);
+    toCenterFinal.y = 0;
+    toCenterFinal.normalize();
+    jiggleTrainingSideDirection.set(-toCenterFinal.z, 0, toCenterFinal.x);
+
+    console.log("[JIGGLE TRAINING] enemy spawned close to wall", spawnPos);
+  }
+
+  async function startGridShotMode() {
+    cleanupAimTrainingMode();
+    if (!startGridShotButton) {
+      return;
+    }
+
+    commitPlayerIdentitySettings();
+    startGridShotButton.disabled = true;
+    startGridShotButton.querySelector('.aim-mode-title').textContent = "Loading...";
+
+    try {
+      cameraCustomizationPreviewPreviousMapId = selectedMap;
+      isGridShotActive = true;
+      gridShotHits = 0;
+      gridShotMisses = 0;
+      gridShotTimer = 60;
+
+      // Quality Fix: Default Infinite Ammo to ON unless manually overridden
+      if (!aimTrainingManualInfiniteAmmoOverride) {
+        currentGun.infiniteAmmo = true;
+        if (gunInfiniteAmmoInput) gunInfiniteAmmoInput.checked = true;
+        syncGunInputs();
+      }
+
+      if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "none";
+      if (aimTrainingHud) {
+        aimTrainingHud.removeAttribute("hidden");
+        aimTrainingHud.setAttribute("aria-hidden", "false");
+        aimTrainingHud.hidden = false;
+      }
+      updateGridShotHudText();
+
+      if (gridShotIntervalId) window.clearInterval(gridShotIntervalId);
+
+      gridShotIntervalId = window.setInterval(() => {
+        if (!isGridShotActive || gridShotTimer <= 0) return;
+        gridShotTimer--;
+        updateGridShotHudText();
+
+        if (gridShotTimer <= 0) {
+          window.clearInterval(gridShotIntervalId);
+          gridShotIntervalId = 0;
+
+          // Stop gameplay but keep player in arena
+          if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+        }
+      }, 1000);
+
+      temporaryPlayerSpawnOverride = gridShotSpawn.clone();
+
+      await loadSelectedMap(settingsPreviewMapId, { forceReload: true });
+      gameStarted = true;
+      hideMainMenu();
+      resetPlayerToCurrentSpawn();
+      statusMessage.classList.remove("visible");
+
+      // Spawn exactly 3 targets
+      for (let i = 0; i < 3; i++) {
+        spawnGridShotBall();
+      }
+    } catch (error) {
+      console.error("Failed to start Grid Shot mode:", error);
+      cleanupAimTrainingMode();
+      selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+      mapSelect.value = selectedMap;
+      cameraCustomizationPreviewPreviousMapId = "";
+    } finally {
+      resetAimTrainingCardLoadingStates();
+    }
+  }
+
+  function spawnTrackingBall() {
+    const geometry = new THREE.SphereGeometry(0.6, 16, 16);
+    const material = new THREE.MeshLambertMaterial({ color: 0xcc0000 });
+    const sphere = new THREE.Mesh(geometry, material);
+
+    // Spawn at a valid random distance 8 to 14
+    const angle = (Math.random() - 0.5) * Math.PI * 0.5; // Front ±45 deg
+    const dist = 8 + Math.random() * 6;
+    const x = gridShotSpawn.x + Math.sin(angle) * dist;
+    const z = gridShotSpawn.z - Math.cos(angle) * dist;
+    const y = gridShotSpawn.y + 1.4 + Math.random() * 1.8;
+
+    sphere.position.set(x, y, z);
+    sphere.userData.isTrackingBallTarget = true;
+
+    trackingBallSpawnBurstTimer = 1.25; // 1.25s burst on spawn
+
+    // Outline
+    const outlineMaterial = new THREE.MeshBasicMaterial({ color: 0x110000, side: THREE.BackSide });
+    const outlineMesh = new THREE.Mesh(geometry, outlineMaterial);
+    outlineMesh.scale.setScalar(1.06);
+    sphere.add(outlineMesh);
+
+    // HP Bar
+    const hpBarGroup = new THREE.Group();
+    hpBarGroup.position.set(0, 0.9, 0);
+
+    const bgGeo = new THREE.PlaneGeometry(1.2, 0.15);
+    const bgMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5 });
+    const bg = new THREE.Mesh(bgGeo, bgMat);
+    hpBarGroup.add(bg);
+
+    const fillGeo = new THREE.PlaneGeometry(1.2, 0.15);
+    const fillMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const fill = new THREE.Mesh(fillGeo, fillMat);
+    fill.position.z = 0.01;
+    hpBarGroup.add(fill);
+
+    trackingBallHpBarFill = fill;
+    sphere.add(hpBarGroup);
+    sphere.userData.hpBarGroup = hpBarGroup;
+
+    scene.add(sphere);
+    trackingBallObject = sphere;
+    trackingBallHp = trackingBallMaxHp;
+    trackingBallMovementTime = Math.random() * 100;
+
+    // Initialize direction - weight X more for horizontal tracking
+    trackingBallDir.set(Math.random() - 0.5, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.6).normalize();
+    trackingBallMovePhase = "slow";
+    trackingBallPhaseTimer = 2 + Math.random();
+  }
+
+  function updateTrackingBallMovement(dt) {
+    if (!trackingBallObject || !isTrackingBallActive || trackingBallTimer <= 0) return;
+
+    trackingBallPhaseTimer -= dt;
+
+    if (trackingBallPhaseTimer <= 0) {
+      if (trackingBallMovePhase === "slow") {
+        trackingBallMovePhase = "fast";
+        trackingBallPhaseTimer = 4;
+      } else {
+        trackingBallMovePhase = "slow";
+        trackingBallPhaseTimer = 2 + Math.random();
+      }
+      // Change direction on phase change - weight X more
+      trackingBallDir.set(Math.random() - 0.5, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.6).normalize();
+    }
+
+    const diffConfig = getAimTrainingDifficultyConfig();
+
+    // Occasional random direction change during fast phase
+    if (trackingBallMovePhase === "fast" && Math.random() < 0.01 * diffConfig.trackingUnpredictability) {
+      trackingBallDir.set(Math.random() - 0.5, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.6).normalize();
+    }
+
+    let speed = (trackingBallMovePhase === "fast" ? 7.5 : 2.0) * diffConfig.trackingSpeedMult;
+
+    // Apply spawn burst
+    if (trackingBallSpawnBurstTimer > 0) {
+      trackingBallSpawnBurstTimer -= dt;
+      // Burst speed: High for Moderate/Hard, Medium for Easy
+      const burstSpeed = aimTrainingDifficulty === "easy" ? 5.0 : 8.5;
+      speed = Math.max(speed, burstSpeed);
+    }
+
+    // Apply movement
+    trackingBallObject.position.x += trackingBallDir.x * speed * dt;
+    trackingBallObject.position.y += trackingBallDir.y * speed * dt;
+    trackingBallObject.position.z += trackingBallDir.z * speed * dt;
+
+    // Boundaries
+    const minX = gridShotSpawn.x - 7.5;
+    const maxX = gridShotSpawn.x + 7.5;
+    const minY = gridShotSpawn.y + 1.4;
+    const maxY = gridShotSpawn.y + 3.2;
+    const minZ = gridShotSpawn.z - 16;
+    const maxZ = gridShotSpawn.z - 7;
+
+    if (trackingBallObject.position.x < minX) { trackingBallObject.position.x = minX; trackingBallDir.x *= -1; }
+    if (trackingBallObject.position.x > maxX) { trackingBallObject.position.x = maxX; trackingBallDir.x *= -1; }
+    if (trackingBallObject.position.y < minY) { trackingBallObject.position.y = minY; trackingBallDir.y *= -1; }
+    if (trackingBallObject.position.y > maxY) { trackingBallObject.position.y = maxY; trackingBallDir.y *= -1; }
+    if (trackingBallObject.position.z < minZ) { trackingBallObject.position.z = minZ; trackingBallDir.z *= -1; }
+    if (trackingBallObject.position.z > maxZ) { trackingBallObject.position.z = maxZ; trackingBallDir.z *= -1; }
+
+    // Billboard HP bar to camera
+    if (trackingBallObject.userData.hpBarGroup) {
+      trackingBallObject.userData.hpBarGroup.quaternion.copy(camera.quaternion);
+    }
+  }
+
+  function updateTrackingBallHudText() {
+    if (aimTrainingStatsText) {
+      aimTrainingStatsText.textContent = `(${trackingBallTimer}s) (score-${trackingBallScore} miss-${trackingBallMisses})`;
+    }
+  }
+
+  async function startTrackingBallMode() {
+    cleanupAimTrainingMode();
+    if (!startTrackingBallButton) return;
+
+    commitPlayerIdentitySettings();
+    startTrackingBallButton.disabled = true;
+    startTrackingBallButton.querySelector('.aim-mode-title').textContent = "Loading...";
+
+    try {
+      cameraCustomizationPreviewPreviousMapId = selectedMap;
+      isTrackingBallActive = true;
+      trackingBallScore = 0;
+      trackingBallMisses = 0;
+      trackingBallTimer = 60;
+
+      // Quality Fix: Default Infinite Ammo to ON unless manually overridden
+      if (!aimTrainingManualInfiniteAmmoOverride) {
+        currentGun.infiniteAmmo = true;
+        if (gunInfiniteAmmoInput) gunInfiniteAmmoInput.checked = true;
+        syncGunInputs();
+      }
+
+      if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "none";
+      if (aimTrainingHud) {
+        aimTrainingHud.removeAttribute("hidden");
+        aimTrainingHud.setAttribute("aria-hidden", "false");
+        aimTrainingHud.hidden = false;
+      }
+      updateTrackingBallHudText();
+
+      if (trackingBallIntervalId) window.clearInterval(trackingBallIntervalId);
+      trackingBallIntervalId = window.setInterval(() => {
+        if (!isTrackingBallActive || trackingBallTimer <= 0) return;
+        trackingBallTimer--;
+        updateTrackingBallHudText();
+
+        if (trackingBallTimer <= 0) {
+          window.clearInterval(trackingBallIntervalId);
+          trackingBallIntervalId = 0;
+          if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+        }
+      }, 1000);
+
+      temporaryPlayerSpawnOverride = gridShotSpawn.clone();
+
+      await loadSelectedMap(settingsPreviewMapId, { forceReload: true });
+      gameStarted = true;
+      hideMainMenu();
+      resetPlayerToCurrentSpawn();
+      statusMessage.classList.remove("visible");
+      spawnTrackingBall();
+    } catch (error) {
+      console.error("Failed to start Tracking Ball mode:", error);
+      cleanupAimTrainingMode();
+      selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+      mapSelect.value = selectedMap;
+      cameraCustomizationPreviewPreviousMapId = "";
+    } finally {
+      resetAimTrainingCardLoadingStates();
+    }
+  }
+
+  function resetAimTrainingCardLoadingStates() {
+    console.log("[AIM TRAINING] Hard resetting card loading states");
+    if (startGridShotButton) {
+      startGridShotButton.disabled = false;
+      startGridShotButton.removeAttribute("aria-busy");
+      startGridShotButton.classList.remove("loading");
+      const titleEl = startGridShotButton.querySelector('.aim-mode-title');
+      if (titleEl) titleEl.textContent = "GRID SHOT";
+    }
+    if (startTrackingBallButton) {
+      startTrackingBallButton.disabled = false;
+      startTrackingBallButton.removeAttribute("aria-busy");
+      startTrackingBallButton.classList.remove("loading");
+      const titleEl = startTrackingBallButton.querySelector('.aim-mode-title');
+      if (titleEl) titleEl.textContent = "TRACKING BALL";
+    }
+    if (startJiggleTrainingButton) {
+      startJiggleTrainingButton.disabled = false;
+      startJiggleTrainingButton.removeAttribute("aria-busy");
+      startJiggleTrainingButton.classList.remove("loading");
+      const titleEl = startJiggleTrainingButton.querySelector('.aim-mode-title');
+      if (titleEl) titleEl.textContent = "JIGGLE TRAINING";
+    }
+  }
+
+  function cleanupAimTrainingMode() {
+    console.log("[AIM TRAINING] Cleaning up current mode");
+
+    // Stop all intervals
+    if (gridShotIntervalId) {
+      window.clearInterval(gridShotIntervalId);
+      gridShotIntervalId = 0;
+    }
+    if (trackingBallIntervalId) {
+      window.clearInterval(trackingBallIntervalId);
+      trackingBallIntervalId = 0;
+    }
+    if (jiggleTrainingIntervalId) {
+      window.clearInterval(jiggleTrainingIntervalId);
+      jiggleTrainingIntervalId = 0;
+    }
+
+    // Deactivate flags
+    isGridShotActive = false;
+    isTrackingBallActive = false;
+    isJiggleTrainingActive = false;
+
+    // Hide Results
+    if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "none";
+
+    // Reset Buttons/Cards
+    resetAimTrainingCardLoadingStates();
+
+    updateAimTrainingHudVisibility();
+
+    // Cleanup Grid Shot Balls
+    gridShotBalls.forEach(ball => {
+      scene.remove(ball);
+      ball.children.forEach(child => {
+        if (child.material) child.material.dispose();
+      });
+      if (ball.geometry) ball.geometry.dispose();
+      if (ball.material) ball.material.dispose();
+    });
+    gridShotBalls.length = 0;
+
+    // Cleanup Tracking Ball
+    if (trackingBallObject) {
+      scene.remove(trackingBallObject);
+      trackingBallObject.children.forEach(child => {
+        if (child.material) child.material.dispose();
+        if (child instanceof THREE.Group) {
+          child.children.forEach(gc => {
+            if (gc.material) gc.material.dispose();
+            if (gc.geometry) gc.geometry.dispose();
+          });
+        }
+      });
+      if (trackingBallObject.geometry) trackingBallObject.geometry.dispose();
+      if (trackingBallObject.material) trackingBallObject.material.dispose();
+      trackingBallObject = null;
+    }
+
+    // Cleanup Jiggle Training Enemy
+    if (jiggleTrainingEnemy) {
+      if (!jiggleTrainingEnemy.isDead) {
+        removeEnemy(jiggleTrainingEnemy);
+      }
+      jiggleTrainingEnemy = null;
+    }
+
+    temporaryPlayerSpawnOverride = null;
+    gameStarted = false;
+  }
+
+  function updateAimTrainingHudVisibility() {
+    const active = !!(isGridShotActive || isTrackingBallActive || isJiggleTrainingActive);
+    if (aimTrainingHud) {
+      if (active) {
+        aimTrainingHud.classList.add("is-active");
+        console.log("[AIM HUD] shown for training mode", { 
+          GridShot: isGridShotActive, 
+          Tracking: isTrackingBallActive, 
+          Jiggle: isJiggleTrainingActive 
+        });
+      } else {
+        aimTrainingHud.classList.remove("is-active");
+        console.log("[AIM HUD] hidden outside aim training");
+      }
+    }
+  }
+
+  function exitTrackingBallMode() {
+    cleanupAimTrainingMode();
+
+    selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+    mapSelect.value = selectedMap;
+    cameraCustomizationPreviewPreviousMapId = "";
+
+    showMainMenu();
+    if (homePanel) {
+      homePanel.setAttribute("hidden", "true");
+      homePanel.hidden = true;
+    }
+    if (aimTrainingView) {
+      aimTrainingView.removeAttribute("hidden");
+      aimTrainingView.hidden = false;
+    }
+  }
+
+  function exitJiggleTrainingMode() {
+    cleanupAimTrainingMode();
+
+    selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+    mapSelect.value = selectedMap;
+    cameraCustomizationPreviewPreviousMapId = "";
+
+    showMainMenu();
+    if (homePanel) {
+      homePanel.setAttribute("hidden", "true");
+      homePanel.hidden = true;
+    }
+    if (aimTrainingView) {
+      aimTrainingView.removeAttribute("hidden");
+      aimTrainingView.hidden = false;
+    }
+  }
+
+  function exitGridShotMode() {
+    cleanupAimTrainingMode();
+
+    // Reset Map
+    selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+    mapSelect.value = selectedMap;
+    cameraCustomizationPreviewPreviousMapId = "";
+
+    showMainMenu();
+
+    if (homePanel) {
+      homePanel.setAttribute("hidden", "true");
+      homePanel.setAttribute("aria-hidden", "true");
+      homePanel.hidden = true;
+    }
+
+    if (aimTrainingView) {
+      aimTrainingView.removeAttribute("hidden");
+      aimTrainingView.setAttribute("aria-hidden", "false");
+      aimTrainingView.hidden = false;
+    }
   }
 
   async function startCameraCustomizationPreviewMode() {
@@ -9902,6 +10772,7 @@ window.onload = () => {
     gameStarted = true;
     hideMainMenu();
     closeMenus();
+    updateAimTrainingHudVisibility();
     statusMessage.classList.remove("visible");
     requestLock();
   }
@@ -9993,6 +10864,7 @@ window.onload = () => {
     const wasSettingsMenuOpen = settingsMenuOpen;
     if (!cameraCustomizationPreviewMode) {
       resetCameraCustomizationCompactPanelUi();
+      setCrosshairCustomizationPanelOpen(false);
     }
     interactionMenuOpen = false;
     settingsMenuOpen = false;
@@ -10587,6 +11459,31 @@ window.onload = () => {
       activePlayerNameUi.setAttribute("aria-hidden", String(!nextVisible));
       activePlayerNameUiState.visible = nextVisible;
     }
+  }
+
+  function showOnlineKillMessage(killerName, victimName) {
+    if (!isLanSessionActive() || !onlineKillFeedMessage) {
+      return;
+    }
+
+    const finalKiller = (killerName || "Player").trim() || "Player";
+    const finalVictim = (victimName || "Player").trim() || "Player";
+
+    onlineKillFeedMessage.textContent = `${finalKiller} KILLED ${finalVictim}`;
+    onlineKillFeedMessage.removeAttribute("hidden");
+    onlineKillFeedMessage.hidden = false;
+    onlineKillFeedMessage.setAttribute("aria-hidden", "false");
+
+    if (onlineKillMessageTimeout) {
+      window.clearTimeout(onlineKillMessageTimeout);
+    }
+
+    onlineKillMessageTimeout = window.setTimeout(() => {
+      onlineKillFeedMessage.setAttribute("hidden", "true");
+      onlineKillFeedMessage.hidden = true;
+      onlineKillFeedMessage.setAttribute("aria-hidden", "true");
+      onlineKillMessageTimeout = 0;
+    }, 5000);
   }
 
   function createPlayerNameplate({ isLocal = false } = {}) {
@@ -13181,10 +14078,9 @@ window.onload = () => {
         setLanMultiplayerStatus(`Joining Shared Session...\n${hostSessionMapLoadErrorMessage}`);
       } else {
         setLanMultiplayerStatus(
-          `${isLocalServer ? "Connecting to LAN Game..." : "Connecting to Shared Server..."}\nUnable to reach ${serverAddress}.\n${
-            isLocalServer
-              ? "Make sure npm run start:lan is running on the host PC."
-              : "Make sure the hosted multiplayer relay is online and publicly reachable."
+          `${isLocalServer ? "Connecting to LAN Game..." : "Connecting to Shared Server..."}\nUnable to reach ${serverAddress}.\n${isLocalServer
+            ? "Make sure npm run start:lan is running on the host PC."
+            : "Make sure the hosted multiplayer relay is online and publicly reachable."
           }`
         );
       }
@@ -14348,9 +15244,9 @@ window.onload = () => {
       hpPickup.userData.timeoutId = window.setTimeout(() => {
         removeHealthPickup(hpPickup, hpPickup.userData.isOnlineSynced
           ? {
-              broadcastOnlineRemoval: true,
-              removalReason: "expired"
-            }
+            broadcastOnlineRemoval: true,
+            removalReason: "expired"
+          }
           : undefined);
       }, 20000);
     }
@@ -15040,6 +15936,10 @@ window.onload = () => {
     });
 
     if (combatState.isDead) {
+      const killerName = getCombatDisplayName(attackerId);
+      const victimName = getCombatDisplayName(victimId);
+      showOnlineKillMessage(killerName, victimName);
+
       spawnSharedOnlinePlayerDeathPickup(victimId);
       scheduleHostAuthoritativeRespawn(victimId);
     }
@@ -15246,6 +16146,12 @@ window.onload = () => {
       maxHp: combatState.maxHp,
       isDead: combatState.isDead
     });
+
+    if (combatState.isDead && message.attackerId) {
+      const killerName = getCombatDisplayName(message.attackerId);
+      const victimName = getCombatDisplayName(victimId);
+      showOnlineKillMessage(killerName, victimName);
+    }
   }
 
   function handlePlayerRespawnMessage(message) {
@@ -15522,6 +16428,11 @@ window.onload = () => {
   }
 
   function resolvePlayerHorizontalMovement(targetPosition) {
+    if (isGridShotActive || isTrackingBallActive || isJiggleTrainingActive) {
+      targetPosition.x = THREE.MathUtils.clamp(targetPosition.x, gridShotSpawn.x - 2, gridShotSpawn.x + 2);
+      targetPosition.z = THREE.MathUtils.clamp(targetPosition.z, gridShotSpawn.z - 2, gridShotSpawn.z + 2);
+    }
+
     slideXPosition.copy(playerPosition);
     slideXPosition.x = targetPosition.x;
     if (!collidesAt(slideXPosition)) {
@@ -16279,6 +17190,20 @@ window.onload = () => {
       isLanHost &&
       isSharedOnlineSessionActive();
     setEnemyDeathState(targetEnemy);
+
+    if (targetEnemy.isJiggleTrainingTarget) {
+      console.log("[JIGGLE TRAINING] enemy killed, respawning");
+      jiggleTrainingHits++;
+      updateJiggleTrainingHudText();
+      // Remove current one and spawn new one
+      setTimeout(() => {
+        removeEnemy(targetEnemy);
+        if (isJiggleTrainingActive) {
+          spawnJiggleTrainingEnemy();
+        }
+      }, 50); // Small delay to show death animation
+      return;
+    }
     if (shouldSpawnOnlinePickup) {
       spawnSharedOnlineHealthPickup(enemyDeathPosition, {
         pickupType: "enemy",
@@ -16724,7 +17649,7 @@ window.onload = () => {
     nextEnemy.hasReceivedNetworkState = !isNetworkReplica;
     nextEnemy.targetPlayerId = typeof options.targetPlayerId === "string" ? options.targetPlayerId : "";
     attachMotusManToEnemy(nextEnemy, enemyMotusManBodyColor);
-    nextEnemy.takeDamage = function(amount) {
+    nextEnemy.takeDamage = function (amount) {
       if (this.isDead) {
         return;
       }
@@ -17163,6 +18088,62 @@ window.onload = () => {
     }
   }
 
+  function updateJiggleTrainingEnemy(enemyActor, delta) {
+    if (!enemyActor || enemyActor.isDead) return;
+
+    // Rule 5: Check if current state is already invalid (forced respawn)
+    const playerPos = { x: gridShotSpawn.x, z: gridShotSpawn.z };
+    const currentPos2D = { x: enemyActor.root.position.x, z: enemyActor.root.position.z };
+
+    if (isInsideJiggleBlockerObject(currentPos2D) || lineSegmentIntersectsJiggleBlocker(playerPos, currentPos2D)) {
+      console.log("[JIGGLE TRAINING] forced respawn because enemy was inside/hidden behind blocker object");
+      removeEnemy(enemyActor);
+      spawnJiggleTrainingEnemy();
+      return;
+    }
+
+    // Movement: step sideways
+    const step = jiggleTrainingMoveDirection * jiggleTrainingMoveSpeed * delta;
+    const nextOffset = jiggleTrainingCurrentOffset + step;
+
+    // Check boundaries (radius 1.5)
+    let reversed = false;
+    if (Math.abs(nextOffset) > jiggleTrainingMaxSideDistance) {
+      reversed = true;
+    }
+
+    // Check forbidden zone & visibility for next position
+    const nextPos = new THREE.Vector3().copy(jiggleTrainingEnemySpawnCenter)
+      .addScaledVector(jiggleTrainingSideDirection, nextOffset);
+    const nextPos2D = { x: nextPos.x, z: nextPos.z };
+
+    if (isInsideJiggleBlockerObject(nextPos2D) || lineSegmentIntersectsJiggleBlocker(playerPos, nextPos2D)) {
+      reversed = true;
+      console.log("[JIGGLE TRAINING] enemy avoided blocker object");
+    }
+
+    if (reversed) {
+      jiggleTrainingMoveDirection *= -1;
+    } else {
+      jiggleTrainingCurrentOffset = nextOffset;
+      enemyActor.root.position.copy(nextPos);
+    }
+
+    // Keep it on ground
+    enemyActor.root.position.y = gridShotSpawn.y;
+
+    // Face player
+    enemyActor.root.lookAt(gridShotSpawn.x, enemyActor.root.position.y, gridShotSpawn.z);
+
+    // Sync animation
+    if (enemyActor.characterActions && enemyActor.characterActions.run) {
+      if (!enemyActor.characterActions.run.isRunning()) {
+        enemyActor.characterActions.run.play();
+      }
+      enemyActor.characterMixer.update(0);
+    }
+  }
+
   function updateEnemies(delta) {
     if (!enemies.length) {
       hideEnemyHpUi();
@@ -17188,6 +18169,11 @@ window.onload = () => {
       }
 
       if (enemyActor.isDead) {
+        continue;
+      }
+
+      if (enemyActor.isJiggleTrainingTarget) {
+        updateJiggleTrainingEnemy(enemyActor, delta);
         continue;
       }
 
@@ -17491,23 +18477,44 @@ window.onload = () => {
     return null;
   }
 
+  function getFirstGridShotHit() {
+    if (!isGridShotActive || !gridShotBalls.length) return null;
+    const hits = raycaster.intersectObjects(gridShotBalls, false);
+    return hits.length > 0 ? hits[0] : null;
+  }
+
+  function getFirstTrackingBallHit() {
+    if (!isTrackingBallActive || !trackingBallObject) return null;
+    const hits = raycaster.intersectObjects([trackingBallObject], false);
+    return hits.length > 0 ? hits[0] : null;
+  }
+
   function resolveLocalShotImpact() {
     raycaster.near = 0;
     raycaster.far = Infinity;
     raycaster.setFromCamera(screenCenterNdc, camera);
 
+    const nearestTrackingBallHit = getFirstTrackingBallHit();
+    const nearestGridShotHit = getFirstGridShotHit();
     const nearestEnemyHit = getFirstEnemyShotHit();
     const nearestWorldHit = getFirstWorldShotHit();
 
-    if (nearestWorldHit && (!nearestEnemyHit || nearestWorldHit.distance <= nearestEnemyHit.distance)) {
-      return {
-        type: "world",
-        hit: nearestWorldHit
-      };
+    let nearestDistance = Infinity;
+    let closestHit = null;
+
+    if (nearestTrackingBallHit && nearestTrackingBallHit.distance < nearestDistance) {
+      nearestDistance = nearestTrackingBallHit.distance;
+      closestHit = { type: "trackingball", hit: nearestTrackingBallHit, object: nearestTrackingBallHit.object };
     }
 
-    if (nearestEnemyHit) {
-      return {
+    if (nearestGridShotHit && nearestGridShotHit.distance < nearestDistance) {
+      nearestDistance = nearestGridShotHit.distance;
+      closestHit = { type: "gridshot", hit: nearestGridShotHit, object: nearestGridShotHit.object };
+    }
+
+    if (nearestEnemyHit && nearestEnemyHit.distance < nearestDistance) {
+      nearestDistance = nearestEnemyHit.distance;
+      closestHit = {
         type: "enemy",
         hit: nearestEnemyHit,
         enemyActor: nearestEnemyHit.object.userData.enemyRef,
@@ -17515,7 +18522,12 @@ window.onload = () => {
       };
     }
 
-    return null;
+    if (nearestWorldHit && nearestWorldHit.distance < nearestDistance) {
+      nearestDistance = nearestWorldHit.distance;
+      closestHit = { type: "world", hit: nearestWorldHit };
+    }
+
+    return closestHit;
   }
 
   function shoot() {
@@ -17543,6 +18555,69 @@ window.onload = () => {
     triggerActorMuzzleFlash(playerActor);
 
     const shotImpact = resolveLocalShotImpact();
+
+    if (isGridShotActive && gridShotTimer > 0) {
+      if (shotImpact?.type === "gridshot" && shotImpact.object) {
+        gridShotHits++;
+        updateGridShotHudText();
+
+        const lastPos = shotImpact.object.position.clone();
+        const ballIndex = gridShotBalls.indexOf(shotImpact.object);
+        if (ballIndex > -1) {
+          gridShotBalls.splice(ballIndex, 1);
+          scene.remove(shotImpact.object);
+          shotImpact.object.children.forEach(child => {
+            if (child.material) child.material.dispose();
+          });
+          if (shotImpact.object.geometry) shotImpact.object.geometry.dispose();
+          if (shotImpact.object.material) shotImpact.object.material.dispose();
+        }
+
+        spawnGridShotBall(lastPos);
+      } else {
+        gridShotMisses++;
+        updateGridShotHudText();
+      }
+    }
+
+    if (isTrackingBallActive && trackingBallTimer > 0) {
+      if (shotImpact?.type === "trackingball" && shotImpact.object) {
+        trackingBallScore += 10;
+        trackingBallHp -= TRACKING_BALL_DAMAGE;
+
+        if (trackingBallHp <= 0) {
+          trackingBallScore += 50; // Bonus for kill
+
+          scene.remove(trackingBallObject);
+          trackingBallObject.children.forEach(child => {
+            if (child.material) child.material.dispose();
+            if (child instanceof THREE.Group) {
+              child.children.forEach(gc => {
+                if (gc.material) gc.material.dispose();
+                if (gc.geometry) gc.geometry.dispose();
+              });
+            }
+          });
+          if (trackingBallObject.geometry) trackingBallObject.geometry.dispose();
+          if (trackingBallObject.material) trackingBallObject.material.dispose();
+          trackingBallObject = null;
+
+          spawnTrackingBall();
+        } else {
+          // Update HP Bar
+          if (trackingBallHpBarFill) {
+            const scale = Math.max(0, trackingBallHp / trackingBallMaxHp);
+            trackingBallHpBarFill.scale.x = scale;
+            trackingBallHpBarFill.position.x = -0.6 * (1 - scale);
+          }
+        }
+        updateTrackingBallHudText();
+      } else {
+        trackingBallMisses++;
+        updateTrackingBallHudText();
+      }
+    }
+
     if (shotImpact?.type === "enemy" && shotImpact.enemyActor) {
       if (!isLanSessionActive()) {
         enemy = shotImpact.enemyActor;
@@ -17689,12 +18764,18 @@ window.onload = () => {
         e.preventDefault();
         e.stopPropagation();
         console.log("[AIM TRAINING] Train Aim clicked");
+
+        // Hard reset cards whenever menu is shown
+        resetAimTrainingCardLoadingStates();
         homePanel.setAttribute("hidden", "true");
         homePanel.setAttribute("aria-hidden", "true");
         homePanel.hidden = true;
         aimTrainingView.removeAttribute("hidden");
         aimTrainingView.setAttribute("aria-hidden", "false");
         aimTrainingView.hidden = false;
+
+
+
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       });
     } else {
@@ -17706,6 +18787,7 @@ window.onload = () => {
         e.preventDefault();
         e.stopPropagation();
         console.log("[AIM TRAINING] Home clicked");
+        cleanupAimTrainingMode();
         aimTrainingView.setAttribute("hidden", "true");
         aimTrainingView.setAttribute("aria-hidden", "true");
         aimTrainingView.hidden = true;
@@ -17718,9 +18800,151 @@ window.onload = () => {
 
     if (aimModeCards && aimModeCards.length > 0) {
       aimModeCards.forEach(card => {
+        if (card.id === "start-grid-shot-button") return;
+        if (card.id === "start-tracking-ball-button") return;
+        if (card.id === "start-jiggle-training-button") return;
         card.addEventListener("click", () => {
           alert("Aim Practice mode coming soon! This is a UI placeholder.");
         });
+      });
+    }
+
+    if (startGridShotButton) {
+      startGridShotButton.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("[AIM TRAINING] Start Grid Shot clicked");
+        // Reset manual override when entering fresh from menu
+        aimTrainingManualInfiniteAmmoOverride = false;
+        await startGridShotMode();
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
+    }
+
+    if (startTrackingBallButton) {
+      startTrackingBallButton.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("[AIM TRAINING] Start Tracking Ball clicked");
+        // Reset manual override when entering fresh from menu
+        aimTrainingManualInfiniteAmmoOverride = false;
+        await startTrackingBallMode();
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
+    }
+
+    if (startJiggleTrainingButton) {
+      startJiggleTrainingButton.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("[AIM TRAINING] Start Jiggle Training clicked");
+        // Reset manual override when entering fresh from menu
+        aimTrainingManualInfiniteAmmoOverride = false;
+        await startJiggleTrainingMode();
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
+    }
+
+    if (gunInfiniteAmmoInput) {
+      gunInfiniteAmmoInput.addEventListener("change", () => {
+        if (isGridShotActive || isTrackingBallActive) {
+          aimTrainingManualInfiniteAmmoOverride = true;
+          console.log("[AIM TRAINING] Manual Infinite Ammo override detected");
+        }
+      });
+    }
+
+    if (aimTrainingDifficultySelect) {
+      aimTrainingDifficultySelect.addEventListener("change", () => {
+        aimTrainingDifficulty = aimTrainingDifficultySelect.value;
+        localStorage.setItem("aimTrainingDifficulty", aimTrainingDifficulty);
+        console.log("[AIM TRAINING] Difficulty changed to", aimTrainingDifficulty);
+      });
+    }
+
+    if (aimTrainingRestartButton) {
+      aimTrainingRestartButton.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isGridShotActive) {
+          console.log("[AIM TRAINING] Restart Grid Shot clicked");
+          gridShotBalls.forEach(ball => {
+            scene.remove(ball);
+            ball.children.forEach(child => {
+              if (child.material) child.material.dispose();
+            });
+            if (ball.geometry) ball.geometry.dispose();
+            if (ball.material) ball.material.dispose();
+          });
+          gridShotBalls.length = 0;
+          gridShotHits = 0;
+          gridShotMisses = 0;
+          gridShotTimer = 60;
+          if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "none";
+          updateGridShotHudText();
+
+          if (gridShotIntervalId) window.clearInterval(gridShotIntervalId);
+          gridShotIntervalId = window.setInterval(() => {
+            if (!isGridShotActive || gridShotTimer <= 0) return;
+            gridShotTimer--;
+            updateGridShotHudText();
+
+            if (gridShotTimer <= 0) {
+              window.clearInterval(gridShotIntervalId);
+              gridShotIntervalId = 0;
+              if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+            }
+          }, 1000);
+
+          for (let i = 0; i < 3; i++) spawnGridShotBall();
+        } else if (isTrackingBallActive) {
+          console.log("[AIM TRAINING] Restart Tracking Ball clicked");
+          if (trackingBallObject) {
+            scene.remove(trackingBallObject);
+            trackingBallObject.children.forEach(child => {
+              if (child.material) child.material.dispose();
+              if (child instanceof THREE.Group) {
+                child.children.forEach(gc => {
+                  if (gc.material) gc.material.dispose();
+                  if (gc.geometry) gc.geometry.dispose();
+                });
+              }
+            });
+            if (trackingBallObject.geometry) trackingBallObject.geometry.dispose();
+            if (trackingBallObject.material) trackingBallObject.material.dispose();
+            trackingBallObject = null;
+          }
+          trackingBallScore = 0;
+          trackingBallMisses = 0;
+          trackingBallTimer = 60;
+          if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "none";
+          updateTrackingBallHudText();
+          if (trackingBallIntervalId) window.clearInterval(trackingBallIntervalId);
+          trackingBallIntervalId = window.setInterval(() => {
+            if (!isTrackingBallActive || trackingBallTimer <= 0) return;
+            trackingBallTimer--;
+            updateTrackingBallHudText();
+            if (trackingBallTimer <= 0) {
+              window.clearInterval(trackingBallIntervalId);
+              trackingBallIntervalId = 0;
+              if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+            }
+          }, 1000);
+          spawnTrackingBall();
+        }
+
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
+    }
+
+    if (aimTrainingBackButton) {
+      aimTrainingBackButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isGridShotActive) exitGridShotMode();
+        else if (isTrackingBallActive) exitTrackingBallMode();
+        else if (isJiggleTrainingActive) exitJiggleTrainingMode();
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       });
     }
 
@@ -17885,6 +19109,67 @@ window.onload = () => {
       event.preventDefault();
       await joinLANGame(lanHostIpInput.value);
     });
+
+    if (crosshairCustomizationPanel) {
+      const stopCrosshairPanelEvent = (event) => {
+        event.stopPropagation();
+      };
+
+      for (const eventName of ["click", "mousedown", "mouseup", "pointerdown", "pointerup", "touchstart", "touchend"]) {
+        crosshairCustomizationPanel.addEventListener(eventName, stopCrosshairPanelEvent);
+      }
+    }
+
+    if (homeSettingsCrosshairButton) {
+      homeSettingsCrosshairButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("[CROSSHAIR] Home Settings button clicked");
+        openCrosshairCustomizationForCurrentContext();
+        settingsMenuOpen = false;
+        syncMenuState();
+      });
+    }
+
+    if (ingameSettingsCrosshairButton) {
+      ingameSettingsCrosshairButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("[CROSSHAIR] In-game Settings button clicked");
+
+        // Already in-game (real session), just show panel in place
+        console.log("[CROSSHAIR] opened in game");
+        setSettingsMenuOpen(false);
+        setCrosshairCustomizationPanelOpen(true);
+      });
+    }
+
+    if (crosshairCustomizationCloseButton) {
+      crosshairCustomizationCloseButton.addEventListener("click", () => {
+        setCrosshairCustomizationPanelOpen(false);
+        if (activeSettingsPreviewFlow === "crosshair") {
+          exitCrosshairCustomizationPreviewMode();
+        }
+      });
+    }
+
+    for (const input of crosshairVisualInputs) {
+      const applyCrosshairVisualValue = () => {
+        const variableName = input.dataset.crosshairVar;
+        if (!variableName) {
+          return;
+        }
+
+        document.documentElement.style.setProperty(
+          variableName,
+          `${input.value}${input.dataset.crosshairUnit || ""}`
+        );
+      };
+
+      input.addEventListener("input", applyCrosshairVisualValue);
+      input.addEventListener("change", applyCrosshairVisualValue);
+      applyCrosshairVisualValue();
+    }
 
     document.addEventListener("focusin", (event) => {
       if (!isEditableFormControl(event.target)) {
@@ -18778,6 +20063,9 @@ window.onload = () => {
 
     if (gameStarted && !playerDead && !menuOpen) {
       updatePlayer(delta);
+      if (isTrackingBallActive) {
+        updateTrackingBallMovement(delta);
+      }
     }
 
     updateActorPvpHitboxes(playerActor, isCrouching ? 1 : 0);
@@ -18819,6 +20107,7 @@ window.onload = () => {
   ensureMapOption("warehouseRailyard", "Warehouse Railyard");
   ensureMapOption(ironworksYardMapId, ironworksYardDisplayName);
   ensureMapOption("sunsetCity", "Sunset City");
+  setCrosshairCustomizationPanelOpen(false);
   updateStartupLoadingProgress();
   loadGunConfigs();
   loadSavedSettings();
@@ -18836,5 +20125,7 @@ window.onload = () => {
   });
   updatePlayerHpUi();
   updateAmmoUi();
+  updateAimTrainingHudVisibility();
   runStartupSequence();
+  console.log("[AIM HUD FIX 003] precise lifecycle fix loaded");
 };
