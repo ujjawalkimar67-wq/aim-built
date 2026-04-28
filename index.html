@@ -269,7 +269,8 @@
             </button>
             <button id="start-tracking-ball-button" class="aim-mode-card" type="button" aria-label="Tracking Ball">
               <div class="aim-mode-preview">
-                <video class="aim-mode-preview-video" autoplay loop muted playsinline preload="auto" onloadedmetadata="this.muted=true;this.volume=0">
+                <video class="aim-mode-preview-video" autoplay loop muted playsinline preload="auto"
+                  onloadedmetadata="this.muted=true;this.volume=0">
                   <source src="assets/videos/tracking-ball-preview.mp4" type="video/mp4">
                 </video>
               </div>
@@ -645,6 +646,82 @@
                 </div>
               </section>
             </div>
+            <div class="settings-accordion-section" data-settings-section="aiming">
+              <button id="settings-tab-aiming" class="settings-tab-button settings-accordion-button" type="button"
+                data-settings-tab="aiming" aria-selected="false" aria-expanded="false">
+                Aiming
+              </button>
+              <section id="settings-panel-aiming" class="settings-tab-panel" data-settings-tab-panel="aiming"
+                aria-labelledby="settings-tab-aiming" hidden>
+                <div class="settings-panel-copy">
+                  <h3>Aiming</h3>
+                  <p>Configure how aiming and sights behave during gameplay.</p>
+                </div>
+                <div class="settings-card">
+                  <label class="menu-field" for="aiming-zoom-toggle">
+                    <span>Zoom in while aiming</span>
+                    <select id="aiming-zoom-toggle">
+                      <option value="on" selected>ON</option>
+                      <option value="off">OFF</option>
+                    </select>
+                  </label>
+                  <label class="menu-field" for="aiming-scope-toggle">
+                    <span>Scope mode</span>
+                    <select id="aiming-scope-toggle">
+                      <option value="on">ON</option>
+                      <option value="off" selected>OFF</option>
+                    </select>
+                  </label>
+                  <label class="menu-field" for="aiming-scope-size-slider">
+                    <span>Scope size</span>
+                    <div class="menu-slider-container">
+                      <input type="range" id="aiming-scope-size-slider" min="60" max="140" value="72" step="1">
+                      <span class="menu-slider-value" id="aiming-scope-size-value">72</span>
+                    </div>
+                  </label>
+                  <label class="menu-field" for="aiming-scope-color">
+                    <span>Scope crosshair color</span>
+                    <input type="color" id="aiming-scope-color" value="#000000">
+                  </label>
+                </div>
+              </section>
+            </div>
+            <div class="settings-accordion-section" data-settings-section="movement">
+              <button id="settings-tab-movement" class="settings-tab-button settings-accordion-button" type="button"
+                data-settings-tab="movement" aria-selected="false" aria-expanded="false">
+                Player Movement
+              </button>
+              <section id="settings-panel-movement" class="settings-tab-panel" data-settings-tab-panel="movement"
+                aria-labelledby="settings-tab-movement" hidden>
+                <div class="settings-panel-copy">
+                  <h3>Player Movement</h3>
+                  <p>Configure how the player moves during different gameplay states.</p>
+                </div>
+                <div class="settings-card">
+                  <label class="menu-field" for="movement-slow-when-shooting">
+                    <span>Slow player when shooting</span>
+                    <select id="movement-slow-when-shooting" class="menu-select">
+                      <option value="on" selected>ON</option>
+                      <option value="off">OFF</option>
+                    </select>
+                  </label>
+                  <label class="menu-field" for="movement-shooting-speed">
+                    <span>Player speed when shooting</span>
+                    <div class="menu-slider-container">
+                      <input type="range" id="movement-shooting-speed" min="20" max="100" value="60" step="1">
+                      <span class="menu-slider-value" id="movement-shooting-speed-value">60%</span>
+                    </div>
+                  </label>
+                  <label class="menu-field" for="movement-sprint-speed">
+                    <span>Player speed while sprinting</span>
+                    <div class="menu-slider-container">
+                      <input type="range" id="movement-sprint-speed" min="80" max="200" value="158" step="1">
+                      <span class="menu-slider-value" id="movement-sprint-speed-value">158%</span>
+                    </div>
+                  </label>
+                </div>
+              </section>
+            </div>
             <div class="settings-accordion-section" data-settings-section="debugAdvanced">
               <button id="settings-tab-debug-advanced" class="settings-tab-button settings-accordion-button"
                 type="button" data-settings-tab="debugAdvanced" aria-selected="false" aria-expanded="false">
@@ -723,6 +800,36 @@
           <span class="mobile-hud-control-label">Fire</span>
         </div>
         <button class="layout-edit-resize-handle" type="button" aria-label="Resize fire button"></button>
+      </div>
+      <div id="mobile-control-fire-only"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-fire-only layout-editable-item"
+        data-layout-element-id="fireOnly" aria-label="Fire Only button">
+        <div class="mobile-hud-control-plate">
+          <span class="mobile-hud-control-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="4" fill="currentColor" fill-opacity="0.2"></circle>
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2" fill="none"></circle>
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2"></path>
+            </svg>
+          </span>
+          <span class="mobile-hud-control-label">Fire Only</span>
+        </div>
+        <button class="layout-edit-resize-handle" type="button" aria-label="Resize fire only button"></button>
+      </div>
+      <div id="mobile-control-aim"
+        class="mobile-hud-control mobile-hud-action mobile-hud-action-aim layout-editable-item"
+        data-layout-element-id="aim" aria-label="Aim button">
+        <div class="mobile-hud-control-plate">
+          <span class="mobile-hud-control-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="6"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+              <path d="M12 2v20M2 12h20"></path>
+            </svg>
+          </span>
+          <span class="mobile-hud-control-label">Aim</span>
+        </div>
+        <button class="layout-edit-resize-handle" type="button" aria-label="Resize aim button"></button>
       </div>
       <div id="mobile-control-jump"
         class="mobile-hud-control mobile-hud-action mobile-hud-action-jump layout-editable-item"
@@ -862,7 +969,7 @@
       </div>
       <label class="crosshair-control" for="crosshair-size-input">
         <span>Size</span>
-        <input id="crosshair-size-input" type="range" min="6" max="42" step="1" value="18"
+        <input id="crosshair-size-input" type="range" min="6" max="42" step="1" value="12"
           data-crosshair-var="--crosshair-size" data-crosshair-unit="px">
       </label>
       <label class="crosshair-control" for="crosshair-thickness-input">
@@ -907,6 +1014,21 @@
         <button id="aim-training-back-button" type="button" class="action-button mini-action">BACK</button>
       </div>
     </div>
+    <div id="scope-mode-overlay" hidden>
+      <div class="scope-body">
+        <div class="scope-lens">
+          <div class="scope-reticle">
+            <div class="reticle-line reticle-horizontal"></div>
+            <div class="reticle-line reticle-vertical"></div>
+            <div class="reticle-dot"></div>
+          </div>
+        </div>
+        <!-- Optic Body Details -->
+        <div class="scope-frame-detail scope-top"></div>
+        <div class="scope-frame-detail scope-bottom"></div>
+      </div>
+    </div>
+
   </div>
   <canvas id="game"></canvas>
   <script type="module" src="./src/main.js?diag=build-test-002"></script>

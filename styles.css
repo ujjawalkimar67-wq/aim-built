@@ -1903,6 +1903,14 @@ body.main-menu-open #hud.settings-open #instructions {
   background: radial-gradient(circle at top, rgba(255, 129, 89, 0.28), rgba(55, 18, 12, 0.92));
 }
 
+.mobile-hud-action-fire-only .mobile-hud-control-plate {
+  background: radial-gradient(circle at top, rgba(100, 150, 255, 0.28), rgba(12, 18, 55, 0.92));
+}
+
+.mobile-hud-action-aim .mobile-hud-control-plate {
+  background: radial-gradient(circle at top, rgba(255, 159, 10, 0.28), rgba(55, 40, 12, 0.92));
+}
+
 .mobile-hud-action-jump .mobile-hud-control-plate {
   background: radial-gradient(circle at top, rgba(96, 175, 255, 0.24), rgba(10, 27, 46, 0.92));
 }
@@ -3267,4 +3275,105 @@ text-transform: uppercase;
   .settings-shell-footer {
     gap: 10px;
   }
+}
+
+/* Scope Mode Overlay - Realistic Optic Redesign */
+#scope-mode-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  pointer-events: none;
+  display: none;
+  place-items: center;
+  background: radial-gradient(circle at center, transparent 15%, rgba(0, 0, 0, 0.45) 45%);
+}
+
+#scope-mode-overlay.active {
+  display: grid;
+}
+
+.scope-body {
+  position: relative;
+  width: min(82vh, 82vw);
+  height: min(82vh, 82vw);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transform: scale(var(--scope-size-scale, 1));
+  /* Thick Optic Housing Frame */
+  box-shadow: 
+    0 0 0 35px #111,         /* Outer heavy housing */
+    inset 0 0 0 10px #222,   /* Inner lens rim */
+    0 0 80px rgba(0,0,0,0.9);
+  border: 5px solid #2a2a2a;
+}
+
+.scope-lens {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  /* Subtle glass lens effect */
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+}
+
+.scope-reticle {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.reticle-line {
+  position: absolute;
+  background: var(--scope-crosshair-color, #ffffff); /* Custom Scope Color */
+  box-shadow: 0 0 4px var(--scope-crosshair-color, #ffffff);
+  opacity: 0.8;
+}
+
+.reticle-horizontal {
+  width: 65%;
+  height: 2px;
+}
+
+.reticle-vertical {
+  width: 2px;
+  height: 65%;
+}
+
+.reticle-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--scope-crosshair-color, #ffffff);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--scope-crosshair-color, #ffffff);
+  z-index: 5;
+}
+
+/* Tactical Optic Details (Body parts) */
+.scope-frame-detail {
+  position: absolute;
+  background: #181818;
+  border: 1px solid #333;
+  z-index: -1;
+}
+
+.scope-top {
+  top: -65px;
+  width: 140px;
+  height: 40px;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(to bottom, #222, #111);
+  box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+}
+
+.scope-bottom {
+  bottom: -65px;
+  width: 180px;
+  height: 50px;
+  border-radius: 0 0 10px 10px;
+  background: linear-gradient(to top, #222, #111);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
 }

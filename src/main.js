@@ -11,6 +11,8 @@ console.log("[DIAG] Runtime file loaded", {
   html: window.location.href,
   module: import.meta.url
 });
+console.log("[SCOPE DEBUG 001] live file loaded");
+console.log("[AIM ADS DEBUG 004] loaded live file");
 document.title = DIAG_BUILD_LABEL;
 
 window.onload = () => {
@@ -146,13 +148,53 @@ window.onload = () => {
   const mobileControlJoystick = document.getElementById("mobile-control-joystick");
   const mobileJoystickThumb = mobileControlJoystick?.querySelector(".mobile-hud-joystick-thumb");
   const mobileControlFire = document.getElementById("mobile-control-fire");
+  const mobileControlFireOnly = document.getElementById("mobile-control-fire-only");
+  const mobileControlAim = document.getElementById("mobile-control-aim");
   const mobileControlJump = document.getElementById("mobile-control-jump");
   const mobileControlReload = document.getElementById("mobile-control-reload");
   const mobileControlSprint = document.getElementById("mobile-control-sprint");
   const mobileControlCrouch = document.getElementById("mobile-control-crouch");
+  const scopeModeOverlay = document.getElementById("scope-mode-overlay");
+
+
+  function isHomeActuallyOpen() {
+    const isMainMenuOpen = document.body.classList.contains("main-menu-open");
+    const isInstructionsVisible = instructions && instructions.getAttribute("aria-hidden") === "false";
+    // If the home panel element itself is hidden or display none, it's not open
+    const homePanelVisible = homePanel && (homePanel.offsetParent !== null);
+    return isMainMenuOpen || (isInstructionsVisible && homePanelVisible);
+  }
+
+  function isActuallyFullscreenNow() {
+    return !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  }
+
+  let isAimAdsActive = false;
+  let preAimAdsCameraState = null;
+  let isScopeAimingActive = false;
+  let scopeAimStartedFromThirdPerson = false;
+  let preScopeCrosshairOpacity = null;
+
+  const AIM_ADS_CAMERA = {
+    distance: 4.4,
+    offsetX: 0.80,
+    offsetY: 0.80,
+    offsetZ: 3.00
+  };
   const mobileControlCamera = document.getElementById("mobile-control-camera");
   const mobileControlMenu = document.getElementById("mobile-control-menu");
   const mobileControlSettings = document.getElementById("mobile-control-settings");
+  const settingsAimingPanel = document.getElementById("settings-panel-aiming");
+  const aimingZoomToggle = document.getElementById("aiming-zoom-toggle");
+  const aimingScopeToggle = document.getElementById("aiming-scope-toggle");
+  const aimingScopeSizeSlider = document.getElementById("aiming-scope-size-slider");
+  const aimingScopeSizeValue = document.getElementById("aiming-scope-size-value");
+  const aimingScopeColorPicker = document.getElementById("aiming-scope-color");
   const defaultOnlineRelayAddress = "wss://i-will-take-aim-built-multiplayer-server.onrender.com";
   const settingsTabButtons = Array.from(settingsMenu?.querySelectorAll(".settings-tab-button") || []);
   const settingsTabPanels = Array.from(settingsMenu?.querySelectorAll(".settings-tab-panel") || []);
@@ -164,6 +206,12 @@ window.onload = () => {
   const crosshairVisualInputs = Array.from(
     crosshairCustomizationPanel?.querySelectorAll("[data-crosshair-var]") || []
   );
+
+  const movementSlowToggle = document.getElementById("movement-slow-when-shooting");
+  const movementShootingSpeedSlider = document.getElementById("movement-shooting-speed");
+  const movementShootingSpeedValue = document.getElementById("movement-shooting-speed-value");
+  const movementSprintSpeedSlider = document.getElementById("movement-sprint-speed");
+  const movementSprintSpeedValue = document.getElementById("movement-sprint-speed-value");
 
   if (
     !canvas ||
@@ -220,8 +268,11 @@ window.onload = () => {
     !settingsDebugDeviceValue ||
     !settingsDebugCameraInputValue ||
     !settingsDebugMapValue ||
-    settingsTabButtons.length < 7 ||
-    settingsTabPanels.length < 7 ||
+    !settingsAimingPanel ||
+    !aimingZoomToggle ||
+    !aimingScopeToggle ||
+    settingsTabButtons.length < 8 ||
+    settingsTabPanels.length < 8 ||
     !difficultySelect ||
     !spawnEnemyButton ||
     !enemyCountInput ||
@@ -288,6 +339,8 @@ window.onload = () => {
     !mobileControlJoystick ||
     !mobileJoystickThumb ||
     !mobileControlFire ||
+    !mobileControlFireOnly ||
+    !mobileControlAim ||
     !mobileControlJump ||
     !mobileControlReload ||
     !mobileControlSprint ||
@@ -734,8 +787,14 @@ window.onload = () => {
   }
 
   function getMobileHudViewportMetrics() {
-    const width = Math.max(1, mobileHud.clientWidth || window.innerWidth || 1);
-    const height = Math.max(1, mobileHud.clientHeight || window.innerHeight || 1);
+    let width = Math.max(1, mobileHud.clientWidth || window.innerWidth || 1);
+    let height = Math.max(1, mobileHud.clientHeight || window.innerHeight || 1);
+
+    if (window.visualViewport) {
+      width = Math.max(1, window.visualViewport.width || width);
+      height = Math.max(1, window.visualViewport.height || height);
+    }
+
     return {
       width,
       height,
@@ -1572,7 +1631,10 @@ window.onload = () => {
   function getMobileHudActionActiveState(actionId) {
     switch (actionId) {
       case "fire":
+      case "fireOnly":
         return isShooting;
+      case "aim":
+        return isAimAdsActive;
       case "sprint":
         return Boolean(moveState.sprint);
       case "crouch":
@@ -1867,6 +1929,13 @@ window.onload = () => {
         stopMobileFireDragAim(pointerId);
         isShooting = false;
         break;
+      case "fireOnly":
+        isShooting = false;
+        break;
+      case "aim":
+        console.log("[AIM ADS] mobile AIM up detected");
+        stopAdsAiming("mobileButton");
+        break;
       case "sprint":
         moveState.sprint = false;
         break;
@@ -2091,10 +2160,15 @@ window.onload = () => {
   function executeMobileHudAction(actionId) {
     switch (actionId) {
       case "fire":
+      case "fireOnly":
         isShooting = true;
         if (currentGun.infiniteAmmo || ammo > 0) {
           tryShoot(performance.now());
         }
+        return true;
+      case "aim":
+        console.log("[AIM ADS] mobile AIM down detected");
+        startAdsAiming("mobileButton");
         return true;
       case "jump":
         if (!canUseMobileHudAction("jump") || !isGrounded) {
@@ -2225,10 +2299,15 @@ window.onload = () => {
       }
 
       const nextEntry = clampMobileControlLayoutEntry(elementId, layoutSource[elementId], metrics);
-      if (!layoutSource[elementId]) {
-        layoutSource[elementId] = nextEntry;
-      } else {
-        Object.assign(layoutSource[elementId], nextEntry);
+
+      // Update the source object ONLY if we are in edit mode
+      // This prevents temporary resizes from overwriting the player's saved layout
+      if (mobileLayoutEditMode) {
+        if (!layoutSource[elementId]) {
+          layoutSource[elementId] = nextEntry;
+        } else {
+          Object.assign(layoutSource[elementId], nextEntry);
+        }
       }
 
       const appliedEntry = elementId === "joystick" && mobileJoystickRuntimeAnchor && !mobileLayoutEditMode
@@ -2877,6 +2956,164 @@ window.onload = () => {
   const gameCameraCustomizationStorageKey = "gameCameraCustomization";
   const gameCameraModeStorageKey = "cameraMode";
   const thirdPersonCameraSettingsStorageKey = "thirdPersonCameraSettings";
+  const basicUserSettingsStorageKey = "aimBuiltBasicSettings_v1";
+
+  const aimingSettings = {
+    zoomInWhileAiming: true,
+    scopeMode: false,
+    scopeSize: 72,
+    scopeCrosshairColor: "#000000"
+  };
+
+  const movementSettings = {
+    slowPlayerWhenShooting: true,
+    shootingSpeedPercent: 60,
+    sprintSpeedPercent: 158
+  };
+
+  function saveBasicUserSettings() {
+    const settings = {
+      camera: {
+        distance: thirdPersonCameraSettings.distance,
+        offsetX: thirdPersonCameraSettings.offsetX,
+        offsetY: thirdPersonCameraSettings.offsetY,
+        offsetZ: thirdPersonCameraSettings.offsetZ,
+        fov: typeof camera !== "undefined" ? camera.fov : 55
+      },
+      crosshair: {},
+      aiming: {
+        zoomInWhileAiming: aimingSettings.zoomInWhileAiming,
+        scopeMode: aimingSettings.scopeMode,
+        scopeSize: aimingSettings.scopeSize,
+        scopeCrosshairColor: aimingSettings.scopeCrosshairColor
+      },
+      movement: {
+        slowPlayerWhenShooting: movementSettings.slowPlayerWhenShooting,
+        shootingSpeedPercent: movementSettings.shootingSpeedPercent,
+        sprintSpeedPercent: movementSettings.sprintSpeedPercent
+      }
+    };
+
+    if (typeof crosshairVisualInputs !== "undefined") {
+      for (const input of crosshairVisualInputs) {
+        const variableName = input.dataset.crosshairVar;
+        if (variableName) {
+          settings.crosshair[variableName] = input.value;
+        }
+      }
+    }
+
+    localStorage.setItem(basicUserSettingsStorageKey, JSON.stringify(settings));
+    console.log("[AIM BUILT BASIC SAVE] saved settings", settings);
+  }
+
+  function loadBasicUserSettings() {
+    const saved = localStorage.getItem(basicUserSettingsStorageKey);
+    if (!saved) return null;
+    try {
+      const settings = JSON.parse(saved);
+      console.log("[AIM BUILT BASIC SAVE] loaded settings", settings);
+      return settings;
+    } catch (e) {
+      console.error("[AIM BUILT BASIC SAVE] error loading settings", e);
+      return null;
+    }
+  }
+
+  function saveBasicCameraSetting(key, value) {
+    if (isAimAdsActive) return;
+    saveBasicUserSettings();
+    console.log("[AIM BUILT BASIC SAVE] saved camera", key, value);
+  }
+
+  function saveBasicCrosshairSetting(key, value) {
+    saveBasicUserSettings();
+    console.log("[AIM BUILT BASIC SAVE] saved crosshair", key, value);
+  }
+
+  function applyBasicUserSettings(settings) {
+    if (!settings) return;
+
+    if (settings.camera) {
+      const applyOpts = { persist: false, syncInputs: true };
+      if (settings.camera.distance !== undefined) applyCameraCustomizationSetting("distance", settings.camera.distance, applyOpts);
+      if (settings.camera.offsetX !== undefined) applyCameraCustomizationSetting("offsetX", settings.camera.offsetX, applyOpts);
+      if (settings.camera.offsetY !== undefined) applyCameraCustomizationSetting("offsetY", settings.camera.offsetY, applyOpts);
+      if (settings.camera.offsetZ !== undefined) applyCameraCustomizationSetting("offsetZ", settings.camera.offsetZ, applyOpts);
+      if (settings.camera.fov !== undefined) applyCameraFov(settings.camera.fov, { persist: false, syncInput: true });
+    }
+
+    if (settings.crosshair && typeof crosshairVisualInputs !== "undefined") {
+      for (const input of crosshairVisualInputs) {
+        const variableName = input.dataset.crosshairVar;
+        if (variableName && settings.crosshair[variableName] !== undefined) {
+          let val = settings.crosshair[variableName];
+
+          // Migration: if size is the old default 18, move to new default 12
+          if (variableName === "--crosshair-size" && val === "18") {
+            val = "12";
+          }
+
+          input.value = val;
+          document.documentElement.style.setProperty(
+            variableName,
+            `${input.value}${input.dataset.crosshairUnit || ""}`
+          );
+        }
+      }
+    }
+
+    if (settings.aiming) {
+      aimingSettings.zoomInWhileAiming = settings.aiming.zoomInWhileAiming !== undefined ? settings.aiming.zoomInWhileAiming : true;
+      aimingSettings.scopeMode = settings.aiming.scopeMode !== undefined ? settings.aiming.scopeMode : false;
+      aimingSettings.scopeSize = settings.aiming.scopeSize !== undefined ? settings.aiming.scopeSize : 72;
+
+      let scopeColor = settings.aiming.scopeCrosshairColor !== undefined ? settings.aiming.scopeCrosshairColor : "#000000";
+      // Migration: if color is the old default white, move to new default black
+      if (scopeColor === "#ffffff") {
+        scopeColor = "#000000";
+      }
+      aimingSettings.scopeCrosshairColor = scopeColor;
+
+      if (aimingZoomToggle) aimingZoomToggle.value = aimingSettings.zoomInWhileAiming ? "on" : "off";
+      if (aimingScopeToggle) aimingScopeToggle.value = aimingSettings.scopeMode ? "on" : "off";
+
+      if (aimingScopeSizeSlider) {
+        aimingScopeSizeSlider.value = aimingSettings.scopeSize;
+        if (aimingScopeSizeValue) aimingScopeSizeValue.textContent = aimingSettings.scopeSize;
+        document.documentElement.style.setProperty("--scope-size-scale", aimingSettings.scopeSize / 100);
+      }
+
+      if (aimingScopeColorPicker) {
+        aimingScopeColorPicker.value = aimingSettings.scopeCrosshairColor;
+        document.documentElement.style.setProperty("--scope-crosshair-color", aimingSettings.scopeCrosshairColor);
+      }
+
+      console.log("[AIMING SETTINGS] applied", aimingSettings);
+    }
+
+    if (settings.movement) {
+      movementSettings.slowPlayerWhenShooting = settings.movement.slowPlayerWhenShooting !== undefined ? settings.movement.slowPlayerWhenShooting : true;
+      movementSettings.shootingSpeedPercent = settings.movement.shootingSpeedPercent !== undefined ? settings.movement.shootingSpeedPercent : 60;
+      movementSettings.sprintSpeedPercent = settings.movement.sprintSpeedPercent !== undefined ? settings.movement.sprintSpeedPercent : 158;
+
+      if (movementSlowToggle) movementSlowToggle.value = movementSettings.slowPlayerWhenShooting ? "on" : "off";
+      
+      if (movementShootingSpeedSlider) {
+        movementShootingSpeedSlider.value = movementSettings.shootingSpeedPercent;
+        if (movementShootingSpeedValue) movementShootingSpeedValue.textContent = movementSettings.shootingSpeedPercent + "%";
+      }
+
+      if (movementSprintSpeedSlider) {
+        movementSprintSpeedSlider.value = movementSettings.sprintSpeedPercent;
+        if (movementSprintSpeedValue) movementSprintSpeedValue.textContent = movementSettings.sprintSpeedPercent + "%";
+      }
+
+      console.log("[PLAYER MOVEMENT SETTINGS] applied", movementSettings);
+    }
+
+    console.log("[AIM BUILT BASIC SAVE] applied saved settings");
+  }
   const firstPersonCameraSettingsStorageKey = "firstPersonCameraSettings";
   const gameUiTransparencyStorageKey = "gameUiTransparency";
   const mobileCameraSensitivityStorageKey = "mobileCameraSensitivity";
@@ -2910,6 +3147,8 @@ window.onload = () => {
   const gameplayHudLayoutFallbackDefaults = Object.freeze({
     joystick: Object.freeze({ x: 0.17, y: 0.78, size: 0.23 }),
     fire: Object.freeze({ x: 0.86, y: 0.74, size: 0.165 }),
+    fireOnly: Object.freeze({ x: 0.86, y: 0.22, size: 0.165 }),
+    aim: Object.freeze({ x: 0.86, y: 0.50, size: 0.15 }),
     jump: Object.freeze({ x: 0.78, y: 0.58, size: 0.135 }),
     reload: Object.freeze({ x: 0.64, y: 0.79, size: 0.12 }),
     sprint: Object.freeze({ x: 0.32, y: 0.64, size: 0.12 }),
@@ -3164,6 +3403,8 @@ window.onload = () => {
     "gameplay",
     "audioEffects",
     "crosshair",
+    "aiming",
+    "movement",
     "debugAdvanced"
   ]);
   const startupDeviceMode = {
@@ -3196,6 +3437,65 @@ window.onload = () => {
   let gameplayHudLayoutDefaults = null;
   let mobileControlLayout = null;
   let mobileControlLayoutDraft = null;
+  let mobileHudReflowTimer = null;
+
+  function scheduleMobileHudReflow(reason) {
+    if (!isPhoneModeSelected()) return;
+    clearTimeout(mobileHudReflowTimer);
+    mobileHudReflowTimer = setTimeout(() => {
+      console.log("[MOBILE HUD REFLOW] applying", {
+        reason,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        visualViewportWidth: window.visualViewport?.width,
+        visualViewportHeight: window.visualViewport?.height
+      });
+      applyMobileControlLayout();
+    }, 180);
+    console.log("[MOBILE HUD REFLOW] scheduled", reason);
+  }
+
+  function restoreSavedMobileLayoutForFullscreen(reason) {
+    if (!isPhoneModeSelected()) return;
+
+    const isFS = isActuallyFullscreenNow();
+
+    console.log("[MOBILE HUD FULLSCREEN RESTORE] applying saved layout", {
+      reason,
+      isActuallyFullscreen: isFS,
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
+
+    const savedLayoutRaw = localStorage.getItem(mobileControlLayoutStorageKey);
+    if (savedLayoutRaw) {
+      try {
+        const savedLayout = JSON.parse(savedLayoutRaw);
+        // Sync the in-memory layout with the saved one
+        mobileControlLayout = cloneMobileControlLayout(savedLayout);
+        // Apply it to the current viewport
+        applyMobileControlLayout(mobileControlLayout);
+
+        if (isFS) {
+          showStatusMessage("MOBILE HUD: restored saved fullscreen layout", 2500);
+        }
+      } catch (e) {
+        console.error("[MOBILE HUD FULLSCREEN RESTORE] failed", e);
+      }
+    }
+  }
+
+  function scheduleRestoreSavedMobileLayout(reason) {
+    if (!isPhoneModeSelected()) return;
+
+    console.log("[MOBILE HUD FULLSCREEN RESTORE] scheduled", reason);
+
+    [100, 300, 700, 1200].forEach((delay) => {
+      setTimeout(() => {
+        restoreSavedMobileLayoutForFullscreen(`${reason} (${delay}ms delay)`);
+      }, delay);
+    });
+  }
   const mobileLayoutEditReturnState = {
     source: "",
     reopenHomeSettings: false,
@@ -3227,6 +3527,22 @@ window.onload = () => {
     }),
     fire: Object.freeze({
       element: mobileControlFire,
+      layoutType: "control",
+      anchor: "center",
+      sizeMode: "viewport",
+      minSize: mobileControlMinSize,
+      maxSize: mobileControlMaxSize
+    }),
+    fireOnly: Object.freeze({
+      element: mobileControlFireOnly,
+      layoutType: "control",
+      anchor: "center",
+      sizeMode: "viewport",
+      minSize: mobileControlMinSize,
+      maxSize: mobileControlMaxSize
+    }),
+    aim: Object.freeze({
+      element: mobileControlAim,
       layoutType: "control",
       anchor: "center",
       sizeMode: "viewport",
@@ -3309,6 +3625,16 @@ window.onload = () => {
   const editableGameplayHudIds = Object.freeze(Object.keys(editableGameplayHudElements));
   const mobileHudActionConfigs = Object.freeze({
     fire: Object.freeze({
+      behavior: "hold",
+      allowWhenMenuOpen: false,
+      allowWhilePlayerDead: false
+    }),
+    fireOnly: Object.freeze({
+      behavior: "hold",
+      allowWhenMenuOpen: false,
+      allowWhilePlayerDead: false
+    }),
+    aim: Object.freeze({
       behavior: "hold",
       allowWhenMenuOpen: false,
       allowWhilePlayerDead: false
@@ -10013,6 +10339,7 @@ window.onload = () => {
     if (!crosshairCustomizationPanel) return;
 
     if (isOpen) {
+      stopAdsAiming("crosshairOpen");
       crosshairCustomizationPanel.hidden = false;
       crosshairCustomizationPanel.style.display = "grid";
     } else {
@@ -10587,10 +10914,10 @@ window.onload = () => {
     if (aimTrainingHud) {
       if (active) {
         aimTrainingHud.classList.add("is-active");
-        console.log("[AIM HUD] shown for training mode", { 
-          GridShot: isGridShotActive, 
-          Tracking: isTrackingBallActive, 
-          Jiggle: isJiggleTrainingActive 
+        console.log("[AIM HUD] shown for training mode", {
+          GridShot: isGridShotActive,
+          Tracking: isTrackingBallActive,
+          Jiggle: isJiggleTrainingActive
         });
       } else {
         aimTrainingHud.classList.remove("is-active");
@@ -10729,6 +11056,7 @@ window.onload = () => {
   }
 
   function showMainMenu() {
+    stopAdsAiming("mainMenu");
     clearActiveMobileGameplayInputs();
     setHomeGunViewOpen(false);
     setHomeSettingsViewOpen(false);
@@ -10833,6 +11161,7 @@ window.onload = () => {
     const settingsMenuSource = homeSettingsViewOpen ? "home-settings" : "in-game";
 
     if (isOpen) {
+      stopAdsAiming("settingsOpen");
       interactionMenuOpen = false;
       setGunCustomizationPanelOpen(false);
       syncSettingsInputs();
@@ -14099,6 +14428,145 @@ window.onload = () => {
       : thirdPersonCameraSettings;
   }
 
+  function startAdsAiming(source = "unknown") {
+    const scopeModeEnabled = aimingSettings.scopeMode;
+    const zoomEnabled = aimingSettings.zoomInWhileAiming;
+
+    if (isAimAdsActive || isScopeAimingActive) {
+      return;
+    }
+
+    if (scopeModeEnabled) {
+      startScopeAiming(source);
+      return;
+    }
+
+    if (!zoomEnabled) {
+      setScopeDebugStatus("both modes off");
+      return;
+    }
+
+    if (cameraMode === "firstPerson") {
+      setScopeDebugStatus("zoom blocked by first person");
+      return;
+    }
+
+    const gameplayActive = isDesktopPointerLockCameraModeActive() ? pointerLocked : true;
+    if (!gameplayActive) {
+      setScopeDebugStatus("zoom blocked: gameplay not active");
+      return;
+    }
+
+    const settingsOpen = settingsMenuOpen || homeSettingsViewOpen;
+    if (settingsOpen) {
+      return;
+    }
+
+    preAimAdsCameraState = {
+      distance: thirdPersonCameraSettings.distance,
+      offsetX: thirdPersonCameraSettings.offsetX,
+      offsetY: thirdPersonCameraSettings.offsetY,
+      offsetZ: thirdPersonCameraSettings.offsetZ
+    };
+    isAimAdsActive = true;
+
+    setScopeDebugStatus("zoom started");
+
+    const applyOpts = { persist: false, syncInputs: true };
+    applyCameraCustomizationSetting("distance", 4.4, applyOpts);
+    applyCameraCustomizationSetting("offsetX", 0.80, applyOpts);
+    applyCameraCustomizationSetting("offsetY", 0.80, applyOpts);
+    applyCameraCustomizationSetting("offsetZ", 3.00, applyOpts);
+  }
+
+  function stopAdsAiming(source = "unknown") {
+    if (isScopeAimingActive) {
+      stopScopeAiming(source);
+      return;
+    }
+
+    if (!isAimAdsActive) return;
+
+    isAimAdsActive = false;
+
+    console.log("[AIM SIMPLE] up: restoring old camera", preAimAdsCameraState);
+
+    if (preAimAdsCameraState) {
+      const applyOpts = { persist: false, syncInputs: true };
+      applyCameraCustomizationSetting("distance", preAimAdsCameraState.distance, applyOpts);
+      applyCameraCustomizationSetting("offsetX", preAimAdsCameraState.offsetX, applyOpts);
+      applyCameraCustomizationSetting("offsetY", preAimAdsCameraState.offsetY, applyOpts);
+      applyCameraCustomizationSetting("offsetZ", preAimAdsCameraState.offsetZ, applyOpts);
+    }
+
+    preAimAdsCameraState = null;
+  }
+
+  function startScopeAiming(source = "unknown") {
+    const gameplayActive = isDesktopPointerLockCameraModeActive() ? pointerLocked : true;
+    const homeOpen = isHomeActuallyOpen();
+    const settingsOpen = settingsMenuOpen || homeSettingsViewOpen;
+
+    if (isScopeAimingActive) {
+      return;
+    }
+
+    if (settingsOpen) return;
+    if (homeOpen) return;
+    if (!gameplayActive) return;
+
+    console.log("[SCOPE PATH] overlay element", scopeModeOverlay);
+    if (!scopeModeOverlay) return;
+
+    scopeAimStartedFromThirdPerson = (cameraMode === "thirdPerson");
+
+    if (scopeAimStartedFromThirdPerson) {
+      setCameraMode("firstPerson", { persist: false, syncInputs: true });
+    }
+
+    if (scopeModeOverlay) {
+      scopeModeOverlay.hidden = false;
+      scopeModeOverlay.style.display = "grid";
+      scopeModeOverlay.classList.add("active");
+
+      // Temporarily hide crosshair
+      const rootStyle = getComputedStyle(document.documentElement);
+      const currentOpacity = rootStyle.getPropertyValue("--crosshair-opacity").trim();
+      // Only store if we haven't already (to avoid storing 0 if somehow called twice)
+      if (preScopeCrosshairOpacity === null) {
+        preScopeCrosshairOpacity = currentOpacity || "1";
+      }
+      document.documentElement.style.setProperty("--crosshair-opacity", "0");
+    }
+
+    isScopeAimingActive = true;
+    console.log("[SCOPE MODE] started", { source, startedFromThirdPerson: scopeAimStartedFromThirdPerson });
+  }
+
+  function stopScopeAiming(source = "unknown") {
+    if (!isScopeAimingActive) return;
+
+    if (scopeModeOverlay) {
+      scopeModeOverlay.hidden = true;
+      scopeModeOverlay.style.display = "none";
+      scopeModeOverlay.classList.remove("active");
+      console.log("[SCOPE MODE] overlay hidden");
+    }
+
+    if (scopeAimStartedFromThirdPerson) {
+      setCameraMode("thirdPerson", { persist: false, syncInputs: true });
+    }
+
+    isScopeAimingActive = false;
+    scopeAimStartedFromThirdPerson = false;
+
+    // Restore crosshair
+    if (preScopeCrosshairOpacity !== null) {
+      document.documentElement.style.setProperty("--crosshair-opacity", preScopeCrosshairOpacity);
+      preScopeCrosshairOpacity = null;
+    }
+  }
+
   function resetFirstPersonCameraSettings() {
     firstPersonCameraSettings.distance = defaultFirstPersonCameraSettings.distance;
     firstPersonCameraSettings.offsetX = defaultFirstPersonCameraSettings.offsetX;
@@ -14299,7 +14767,7 @@ window.onload = () => {
     if (settingsMenu.classList.contains("camera-preview-panel")) {
       dockCameraPreviewPanel();
     }
-    applyMobileControlLayout();
+    scheduleMobileHudReflow(reason);
     syncFullscreenButtons();
     updateMobileInputDiagnosticsOverlay();
   }
@@ -14628,9 +15096,6 @@ window.onload = () => {
     { persist = true, syncInputs = true } = {}
   ) {
     const controls = cameraCustomizationControls[key];
-    if (!controls) {
-      return;
-    }
 
     if (cameraMode === "firstPerson") {
       resetFirstPersonCameraSettings();
@@ -14647,12 +15112,27 @@ window.onload = () => {
 
     const parsedValue = Number(value);
     const activeCameraSettings = getActiveCameraSettings();
+
+    let minBound = -Infinity;
+    let maxBound = Infinity;
+    if (controls && controls.config) {
+      minBound = controls.config.min;
+      maxBound = controls.config.max;
+    } else {
+      const configObj = cameraCustomizationControlConfigs.find(c => c.key === key);
+      if (configObj) {
+        minBound = configObj.min;
+        maxBound = configObj.max;
+      }
+    }
+
     const nextValue = THREE.MathUtils.clamp(
       Number.isFinite(parsedValue) ? parsedValue : activeCameraSettings[key],
-      controls.config.min,
-      controls.config.max
+      minBound,
+      maxBound
     );
     activeCameraSettings[key] = nextValue;
+    saveBasicCameraSetting(key, nextValue);
 
     if (syncInputs) {
       syncCameraCustomizationControl(key);
@@ -14689,6 +15169,7 @@ window.onload = () => {
   }
 
   function toggleCameraMode() {
+    stopAdsAiming("firstPersonSwitch");
     const nextMode = cameraMode === "firstPerson" ? "thirdPerson" : "firstPerson";
     setCameraMode(nextMode);
     showStatusMessage(
@@ -14701,6 +15182,7 @@ window.onload = () => {
     const nextFov = THREE.MathUtils.clamp(Number(value) || camera.fov, 55, 90);
     camera.fov = nextFov;
     camera.updateProjectionMatrix();
+    saveBasicCameraSetting("fov", nextFov);
 
     if (syncInput) {
       settingsFovInput.value = String(Math.round(nextFov));
@@ -14712,6 +15194,7 @@ window.onload = () => {
   }
 
   function loadSavedSettings() {
+    applyBasicUserSettings(loadBasicUserSettings());
     const savedFov = localStorage.getItem(gameFovStorageKey);
     if (savedFov !== null) {
       const parsedFov = Number(savedFov);
@@ -18248,7 +18731,16 @@ window.onload = () => {
         .addScaledVector(movementForward, -localMoveDirection.z);
       worldMoveDirection.normalize();
 
-      const speed = moveState.sprint ? moveConfig.sprintSpeed : moveConfig.walkSpeed;
+      let movementSpeedMultiplier = 1;
+      if (moveState.sprint) {
+        movementSpeedMultiplier *= (movementSettings.sprintSpeedPercent / 100);
+      }
+
+      if (movementSettings.slowPlayerWhenShooting && isShooting) {
+        movementSpeedMultiplier *= (movementSettings.shootingSpeedPercent / 100);
+      }
+
+      const speed = moveConfig.walkSpeed * movementSpeedMultiplier;
       targetVelocity.copy(worldMoveDirection).multiplyScalar(speed);
       horizontalVelocity.lerp(targetVelocity, Math.min(1, moveConfig.acceleration * delta));
       isMoving = true;
@@ -18295,6 +18787,14 @@ window.onload = () => {
     // Apply crouch camera drop in first-person and third-person
     playerAimTarget.y -= crouchCameraOffsetY;
     const activeCameraSettings = getActiveCameraSettings();
+
+    // PHASE 7: Camera Loop Override
+    if (isAimAdsActive && cameraMode !== "firstPerson") {
+      activeCameraSettings.distance = 4.4;
+      activeCameraSettings.offsetX = 0.80;
+      activeCameraSettings.offsetY = 0.80;
+      activeCameraSettings.offsetZ = 3.00;
+    }
 
     cameraRightVector.crossVectors(cameraLookDirection, worldUp).normalize();
     desiredCameraPosition
@@ -19084,6 +19584,100 @@ window.onload = () => {
       applyShowOwnNameInGame(showOwnNameToggle.value);
     });
 
+    aimingZoomToggle.addEventListener("change", () => {
+      aimingSettings.zoomInWhileAiming = aimingZoomToggle.value === "on";
+      console.log("[AIMING SETTINGS] zoomInWhileAiming changed", aimingSettings.zoomInWhileAiming);
+
+      if (aimingSettings.zoomInWhileAiming) {
+        aimingSettings.scopeMode = false;
+        if (aimingScopeToggle) aimingScopeToggle.value = "off";
+        console.log("[AIMING SETTINGS] scopeMode automatically turned OFF");
+      }
+
+      saveBasicUserSettings();
+
+      if (!aimingSettings.zoomInWhileAiming && isAimAdsActive) {
+        stopAdsAiming("settingDisabled");
+      }
+    });
+
+    aimingScopeToggle.addEventListener("change", () => {
+      aimingSettings.scopeMode = aimingScopeToggle.value === "on";
+      console.log("[AIMING SETTINGS] scopeMode changed", aimingSettings.scopeMode);
+
+      if (aimingSettings.scopeMode) {
+        aimingSettings.zoomInWhileAiming = false;
+        if (aimingZoomToggle) aimingZoomToggle.value = "off";
+        console.log("[AIMING SETTINGS] zoomInWhileAiming automatically turned OFF");
+
+        if (isAimAdsActive) {
+          stopAdsAiming("scopeEnabled");
+        }
+      }
+
+      saveBasicUserSettings();
+    });
+
+    if (aimingScopeSizeSlider) {
+      aimingScopeSizeSlider.addEventListener("input", () => {
+        const val = parseInt(aimingScopeSizeSlider.value);
+        aimingSettings.scopeSize = val;
+        if (aimingScopeSizeValue) aimingScopeSizeValue.textContent = val;
+        document.documentElement.style.setProperty("--scope-size-scale", val / 100);
+        console.log("[AIMING SETTINGS] scopeSize changed", val);
+      });
+      aimingScopeSizeSlider.addEventListener("change", () => {
+        saveBasicUserSettings();
+        console.log("[AIMING SETTINGS] scopeSize applied and saved", aimingSettings.scopeSize);
+      });
+    }
+
+    if (aimingScopeColorPicker) {
+      aimingScopeColorPicker.addEventListener("input", () => {
+        aimingSettings.scopeCrosshairColor = aimingScopeColorPicker.value;
+        document.documentElement.style.setProperty("--scope-crosshair-color", aimingSettings.scopeCrosshairColor);
+        console.log("[AIMING SETTINGS] scopeCrosshairColor changed", aimingSettings.scopeCrosshairColor);
+      });
+      aimingScopeColorPicker.addEventListener("change", () => {
+        saveBasicUserSettings();
+        console.log("[AIMING SETTINGS] scopeCrosshairColor applied and saved", aimingSettings.scopeCrosshairColor);
+      });
+    }
+
+    if (movementSlowToggle) {
+      movementSlowToggle.addEventListener("change", () => {
+        movementSettings.slowPlayerWhenShooting = movementSlowToggle.value === "on";
+        saveBasicUserSettings();
+        console.log("[PLAYER MOVEMENT SETTINGS] slowPlayerWhenShooting changed", movementSettings.slowPlayerWhenShooting);
+      });
+    }
+
+    if (movementShootingSpeedSlider) {
+      movementShootingSpeedSlider.addEventListener("input", () => {
+        const val = parseInt(movementShootingSpeedSlider.value);
+        movementSettings.shootingSpeedPercent = val;
+        if (movementShootingSpeedValue) movementShootingSpeedValue.textContent = val + "%";
+        console.log("[PLAYER MOVEMENT SETTINGS] shootingSpeedPercent changing", val);
+      });
+      movementShootingSpeedSlider.addEventListener("change", () => {
+        saveBasicUserSettings();
+        console.log("[PLAYER MOVEMENT SETTINGS] shootingSpeedPercent saved", movementSettings.shootingSpeedPercent);
+      });
+    }
+
+    if (movementSprintSpeedSlider) {
+      movementSprintSpeedSlider.addEventListener("input", () => {
+        const val = parseInt(movementSprintSpeedSlider.value);
+        movementSettings.sprintSpeedPercent = val;
+        if (movementSprintSpeedValue) movementSprintSpeedValue.textContent = val + "%";
+        console.log("[PLAYER MOVEMENT SETTINGS] sprintSpeedPercent changing", val);
+      });
+      movementSprintSpeedSlider.addEventListener("change", () => {
+        saveBasicUserSettings();
+        console.log("[PLAYER MOVEMENT SETTINGS] sprintSpeedPercent saved", movementSettings.sprintSpeedPercent);
+      });
+    }
+
     startLanGameButton.addEventListener("click", async () => {
       try {
         await createLANHost();
@@ -19164,6 +19758,7 @@ window.onload = () => {
           variableName,
           `${input.value}${input.dataset.crosshairUnit || ""}`
         );
+        saveBasicCrosshairSetting(variableName, input.value);
       };
 
       input.addEventListener("input", applyCrosshairVisualValue);
@@ -19588,6 +20183,13 @@ window.onload = () => {
     });
 
     canvas.addEventListener("mousedown", (event) => {
+      if (event.button === 2) {
+        console.log("[SCOPE INPUT FIX] right mouse aim down");
+        if (isDesktopPointerLockCameraModeActive()) {
+          startAdsAiming("rightMouse");
+        }
+        return;
+      }
       if (event.button !== 0) {
         return;
       }
@@ -19631,10 +20233,19 @@ window.onload = () => {
     });
 
     window.addEventListener("mouseup", (event) => {
+      if (event.button === 2) {
+        console.log("[SCOPE INPUT FIX] right mouse aim up");
+        stopAdsAiming("rightMouse");
+      }
       if (event.button === 0) {
         isShooting = false;
         syncMobileHudActionAvailability();
       }
+    });
+
+    canvas.addEventListener("contextmenu", (event) => {
+      console.log("[AIM RAW] contextmenu prevented");
+      event.preventDefault();
     });
 
     window.addEventListener("pointerdown", (event) => {
@@ -20008,13 +20619,66 @@ window.onload = () => {
         reason: "fullscreenchange",
         emitLog: false
       });
-      window.setTimeout(() => {
-        handleResize({
-          reason: "fullscreenchange-delayed",
-          emitLog: false
-        });
-      }, 120);
+
+      if (isActuallyFullscreenNow()) {
+        scheduleRestoreSavedMobileLayout("entered-fullscreen");
+      } else {
+        scheduleMobileHudReflow("exited-fullscreen");
+      }
     });
+
+    // Browser-specific fullscreen events
+    const fullscreenEvents = ["webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"];
+    fullscreenEvents.forEach(evt => {
+      document.addEventListener(evt, () => {
+        if (isActuallyFullscreenNow()) {
+          scheduleRestoreSavedMobileLayout(evt);
+        } else {
+          scheduleMobileHudReflow(evt);
+        }
+      });
+    });
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => scheduleMobileHudReflow("visual-viewport-resize"));
+      window.visualViewport.addEventListener("scroll", () => scheduleMobileHudReflow("visual-viewport-scroll"));
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (event.code === "F9") {
+        console.log("[AIM DEBUG] F9 down");
+        startAdsAiming("debugF9");
+      }
+    });
+
+    window.addEventListener("keyup", (event) => {
+      if (event.code === "F9") {
+        console.log("[AIM DEBUG] F9 up");
+        stopAdsAiming("debugF9");
+      }
+    });
+
+    if (mobileControlAim) {
+      mobileControlAim.addEventListener("pointerdown", (event) => {
+        const customLayoutOpen = mobileLayoutEditMode || activeSettingsPreviewFlow === "mobile-layout";
+        if (!customLayoutOpen) {
+          startAdsAiming("mobileButton");
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+      mobileControlAim.addEventListener("pointerup", (event) => {
+        stopAdsAiming("mobileButton");
+      });
+      mobileControlAim.addEventListener("pointercancel", (event) => {
+        stopAdsAiming("mobileButton");
+      });
+      mobileControlAim.addEventListener("pointerleave", (event) => {
+        stopAdsAiming("mobileButton");
+      });
+    } else {
+      console.warn("[AIM RAW] mobile AIM button NOT found");
+    }
 
     window.addEventListener("blur", () => {
       const activePointersBefore = getActiveMobileInputPointerSnapshot();
