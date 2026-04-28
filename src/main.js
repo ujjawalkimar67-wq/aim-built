@@ -140,6 +140,87 @@ window.onload = () => {
   const mobileLayoutSettingsSection = document.getElementById("mobile-layout-settings-section");
   const openMobileLayoutButton = document.getElementById("open-mobile-layout-button");
   const mobileHud = document.getElementById("mobile-hud");
+
+  // Menu Music State
+  let menuMusic = null;
+  let isMenuMusicPlaying = false;
+  let isMenuMusicBlockedByAutoplay = false;
+  let menuMusicInitialized = false;
+
+  function initMenuMusic() {
+    if (menuMusicInitialized) return;
+    try {
+      menuMusic = new Audio("assets/audio/aim-built-menu-theme.mp3");
+      menuMusic.loop = true;
+      menuMusic.volume = 0.315;
+      menuMusicInitialized = true;
+      console.log("[MENU MUSIC] initialized");
+    } catch (error) {
+      console.warn("[MENU MUSIC] initialization failed (file may be missing):", error);
+    }
+  }
+
+  function playMenuMusic(reason = "unknown") {
+    if (!menuMusicInitialized) initMenuMusic();
+    if (!menuMusic || isMenuMusicPlaying) return;
+
+    console.log("[MENU MUSIC] play requested", reason);
+    menuMusic.play()
+      .then(() => {
+        isMenuMusicPlaying = true;
+        isMenuMusicBlockedByAutoplay = false;
+        console.log("[MENU MUSIC] playing");
+      })
+      .catch(error => {
+        if (error.name === "NotAllowedError") {
+          isMenuMusicBlockedByAutoplay = true;
+          console.log("[MENU MUSIC] autoplay blocked, waiting for user gesture");
+        } else {
+          console.warn("[MENU MUSIC] play failed:", error);
+        }
+      });
+  }
+
+  function stopMenuMusic(reason = "unknown") {
+    if (!menuMusic || !isMenuMusicPlaying) return;
+    menuMusic.pause();
+    isMenuMusicPlaying = false;
+    console.log("[MENU MUSIC] stopped for gameplay", reason);
+  }
+
+  // Fade out menu music over 600ms
+  function fadeOutMenuMusic(reason = "unknown") {
+    if (!menuMusic || !isMenuMusicPlaying) return;
+
+    const startVolume = 0.315; // target volume
+    const fadeDuration = 600;
+    const startTime = performance.now();
+
+    function fade() {
+      const elapsed = performance.now() - startTime;
+      if (elapsed < fadeDuration) {
+        menuMusic.volume = startVolume * (1 - elapsed / fadeDuration);
+        requestAnimationFrame(fade);
+      } else {
+        menuMusic.pause();
+        menuMusic.volume = startVolume; // reset for next play
+        isMenuMusicPlaying = false;
+        console.log("[MENU MUSIC] stopped for gameplay (faded)", reason);
+      }
+    }
+    fade();
+  }
+
+  function resumeMenuMusicAfterUserGesture() {
+    if (isMenuMusicBlockedByAutoplay) {
+      playMenuMusic("user-gesture");
+    }
+  }
+
+  // Register user gesture listener for autoplay fallback
+  ["click", "touchstart", "keydown"].forEach(evtType => {
+    window.addEventListener(evtType, resumeMenuMusicAfterUserGesture, { once: true });
+  });
   const mobileLayoutEditBar = document.getElementById("mobile-layout-edit-bar");
   const mobileLayoutCloseButton = document.getElementById("mobile-layout-close-button");
   const mobileLayoutSaveButton = document.getElementById("mobile-layout-save-button");
@@ -372,6 +453,7 @@ window.onload = () => {
   startupLoadingOverlay.classList.remove("is-hidden");
   startupLoadingOverlay.setAttribute("aria-hidden", "false");
   document.body.classList.add("startup-loading");
+  playMenuMusic("loading-start");
   console.log("[STARTUP]", {
     phase: "overlay exists",
     elapsedMs: getStartupElapsedMs?.() ?? 0,
@@ -3098,7 +3180,7 @@ window.onload = () => {
       movementSettings.sprintSpeedPercent = settings.movement.sprintSpeedPercent !== undefined ? settings.movement.sprintSpeedPercent : 158;
 
       if (movementSlowToggle) movementSlowToggle.value = movementSettings.slowPlayerWhenShooting ? "on" : "off";
-      
+
       if (movementShootingSpeedSlider) {
         movementShootingSpeedSlider.value = movementSettings.shootingSpeedPercent;
         if (movementShootingSpeedValue) movementShootingSpeedValue.textContent = movementSettings.shootingSpeedPercent + "%";
@@ -10410,7 +10492,7 @@ window.onload = () => {
   }
 
   async function startJiggleTrainingMode() {
-    console.log("[JIGGLE TRAINING] button clicked");
+    fadeOutMenuMusic("jiggle-training-start");
     cleanupAimTrainingMode();
     if (!startJiggleTrainingButton) {
       return;
@@ -10563,6 +10645,7 @@ window.onload = () => {
   }
 
   async function startGridShotMode() {
+    fadeOutMenuMusic("gridshot-start");
     cleanupAimTrainingMode();
     if (!startGridShotButton) {
       return;
@@ -10753,6 +10836,7 @@ window.onload = () => {
   }
 
   async function startTrackingBallMode() {
+    fadeOutMenuMusic("tracking-ball-start");
     cleanupAimTrainingMode();
     if (!startTrackingBallButton) return;
 
@@ -11056,6 +11140,7 @@ window.onload = () => {
   }
 
   function showMainMenu() {
+    playMenuMusic("main-menu-show");
     stopAdsAiming("mainMenu");
     clearActiveMobileGameplayInputs();
     setHomeGunViewOpen(false);
@@ -11098,6 +11183,7 @@ window.onload = () => {
       requestSource: "ready button"
     });
     gameStarted = true;
+    fadeOutMenuMusic("game-start");
     hideMainMenu();
     closeMenus();
     updateAimTrainingHudVisibility();
