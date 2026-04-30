@@ -3302,7 +3302,7 @@ window.onload = () => {
       if (value === undefined || value === null || String(value).trim() === "" || (typeof value === "number" && isNaN(value))) {
         crosshair[key] = defaultValue;
       }
-      
+
       // Safety: Never allow opacity 0 to persist in saved settings
       if (key === "--crosshair-opacity" && parseFloat(crosshair[key]) <= 0) {
         crosshair[key] = defaultValue;
@@ -7999,39 +7999,42 @@ window.onload = () => {
       }
       : {
         lighting: {
-          background: 0x6b6f78,
-          fogColor: 0x8c9198,
-          fogNear: 18,
-          fogFar: 118,
-          sunColor: 0xffdcc4,
-          sunIntensity: 1.08,
-          sunPosition: new THREE.Vector3(-20, 24, 14),
-          skyColor: 0xd8dee3,
-          groundColor: 0x505650,
-          skyIntensity: 1.08
+          background: 0xa9bed1,
+          fogColor: 0xd8d4c9,
+          fogNear: 24,
+          fogFar: 132,
+          sunColor: 0xffead2,
+          sunIntensity: 1.34,
+          sunPosition: new THREE.Vector3(-20, 26, 14),
+          skyColor: 0xf0ece2,
+          groundColor: 0xb5afa4,
+          skyIntensity: 1.28
         },
-        floorPlate: 0x5a5f63,
-        foundation: 0x43484d,
-        wall: 0x61676f,
-        ruinWall: 0x565b62,
-        darkSteel: 0x2b3137,
-        tank: 0x707881,
-        trim: 0x899097,
-        pipe: 0x8d846f,
-        pipeCover: 0x7a6e5d,
-        crate: 0x7a6248,
-        debris: 0x65584c,
-        lowWall: 0x706b63,
-        laneStrip: 0x7a7060,
-        accent: 0xb79052,
-        centralPad: 0x67625c,
-        warehouseRoof: 0x3b434b
+        floorPlate: 0x5d6378,
+        foundation: 0x9fa19b,
+        wall: 0xb7aa98,
+        ruinWall: 0xb7aa98,
+        darkSteel: 0x858d8f,
+        tank: 0xaab1ae,
+        trim: 0xd1d0c6,
+        pipe: 0xc0b691,
+        pipeCover: 0xb8ad93,
+        crate: 0xb89d73,
+        debris: 0xa99d88,
+        lowWall: 0xb7aa98,
+        laneStrip: 0x5d6378,
+        accent: 0xd1b066,
+        centralPad: 0x5d6378,
+        warehouseRoof: 0x9fa8aa
       };
 
     applyLightingProfile(palette.lighting);
     if (isMediumRangeLightVariant) {
       scene.background = new THREE.Color(0xa9bed1);
       console.log("[MEDIUM RANGE SKY] applied polished sky tone", "0xa9bed1");
+    } else {
+      console.log("[IRONWORKS VISUAL COPY] applying improved theme to normal Iron Workshop Yard");
+      console.log("[IRONWORKS VISUAL COPY] selected map remains", selectedMap);
     }
     const mediumRangeFloorColor = 0x5d6378;
     const applyMediumRangeFloorColorProof = (mesh, material) => {
@@ -8336,30 +8339,78 @@ window.onload = () => {
     });
 
     const laneCurves = [
-      [
-        new THREE.Vector3(-33.5, 0.03, 30),
-        new THREE.Vector3(-35.8, 0.03, 14.5),
-        new THREE.Vector3(-34.2, 0.03, -5.8),
-        new THREE.Vector3(-28.2, 0.03, -27.8)
-      ],
-      [
-        new THREE.Vector3(33.5, 0.03, 30),
-        new THREE.Vector3(35.8, 0.03, 14.5),
-        new THREE.Vector3(34.2, 0.03, -5.8),
-        new THREE.Vector3(28.2, 0.03, -27.8)
-      ],
-      [
-        new THREE.Vector3(-18.6, 0.03, 10.8),
-        new THREE.Vector3(-8.2, 0.03, 2.6),
-        new THREE.Vector3(8.2, 0.03, -2.6),
-        new THREE.Vector3(18.6, 0.03, -10.8)
-      ]
+      {
+        name: "west-outer-lane-strip",
+        points: [
+          new THREE.Vector3(-33.5, 0.03, 30),
+          new THREE.Vector3(-35.8, 0.03, 14.5),
+          new THREE.Vector3(-34.2, 0.03, -5.8),
+          new THREE.Vector3(-28.2, 0.03, -27.8)
+        ]
+      },
+      {
+        name: "east-outer-lane-strip",
+        points: [
+          new THREE.Vector3(33.5, 0.03, 30),
+          new THREE.Vector3(35.8, 0.03, 14.5),
+          new THREE.Vector3(34.2, 0.03, -5.8),
+          new THREE.Vector3(28.2, 0.03, -27.8)
+        ]
+      },
+      {
+        name: "center-diagonal-lane-strip",
+        removeAsBlackStrip: true,
+        points: [
+          new THREE.Vector3(-18.6, 0.03, 10.8),
+          new THREE.Vector3(-8.2, 0.03, 2.6),
+          new THREE.Vector3(8.2, 0.03, -2.6),
+          new THREE.Vector3(18.6, 0.03, -10.8)
+        ]
+      }
     ];
-    for (const curvePoints of laneCurves) {
+    for (const laneCurve of laneCurves) {
+      const curvePoints = laneCurve.points;
+      if (laneCurve.removeAsBlackStrip) {
+        const startPoint = curvePoints[0];
+        const endPoint = curvePoints[curvePoints.length - 1];
+        console.log("[BLACK STRIP DIAG] candidate", {
+          name: laneCurve.name,
+          materialName: laneStripMaterial.name,
+          color: laneStripMaterial.color?.getHexString?.(),
+          position: startPoint.clone().add(endPoint).multiplyScalar(0.5),
+          geometryType: "ExtrudeGeometry",
+          worldBoxMin: {
+            x: Math.min(startPoint.x, endPoint.x),
+            y: Math.min(startPoint.y, endPoint.y),
+            z: Math.min(startPoint.z, endPoint.z)
+          },
+          worldBoxMax: {
+            x: Math.max(startPoint.x, endPoint.x),
+            y: Math.max(startPoint.y, endPoint.y),
+            z: Math.max(startPoint.z, endPoint.z)
+          },
+          size: {
+            length: Number(startPoint.distanceTo(endPoint).toFixed(2)),
+            width: 1.55,
+            height: 0.14
+          }
+        });
+        console.log("[BLACK STRIP FIX] removed long black strip", {
+          name: laneCurve.name,
+          position: startPoint.clone().add(endPoint).multiplyScalar(0.5),
+          size: {
+            length: Number(startPoint.distanceTo(endPoint).toFixed(2)),
+            width: 1.55,
+            height: 0.14
+          }
+        });
+        continue;
+      }
+
       const laneStrip = createGardenPath(curvePoints, 1.55, laneStripMaterial);
       laneStrip.name = isMediumRangeLightVariant
-        ? "medium-range-floor-lane-strip"
-        : "ironworks-lane-strip";
+        ? `medium-range-floor-${laneCurve.name}`
+        : `ironworks-${laneCurve.name}`;
       addArenaMesh(laneStrip, {
         bulletCollision: false,
         castShadow: false,
