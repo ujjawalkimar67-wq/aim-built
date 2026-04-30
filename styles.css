@@ -342,6 +342,7 @@ body.main-menu-open #game {
 #home-camera-entry-button,
 #home-gun-entry-button,
 #home-settings-entry-button,
+#home-music-toggle-button,
 #home-fullscreen-button,
 #home-settings-back-button,
 #home-gun-back-button,
@@ -358,7 +359,21 @@ body.main-menu-open #game {
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
 }
 
+#home-music-toggle-button.home-music-toggle {
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+#home-music-toggle-button.is-off {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(8, 21, 37, 0.72);
+  color: rgba(226, 232, 240, 0.78);
+}
+
 .home-entry-actions button:hover,
+#home-music-toggle-button:hover,
 #home-fullscreen-button:hover,
 #home-settings-back-button:hover,
 #home-gun-back-button:hover,
@@ -3376,4 +3391,126 @@ text-transform: uppercase;
   border-radius: 0 0 10px 10px;
   background: linear-gradient(to top, #222, #111);
   box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+/* Aim Training Stats HUD */
+#aim-training-stats-hud {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  white-space: nowrap;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(6, 19, 34, 0.72);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  z-index: 9000;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+#aim-training-stats-hud.active {
+  display: flex;
+}
+
+#aim-training-stats-hud .stats-divider {
+  color: rgba(255, 255, 255, 0.25);
+  font-weight: 300;
+}
+
+#aim-training-stats-hud .stats-item span {
+  color: var(--accent, #ff6b3d);
+  margin-left: 4px;
+}
+
+/* Aim Training End Panel */
+#aim-training-end-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10000;
+  width: min(340px, 90vw);
+  padding: 24px;
+  background: rgba(6, 19, 34, 0.94);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  color: #fff;
+  pointer-events: auto;
+}
+
+.end-panel-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.end-panel-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+}
+
+.end-stat {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-dim, #c7d5e4);
+  display: flex;
+  justify-content: space-between;
+}
+
+.end-stat span {
+  color: #fff;
+  font-family: Consolas, monospace;
+}
+
+.end-panel-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.end-button {
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.end-button.restart {
+  background: var(--accent, #ff6b3d);
+  color: #fff;
+}
+
+.end-button.home {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.end-button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
 }

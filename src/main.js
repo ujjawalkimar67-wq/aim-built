@@ -23,6 +23,7 @@ window.onload = () => {
   const homeCameraEntryButton = document.getElementById("home-camera-entry-button");
   const homeGunEntryButton = document.getElementById("home-gun-entry-button");
   const homeSettingsEntryButton = document.getElementById("home-settings-entry-button");
+  const homeMusicToggleButton = document.getElementById("home-music-toggle-button");
   const homeFullscreenButton = document.getElementById("home-fullscreen-button");
   const homeGunView = document.getElementById("home-gun-view");
   const homeGunBackButton = document.getElementById("home-gun-back-button");
@@ -39,6 +40,7 @@ window.onload = () => {
   const aimTrainingBackButton = document.getElementById("aim-training-back-button");
   const startTrackingBallButton = document.getElementById("start-tracking-ball-button");
   const startJiggleTrainingButton = document.getElementById("start-jiggle-training-button");
+  const startMediumCombatModeButton = document.getElementById("start-medium-combat-mode-button");
   const aimTrainingDifficultySelect = document.getElementById("aim-training-difficulty-select");
   const aimModeCards = document.querySelectorAll(".aim-mode-card");
   const homeSettingsMenuMount = document.getElementById("home-settings-menu-mount");
@@ -102,6 +104,30 @@ window.onload = () => {
   const graphicsRenderDistanceInput = document.getElementById("graphics-render-distance-input");
   const graphicsRenderDistanceValue = document.getElementById("graphics-render-distance-value");
   const graphicsEffectQualitySelect = document.getElementById("graphics-effect-quality-select");
+  const advancedColorStyleSelect = document.getElementById("advanced-color-style-select");
+  const advancedExposureInput = document.getElementById("advanced-exposure-input");
+  const advancedExposureValue = document.getElementById("advanced-exposure-value");
+  const advancedContrastInput = document.getElementById("advanced-contrast-input");
+  const advancedContrastValue = document.getElementById("advanced-contrast-value");
+  const advancedSaturationInput = document.getElementById("advanced-saturation-input");
+  const advancedSaturationValue = document.getElementById("advanced-saturation-value");
+  const advancedFogToggle = document.getElementById("advanced-fog-toggle");
+  const advancedFogStrengthInput = document.getElementById("advanced-fog-strength-input");
+  const advancedFogStrengthValue = document.getElementById("advanced-fog-strength-value");
+  const advancedFogDistanceInput = document.getElementById("advanced-fog-distance-input");
+  const advancedFogDistanceValue = document.getElementById("advanced-fog-distance-value");
+  const advancedBloomToggle = document.getElementById("advanced-bloom-toggle");
+  const advancedBloomStrengthInput = document.getElementById("advanced-bloom-strength-input");
+  const advancedBloomStrengthValue = document.getElementById("advanced-bloom-strength-value");
+  const advancedAoToggle = document.getElementById("advanced-ao-toggle");
+  const advancedAoStrengthInput = document.getElementById("advanced-ao-strength-input");
+  const advancedAoStrengthValue = document.getElementById("advanced-ao-strength-value");
+  const advancedAntialiasingSelect = document.getElementById("advanced-antialiasing-select");
+  const advancedMaterialQualitySelect = document.getElementById("advanced-material-quality-select");
+  const advancedDynamicLightsSelect = document.getElementById("advanced-dynamic-lights-select");
+  const advancedMotionBlurSelect = document.getElementById("advanced-motion-blur-select");
+  const advancedMotionBlurStrengthInput = document.getElementById("advanced-motion-blur-strength-input");
+  const advancedMotionBlurStrengthValue = document.getElementById("advanced-motion-blur-strength-value");
   const savedGunList = document.getElementById("savedGunList");
   const gunNameInput = document.getElementById("gunName");
   const gunFireRateInput = document.getElementById("gunFireRate");
@@ -140,19 +166,94 @@ window.onload = () => {
   const mobileLayoutSettingsSection = document.getElementById("mobile-layout-settings-section");
   const openMobileLayoutButton = document.getElementById("open-mobile-layout-button");
   const mobileHud = document.getElementById("mobile-hud");
+  const basicUserSettingsStorageKey = "aimBuiltBasicSettings_v1";
 
   // Menu Music State
   let menuMusic = null;
   let isMenuMusicPlaying = false;
   let isMenuMusicBlockedByAutoplay = false;
   let menuMusicInitialized = false;
+  const menuMusicDefaultVolume = 0.315;
+  let menuMusicEnabled = loadMenuMusicEnabledFromStorage();
+
+  function loadMenuMusicEnabledFromStorage() {
+    try {
+      const saved = localStorage.getItem(basicUserSettingsStorageKey);
+      if (!saved) return true;
+      const settings = JSON.parse(saved);
+      return settings?.audio?.menuMusicEnabled !== false;
+    } catch (error) {
+      console.warn("[MENU MUSIC] failed to load saved music setting:", error);
+      return true;
+    }
+  }
+
+  function isMenuMusicEnabled() {
+    return menuMusicEnabled;
+  }
+
+  function saveMenuMusicEnabledSetting() {
+    let settings = {};
+    try {
+      const saved = localStorage.getItem(basicUserSettingsStorageKey);
+      settings = saved ? JSON.parse(saved) : {};
+      if (!settings || typeof settings !== "object") settings = {};
+    } catch (error) {
+      console.warn("[MENU MUSIC] failed to merge saved music setting:", error);
+      settings = {};
+    }
+
+    settings.audio = {
+      ...(settings.audio && typeof settings.audio === "object" ? settings.audio : {}),
+      menuMusicEnabled
+    };
+    localStorage.setItem(basicUserSettingsStorageKey, JSON.stringify(settings));
+  }
+
+  function updateHomeMusicToggleUi() {
+    if (!homeMusicToggleButton) return;
+    homeMusicToggleButton.textContent = menuMusicEnabled ? "Music: ON" : "Music: OFF";
+    homeMusicToggleButton.setAttribute("aria-pressed", String(menuMusicEnabled));
+    homeMusicToggleButton.classList.toggle("is-off", !menuMusicEnabled);
+  }
+
+  function isMenuMusicHomeFlowActive() {
+    const aimTrainingActive = isGridShotActive || isTrackingBallActive || isJiggleTrainingActive || isMediumCombatActive;
+    return !gameStarted && !aimTrainingActive && (
+      document.body.classList.contains("startup-loading") ||
+      document.body.classList.contains("main-menu-open")
+    );
+  }
+
+  function setMenuMusicEnabled(value, { persist = true } = {}) {
+    menuMusicEnabled = Boolean(value);
+    updateHomeMusicToggleUi();
+
+    if (persist) {
+      saveMenuMusicEnabledSetting();
+    }
+
+    if (!menuMusicEnabled) {
+      isMenuMusicBlockedByAutoplay = false;
+      if (menuMusic) {
+        menuMusic.pause();
+      }
+      isMenuMusicPlaying = false;
+      console.log("[MENU MUSIC] disabled from home toggle");
+      return;
+    }
+
+    if (isMenuMusicHomeFlowActive()) {
+      playMenuMusic("home-toggle-on");
+    }
+  }
 
   function initMenuMusic() {
     if (menuMusicInitialized) return;
     try {
       menuMusic = new Audio("assets/audio/aim-built-menu-theme.mp3");
       menuMusic.loop = true;
-      menuMusic.volume = 0.315;
+      menuMusic.volume = menuMusicDefaultVolume;
       menuMusicInitialized = true;
       console.log("[MENU MUSIC] initialized");
     } catch (error) {
@@ -161,12 +262,18 @@ window.onload = () => {
   }
 
   function playMenuMusic(reason = "unknown") {
+    if (!isMenuMusicEnabled()) return;
     if (!menuMusicInitialized) initMenuMusic();
     if (!menuMusic || isMenuMusicPlaying) return;
 
     console.log("[MENU MUSIC] play requested", reason);
     menuMusic.play()
       .then(() => {
+        if (!isMenuMusicEnabled()) {
+          menuMusic.pause();
+          isMenuMusicPlaying = false;
+          return;
+        }
         isMenuMusicPlaying = true;
         isMenuMusicBlockedByAutoplay = false;
         console.log("[MENU MUSIC] playing");
@@ -212,7 +319,7 @@ window.onload = () => {
   }
 
   function resumeMenuMusicAfterUserGesture() {
-    if (isMenuMusicBlockedByAutoplay) {
+    if (isMenuMusicEnabled() && isMenuMusicBlockedByAutoplay) {
       playMenuMusic("user-gesture");
     }
   }
@@ -376,6 +483,30 @@ window.onload = () => {
     !graphicsRenderDistanceInput ||
     !graphicsRenderDistanceValue ||
     !graphicsEffectQualitySelect ||
+    !advancedColorStyleSelect ||
+    !advancedExposureInput ||
+    !advancedExposureValue ||
+    !advancedContrastInput ||
+    !advancedContrastValue ||
+    !advancedSaturationInput ||
+    !advancedSaturationValue ||
+    !advancedFogToggle ||
+    !advancedFogStrengthInput ||
+    !advancedFogStrengthValue ||
+    !advancedFogDistanceInput ||
+    !advancedFogDistanceValue ||
+    !advancedBloomToggle ||
+    !advancedBloomStrengthInput ||
+    !advancedBloomStrengthValue ||
+    !advancedAoToggle ||
+    !advancedAoStrengthInput ||
+    !advancedAoStrengthValue ||
+    !advancedAntialiasingSelect ||
+    !advancedMaterialQualitySelect ||
+    !advancedDynamicLightsSelect ||
+    !advancedMotionBlurSelect ||
+    !advancedMotionBlurStrengthInput ||
+    !advancedMotionBlurStrengthValue ||
     !savedGunList ||
     !gunNameInput ||
     !gunFireRateInput ||
@@ -449,6 +580,7 @@ window.onload = () => {
     t: Number(startupTrace.jsBootStartAt.toFixed(1))
   });
 
+  updateHomeMusicToggleUi();
   startupLoadingOverlay.hidden = false;
   startupLoadingOverlay.classList.remove("is-hidden");
   startupLoadingOverlay.setAttribute("aria-hidden", "false");
@@ -2960,6 +3092,9 @@ window.onload = () => {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xc8bfe6);
   scene.fog = new THREE.Fog(0xe2d7ef, 25, 100);
+  const advancedGraphicsDynamicLightsGroup = new THREE.Group();
+  advancedGraphicsDynamicLightsGroup.name = "advanced-graphics-dynamic-lights";
+  scene.add(advancedGraphicsDynamicLightsGroup);
 
   const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
   const clock = new THREE.Clock();
@@ -3038,8 +3173,6 @@ window.onload = () => {
   const gameCameraCustomizationStorageKey = "gameCameraCustomization";
   const gameCameraModeStorageKey = "cameraMode";
   const thirdPersonCameraSettingsStorageKey = "thirdPersonCameraSettings";
-  const basicUserSettingsStorageKey = "aimBuiltBasicSettings_v1";
-
   const aimingSettings = {
     zoomInWhileAiming: true,
     scopeMode: false,
@@ -3052,6 +3185,16 @@ window.onload = () => {
     shootingSpeedPercent: 60,
     sprintSpeedPercent: 158
   };
+  const defaultCrosshairSettings = Object.freeze({
+    "--crosshair-size": "18",
+    "--crosshair-thickness": "3",
+    "--crosshair-gap": "8",
+    "--crosshair-opacity": "1",
+    "--crosshair-dot-size": "4",
+    "--crosshair-outline-thickness": "1",
+    "--crosshair-color": "#ff6b3d",
+    "--crosshair-outline-color": "#050b14"
+  });
 
   function saveBasicUserSettings() {
     const settings = {
@@ -3073,6 +3216,9 @@ window.onload = () => {
         slowPlayerWhenShooting: movementSettings.slowPlayerWhenShooting,
         shootingSpeedPercent: movementSettings.shootingSpeedPercent,
         sprintSpeedPercent: movementSettings.sprintSpeedPercent
+      },
+      audio: {
+        menuMusicEnabled
       }
     };
 
@@ -3080,7 +3226,7 @@ window.onload = () => {
       for (const input of crosshairVisualInputs) {
         const variableName = input.dataset.crosshairVar;
         if (variableName) {
-          settings.crosshair[variableName] = input.value;
+          settings.crosshair[variableName] = sanitizeCrosshairInputValue(input, input.value);
         }
       }
     }
@@ -3113,6 +3259,73 @@ window.onload = () => {
     console.log("[AIM BUILT BASIC SAVE] saved crosshair", key, value);
   }
 
+  function sanitizeCrosshairInputValue(input, value) {
+    const variableName = input?.dataset?.crosshairVar || "";
+    const defaultValue = defaultCrosshairSettings[variableName] ?? String(input?.defaultValue || "");
+    const rawValue = String(value ?? "").trim();
+
+    if (input?.type === "color") {
+      return /^#[0-9a-f]{6}$/i.test(rawValue) ? rawValue : defaultValue;
+    }
+
+    const parsedValue = Number(rawValue);
+    const minValue = Number(input?.min);
+    const maxValue = Number(input?.max);
+    if (!Number.isFinite(parsedValue)) {
+      return defaultValue;
+    }
+    if (Number.isFinite(minValue) && parsedValue < minValue) {
+      return defaultValue;
+    }
+    if (Number.isFinite(maxValue) && parsedValue > maxValue) {
+      return defaultValue;
+    }
+    if (variableName === "--crosshair-opacity" && parsedValue <= 0) {
+      return defaultValue;
+    }
+
+    return rawValue;
+  }
+
+  function sanitizeCrosshairSettings(settings) {
+    if (!settings || typeof settings !== "object") {
+      settings = { crosshair: {} };
+    }
+    if (!settings.crosshair) {
+      settings.crosshair = {};
+    }
+
+    const crosshair = settings.crosshair;
+    for (const [key, defaultValue] of Object.entries(defaultCrosshairSettings)) {
+      const value = crosshair[key];
+      // If missing, invalid, or empty, use the stable default
+      if (value === undefined || value === null || String(value).trim() === "" || (typeof value === "number" && isNaN(value))) {
+        crosshair[key] = defaultValue;
+      }
+      
+      // Safety: Never allow opacity 0 to persist in saved settings
+      if (key === "--crosshair-opacity" && parseFloat(crosshair[key]) <= 0) {
+        crosshair[key] = defaultValue;
+      }
+    }
+
+    return settings;
+  }
+
+  function applyCrosshairInputValue(input, value) {
+    const variableName = input?.dataset?.crosshairVar;
+    if (!variableName) {
+      return;
+    }
+
+    const sanitizedValue = sanitizeCrosshairInputValue(input, value);
+    input.value = sanitizedValue;
+    document.documentElement.style.setProperty(
+      variableName,
+      `${sanitizedValue}${input.dataset.crosshairUnit || ""}`
+    );
+  }
+
   function applyBasicUserSettings(settings) {
     if (!settings) return;
 
@@ -3125,24 +3338,16 @@ window.onload = () => {
       if (settings.camera.fov !== undefined) applyCameraFov(settings.camera.fov, { persist: false, syncInput: true });
     }
 
-    if (settings.crosshair && typeof crosshairVisualInputs !== "undefined") {
+    const sanitizedSettings = sanitizeCrosshairSettings(settings);
+    if (sanitizedSettings.crosshair && typeof crosshairVisualInputs !== "undefined") {
       for (const input of crosshairVisualInputs) {
         const variableName = input.dataset.crosshairVar;
-        if (variableName && settings.crosshair[variableName] !== undefined) {
-          let val = settings.crosshair[variableName];
-
-          // Migration: if size is the old default 18, move to new default 12
-          if (variableName === "--crosshair-size" && val === "18") {
-            val = "12";
-          }
-
-          input.value = val;
-          document.documentElement.style.setProperty(
-            variableName,
-            `${input.value}${input.dataset.crosshairUnit || ""}`
-          );
+        if (variableName && sanitizedSettings.crosshair[variableName] !== undefined) {
+          applyCrosshairInputValue(input, sanitizedSettings.crosshair[variableName]);
         }
       }
+      console.log("[CROSSHAIR RESTORE] defaults validated");
+      console.log("[CROSSHAIR RESTORE] applied", sanitizedSettings.crosshair);
     }
 
     if (settings.aiming) {
@@ -3193,6 +3398,11 @@ window.onload = () => {
 
       console.log("[PLAYER MOVEMENT SETTINGS] applied", movementSettings);
     }
+
+    if (settings.audio?.menuMusicEnabled !== undefined) {
+      menuMusicEnabled = settings.audio.menuMusicEnabled !== false;
+    }
+    updateHomeMusicToggleUi();
 
     console.log("[AIM BUILT BASIC SAVE] applied saved settings");
   }
@@ -3368,6 +3578,7 @@ window.onload = () => {
   let trackingBallMaxHp = 100;
   let trackingBallMovementTime = 0;
   let trackingBallHpBarFill = null;
+  let trackingBallTargetId = "";
   const TRACKING_BALL_DAMAGE = 10;
   let trackingBallMovePhase = "slow";
   let trackingBallPhaseTimer = 0;
@@ -3387,6 +3598,240 @@ window.onload = () => {
   let jiggleTrainingCurrentOffset = 0;
   const jiggleTrainingMaxSideDistance = 1.5;
   const jiggleTrainingMoveSpeed = 3.5;
+
+  // Medium Range Jiggle Training State
+  let isMediumCombatActive = false;
+  let mediumCombatHits = 0;
+  let mediumCombatMisses = 0;
+  let mediumCombatTimer = 60;
+  let mediumCombatIntervalId = 0;
+  let mediumCombatEnemy = null;
+  let mediumCombatEnemySpawnCenter = new THREE.Vector3();
+  let mediumCombatSideDirection = new THREE.Vector3();
+  let mediumCombatMoveDirection = 1;
+  let mediumCombatCurrentOffset = 0;
+  let mediumCombatEnemySideOffset = 0;
+  let mediumCombatEnemySideVelocity = 0;
+  let mediumCombatEnemyMoveState = "jiggle";
+  let mediumCombatEnemyMoveStateTimer = 0;
+  let mediumCombatEnemyMoveTargetOffset = 0;
+  let mediumCombatEnemyJiggleBaseOffset = 0;
+  let mediumCombatEnemyJiggleDirection = 1;
+  let mediumCombatMovementBoundaryGroup = null;
+  const mediumCombatPlayerSpawn = new THREE.Vector3(-15.6, 0.0, 27.3);
+  const mediumCombatEnemySpawn = new THREE.Vector3(12.3, 0.0, 22.5);
+  const mediumCombatForward = mediumCombatEnemySpawn.clone().sub(mediumCombatPlayerSpawn);
+  mediumCombatForward.y = 0;
+  mediumCombatForward.normalize();
+  const mediumCombatRight = new THREE.Vector3(mediumCombatForward.z, 0, -mediumCombatForward.x);
+  const mediumCombatJiggleSideDirection = new THREE.Vector3(-mediumCombatForward.z, 0, mediumCombatForward.x);
+  const mediumCombatBoundaryLength = 8;
+  const mediumCombatBoundaryHalfWidth = 2.5;
+  const mediumCombatBoundaryYaw = Math.atan2(mediumCombatForward.x, mediumCombatForward.z);
+  const mediumCombatBoundsOffset = new THREE.Vector3();
+  const MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH = 4.5;
+  const MEDIUM_RANGE_JIGGLE_CROSS_TIME = 0.43;
+  const MEDIUM_RANGE_JIGGLE_MIN_TARGET = 0.5;
+  const MEDIUM_RANGE_JIGGLE_MAX_TARGET = 1.1;
+
+  // Multiplayer Aim Training sync
+  let isNetworkAimTrainingMirror = false;
+  let aimTrainingSessionId = "";
+  let aimTrainingSessionMode = "";
+  let currentHostAimTrainingSessionId = "";
+  let hasLeftHostAimTrainingSession = false;
+  let ignoredHostAimTrainingSessionId = "";
+  let lastAimTrainingStateSentAt = -Infinity;
+  let lastAimTrainingTimerSentAt = -Infinity;
+  let lastAimTrainingTargetStateSentAt = -Infinity;
+  let lastAimTrainingSyncedMode = "";
+  let lastAimTrainingSyncedFinished = false;
+  let nextAimTrainingTargetSequence = 0;
+  const aimTrainingStateSyncIntervalMs = 1000;
+  const aimTrainingTargetSyncIntervalMs = 100;
+
+  // Aim Training Stats HUD Logic
+  let aimTrainingStats = {
+    active: false,
+    mode: null,
+    durationSeconds: 60,
+    startTime: 0,
+    remainingSeconds: 60,
+    hits: 0,
+    misses: 0,
+    totalShots: 0,
+    finished: false
+  };
+
+  const trainingStatTime = document.getElementById("training-stat-time");
+  const trainingStatHit = document.getElementById("training-stat-hit");
+  const trainingStatMiss = document.getElementById("training-stat-miss");
+  const trainingStatAcc = document.getElementById("training-stat-acc");
+  const aimTrainingStatsHud = document.getElementById("aim-training-stats-hud");
+
+  const aimTrainingEndPanel = document.getElementById("aim-training-end-panel");
+  const endStatHitVal = document.getElementById("end-stat-hit-val");
+  const endStatMissVal = document.getElementById("end-stat-miss-val");
+  const endStatAccVal = document.getElementById("end-stat-acc-val");
+  const endPanelRestartButton = document.getElementById("end-panel-restart-button");
+  const endPanelHomeButton = document.getElementById("end-panel-home-button");
+
+  function showAimTrainingStatsHud(mode) {
+    aimTrainingStats.active = true;
+    aimTrainingStats.mode = mode;
+    aimTrainingStats.startTime = performance.now();
+    aimTrainingStats.hits = 0;
+    aimTrainingStats.misses = 0;
+    aimTrainingStats.totalShots = 0;
+    aimTrainingStats.remainingSeconds = 60;
+    aimTrainingStats.finished = false;
+
+    hideAimTrainingEndPanel();
+
+    if (aimTrainingStatsHud) {
+      aimTrainingStatsHud.classList.add("active");
+    }
+    updateAimTrainingStatsHud();
+    console.log("[AIM TRAINING TIMER] countdown started", mode);
+  }
+
+  function hideAimTrainingStatsHud(reason = "unknown") {
+    aimTrainingStats.active = false;
+    if (aimTrainingStatsHud) {
+      aimTrainingStatsHud.classList.remove("active");
+    }
+    hideAimTrainingEndPanel();
+    console.log("[AIM TRAINING HUD] hidden", reason);
+  }
+
+  function recordAimTrainingShot(hit) {
+    if (!aimTrainingStats.active || aimTrainingStats.finished) return;
+
+    aimTrainingStats.totalShots++;
+    if (hit) {
+      aimTrainingStats.hits++;
+    } else {
+      aimTrainingStats.misses++;
+    }
+
+    updateAimTrainingStatsHud();
+  }
+
+  function updateAimTrainingStatsHud() {
+    if (!aimTrainingStats.active || (!isGridShotActive && !isTrackingBallActive && !isJiggleTrainingActive && !isMediumCombatActive)) {
+      if (aimTrainingStats.active) hideAimTrainingStatsHud("returned to aim training chooser");
+      return;
+    }
+
+    if (aimTrainingStats.finished) return;
+
+    // Update Timer (Countdown from 60)
+    const elapsedSeconds = Math.floor((performance.now() - aimTrainingStats.startTime) / 1000);
+    aimTrainingStats.remainingSeconds = Math.max(0, 60 - elapsedSeconds);
+
+    if (trainingStatTime) trainingStatTime.textContent = `${aimTrainingStats.remainingSeconds}s`;
+    if (trainingStatHit) trainingStatHit.textContent = aimTrainingStats.hits;
+    if (trainingStatMiss) trainingStatMiss.textContent = aimTrainingStats.misses;
+
+    const acc = aimTrainingStats.totalShots > 0
+      ? Math.round((aimTrainingStats.hits / aimTrainingStats.totalShots) * 100)
+      : 0;
+    if (trainingStatAcc) trainingStatAcc.textContent = acc + "%";
+
+    if (aimTrainingStats.remainingSeconds <= 0 && !aimTrainingStats.finished) {
+      finishAimTrainingSession("time over");
+    }
+  }
+
+  function finishAimTrainingSession(reason) {
+    aimTrainingStats.finished = true;
+    console.log("[AIM TRAINING TIMER] time over", aimTrainingStats);
+    showAimTrainingEndPanel();
+  }
+
+  function showAimTrainingEndPanel() {
+    if (aimTrainingEndPanel) {
+      const acc = aimTrainingStats.totalShots > 0
+        ? Math.round((aimTrainingStats.hits / aimTrainingStats.totalShots) * 100)
+        : 0;
+
+      if (endStatHitVal) endStatHitVal.textContent = aimTrainingStats.hits;
+      if (endStatMissVal) endStatMissVal.textContent = aimTrainingStats.misses;
+      if (endStatAccVal) endStatAccVal.textContent = acc + "%";
+
+      aimTrainingEndPanel.style.display = "block";
+    }
+  }
+
+  function hideAimTrainingEndPanel() {
+    if (aimTrainingEndPanel) {
+      aimTrainingEndPanel.style.display = "none";
+    }
+  }
+
+  function restartCurrentAimTrainingMode(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const mode = aimTrainingStats.mode;
+    console.log("[AIM TRAINING END PANEL] restart clicked", mode);
+    if (isNetworkAimTrainingMirror && isLanClient) {
+      showStatusMessage("Host controls Aim Training restart.", 1400);
+      return;
+    }
+    hideAimTrainingEndPanel("restart");
+    cleanupAimTrainingMode("restart from end panel");
+
+    if (mode === "Grid Shot") {
+      startGridShotMode();
+    } else if (mode === "Tracking Ball") {
+      startTrackingBallMode();
+    } else if (mode === "Jiggle Training") {
+      startJiggleTrainingMode();
+    } else if (mode === "Medium Range Jiggle Training") {
+      startMediumCombatMode();
+    }
+    console.log("[AIM TRAINING END PANEL] cleanup complete");
+  }
+
+  function returnFromAimTrainingEndPanelToHomeOrChooser(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const mode = aimTrainingStats.mode;
+    console.log("[AIM TRAINING END PANEL] home clicked");
+    if (
+      handleHomeFromOnlineClient("time-over home clicked") ||
+      leaveMirroredHostAimTrainingLocally("time-over home clicked")
+    ) {
+      console.log("[AIM TRAINING END PANEL] cleanup complete");
+      return;
+    }
+    console.log("[AIM TRAINING END PANEL] using Settings Home exit path");
+
+    hideAimTrainingEndPanel("home clicked");
+    hideAimTrainingStatsHud("home clicked from end panel");
+
+    if (mode === "Medium Range Jiggle Training") {
+      exitMediumCombatMode();
+      console.log("[AIM TRAINING END PANEL] cleanup complete");
+      return;
+    }
+
+    // Exact path from Settings > Home
+    cleanupAimTrainingMode();
+    exitCameraCustomizationPreviewMode();
+    closeMenus();
+    showMainMenu();
+
+    console.log("[AIM TRAINING END PANEL] cleanup complete");
+  }
+
+  // Listeners for End Panel (safe to bind now)
+  endPanelRestartButton?.addEventListener("click", restartCurrentAimTrainingMode);
+  endPanelHomeButton?.addEventListener("click", returnFromAimTrainingEndPanelToHomeOrChooser);
 
   // Shared Aim Difficulty
   let aimTrainingDifficulty = localStorage.getItem("aimTrainingDifficulty") || "moderate";
@@ -3954,6 +4399,31 @@ window.onload = () => {
     medium: 2,
     ultra: 3
   });
+  const advancedGraphicsDefaults = Object.freeze({
+    colorStyle: "Default",
+    exposure: 1.0,
+    contrast: 1.0,
+    saturation: 1.0,
+    fogEnabled: false,
+    fogStrength: 0.25,
+    fogDistance: 120,
+    bloomEnabled: false,
+    bloomStrength: 0.35,
+    ambientOcclusionEnabled: false,
+    aoStrength: 0.45,
+    antiAliasing: "Off",
+    materialQuality: "Medium",
+    dynamicLights: "Off",
+    motionBlur: "Off",
+    motionBlurStrength: 0
+  });
+  const advancedGraphicsColorStylePresets = Object.freeze({
+    Default: Object.freeze({ exposure: 1.0, contrast: 1.0, saturation: 1.0 }),
+    Cinematic: Object.freeze({ exposure: 1.05, contrast: 1.15, saturation: 0.9 }),
+    Warm: Object.freeze({ exposure: 1.05, contrast: 1.08, saturation: 1.1 }),
+    Cold: Object.freeze({ exposure: 1.0, contrast: 1.08, saturation: 0.95 }),
+    "High Contrast": Object.freeze({ exposure: 1.05, contrast: 1.25, saturation: 1.05 })
+  });
   const graphicsDefaultsByMode = Object.freeze({
     desktop: Object.freeze({
       renderScalePercent: 100,
@@ -3961,7 +4431,8 @@ window.onload = () => {
       shadowsEnabled: true,
       shadowQuality: "high",
       renderDistance: 600,
-      effectQuality: "ultra"
+      effectQuality: "ultra",
+      advancedGraphics: advancedGraphicsDefaults
     }),
     mobile: Object.freeze({
       renderScalePercent: 70,
@@ -3969,13 +4440,16 @@ window.onload = () => {
       shadowsEnabled: true,
       shadowQuality: "low",
       renderDistance: 250,
-      effectQuality: "low"
+      effectQuality: "low",
+      advancedGraphics: advancedGraphicsDefaults
     })
   });
   let uiTransparency = defaultUiTransparency;
   let mobileCameraSensitivityPercent = defaultMobileCameraSensitivityPercent;
   let graphicsSettings = { ...graphicsDefaultsByMode.desktop };
   let graphicsSettingsLoadedFromStorage = false;
+  const advancedGraphicsOptionalEffectLogs = new Set();
+  let motionBlurCleanupLogged = false;
   let uiTransparencySlider = null;
   let uiTransparencyValue = null;
   let uiTransparencyResetButton = null;
@@ -4048,9 +4522,11 @@ window.onload = () => {
   const cityAssetLoadCache = new Map();
   let activeMapBuildId = 0;
   let currentLoadedMapId = "";
+  let currentMapVisualVariant = "";
   let pendingMapLoadRequest = null;
   const ironworksYardMapId = "ironworksYard";
   const ironworksYardDisplayName = "Ironworks Yard";
+  const mediumRangeJiggleTrainingVisualVariant = "mediumRangeJiggleTrainingLight";
   const warehouseRailyardMapId = "warehouseRailyard";
   const warehouseRailyardDisplayName = "Warehouse Railyard";
   const warehouseRailyardModelRelativePath = "../assets/models/warehouse-railyard/warehouse_colliders.glb";
@@ -6185,6 +6661,9 @@ window.onload = () => {
       ((cameraCustomizationPreviewMode || isGridShotActive || isTrackingBallActive || isJiggleTrainingActive) &&
         temporaryPlayerSpawnOverride &&
         selectedMap === settingsPreviewMapId)
+        || (isMediumCombatActive &&
+          temporaryPlayerSpawnOverride &&
+          selectedMap === ironworksYardMapId)
         ? temporaryPlayerSpawnOverride
         : playerSpawn;
 
@@ -6713,6 +7192,7 @@ window.onload = () => {
         addStaticMapGroup(ringPipeLod);
       }
     }
+
   }
 
   function createBlossomTree({
@@ -7484,19 +7964,88 @@ window.onload = () => {
     system.mesh.computeBoundingSphere();
   }
 
-  function buildIronworksYard() {
-    applyLightingProfile({
-      background: 0x6b6f78,
-      fogColor: 0x8c9198,
-      fogNear: 18,
-      fogFar: 118,
-      sunColor: 0xffdcc4,
-      sunIntensity: 1.08,
-      sunPosition: new THREE.Vector3(-20, 24, 14),
-      skyColor: 0xd8dee3,
-      groundColor: 0x505650,
-      skyIntensity: 1.08
-    });
+  function buildIronworksYard(options = {}) {
+    const isMediumRangeLightVariant = options.visualVariant === mediumRangeJiggleTrainingVisualVariant;
+    const palette = isMediumRangeLightVariant
+      ? {
+        lighting: {
+          background: 0xa9bed1,
+          fogColor: 0xd8d4c9,
+          fogNear: 24,
+          fogFar: 132,
+          sunColor: 0xffead2,
+          sunIntensity: 1.34,
+          sunPosition: new THREE.Vector3(-20, 26, 14),
+          skyColor: 0xf0ece2,
+          groundColor: 0xb5afa4,
+          skyIntensity: 1.28
+        },
+        floorPlate: 0x5d6378,
+        foundation: 0x9fa19b,
+        wall: 0xb7aa98,
+        ruinWall: 0xb7aa98,
+        darkSteel: 0x858d8f,
+        tank: 0xaab1ae,
+        trim: 0xd1d0c6,
+        pipe: 0xc0b691,
+        pipeCover: 0xb8ad93,
+        crate: 0xb89d73,
+        debris: 0xa99d88,
+        lowWall: 0xb7aa98,
+        laneStrip: 0x5d6378,
+        accent: 0xd1b066,
+        centralPad: 0x5d6378,
+        warehouseRoof: 0x9fa8aa
+      }
+      : {
+        lighting: {
+          background: 0x6b6f78,
+          fogColor: 0x8c9198,
+          fogNear: 18,
+          fogFar: 118,
+          sunColor: 0xffdcc4,
+          sunIntensity: 1.08,
+          sunPosition: new THREE.Vector3(-20, 24, 14),
+          skyColor: 0xd8dee3,
+          groundColor: 0x505650,
+          skyIntensity: 1.08
+        },
+        floorPlate: 0x5a5f63,
+        foundation: 0x43484d,
+        wall: 0x61676f,
+        ruinWall: 0x565b62,
+        darkSteel: 0x2b3137,
+        tank: 0x707881,
+        trim: 0x899097,
+        pipe: 0x8d846f,
+        pipeCover: 0x7a6e5d,
+        crate: 0x7a6248,
+        debris: 0x65584c,
+        lowWall: 0x706b63,
+        laneStrip: 0x7a7060,
+        accent: 0xb79052,
+        centralPad: 0x67625c,
+        warehouseRoof: 0x3b434b
+      };
+
+    applyLightingProfile(palette.lighting);
+    if (isMediumRangeLightVariant) {
+      scene.background = new THREE.Color(0xa9bed1);
+      console.log("[MEDIUM RANGE SKY] applied polished sky tone", "0xa9bed1");
+    }
+    const mediumRangeFloorColor = 0x5d6378;
+    const applyMediumRangeFloorColorProof = (mesh, material) => {
+      if (!isMediumRangeLightVariant || !mesh || !material?.color) {
+        return;
+      }
+
+      material.color.setHex(mediumRangeFloorColor);
+      console.log("[MEDIUM RANGE FLOOR] applied floor color #5D6378", {
+        materialName: material.name || "",
+        meshName: mesh.name || "",
+        color: material.color?.getHexString?.()
+      });
+    };
 
     const ironworksArenaWidth = 96;
     const ironworksArenaDepth = 78;
@@ -7626,72 +8175,87 @@ window.onload = () => {
     };
 
     const floorPlateMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5a5f63,
+      color: palette.floorPlate,
       roughness: 0.95,
       metalness: 0.08
     });
+    floorPlateMaterial.name = isMediumRangeLightVariant
+      ? "medium-range-floor-arena-deck-material"
+      : "ironworks-floor-arena-deck-material";
     const foundationMaterial = new THREE.MeshStandardMaterial({
-      color: 0x43484d,
+      color: palette.foundation,
       roughness: 0.98,
       metalness: 0.04
     });
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: 0x61676f,
+      color: palette.wall,
       roughness: 0.84,
       metalness: 0.22
     });
+    wallMaterial.name = isMediumRangeLightVariant
+      ? "medium-range-wall-material"
+      : "ironworks-wall-material";
     const ruinWallMaterial = new THREE.MeshStandardMaterial({
-      color: 0x565b62,
+      color: palette.ruinWall,
       roughness: 0.9,
       metalness: 0.18
     });
+    ruinWallMaterial.name = isMediumRangeLightVariant
+      ? "medium-range-ruin-wall-material"
+      : "ironworks-ruin-wall-material";
     const darkSteelMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2b3137,
+      color: palette.darkSteel,
       roughness: 0.72,
       metalness: 0.46
     });
     const tankMaterial = new THREE.MeshStandardMaterial({
-      color: 0x707881,
+      color: palette.tank,
       roughness: 0.56,
       metalness: 0.48
     });
     const trimMaterial = new THREE.MeshStandardMaterial({
-      color: 0x899097,
+      color: palette.trim,
       roughness: 0.42,
       metalness: 0.72
     });
     const pipeMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8d846f,
+      color: palette.pipe,
       roughness: 0.48,
       metalness: 0.62
     });
     const pipeCoverMaterial = new THREE.MeshStandardMaterial({
-      color: 0x7a6e5d,
+      color: palette.pipeCover,
       roughness: 0.64,
       metalness: 0.34
     });
     const crateMaterial = new THREE.MeshStandardMaterial({
-      color: 0x7a6248,
+      color: palette.crate,
       roughness: 0.9,
       metalness: 0.08
     });
     const debrisMaterial = new THREE.MeshStandardMaterial({
-      color: 0x65584c,
+      color: palette.debris,
       roughness: 0.96,
       metalness: 0.04
     });
     const lowWallMaterial = new THREE.MeshStandardMaterial({
-      color: 0x706b63,
+      color: palette.lowWall,
       roughness: 0.93,
       metalness: 0.06
     });
+    lowWallMaterial.name = isMediumRangeLightVariant
+      ? "medium-range-low-wall-material"
+      : "ironworks-low-wall-material";
     const laneStripMaterial = new THREE.MeshStandardMaterial({
-      color: 0x7a7060,
+      color: palette.laneStrip,
       roughness: 0.9,
       metalness: 0.14
     });
+    laneStripMaterial.name = isMediumRangeLightVariant
+      ? "medium-range-floor-lane-strip-material"
+      : "ironworks-lane-strip-material";
     const accentMaterial = new THREE.MeshStandardMaterial({
-      color: 0xb79052,
+      color: palette.accent,
       roughness: 0.72,
       metalness: 0.38
     });
@@ -7709,6 +8273,9 @@ window.onload = () => {
       }),
       foundationMaterial
     );
+    arenaFoundation.name = isMediumRangeLightVariant
+      ? "medium-range-floor-foundation-slab"
+      : "ironworks-foundation-slab";
     arenaFoundation.rotation.x = Math.PI * 0.5;
     addArenaMesh(arenaFoundation, {
       bulletCollision: false,
@@ -7720,21 +8287,33 @@ window.onload = () => {
       new THREE.ShapeGeometry(arenaShape, 24),
       floorPlateMaterial
     );
+    arenaDeck.name = isMediumRangeLightVariant
+      ? "medium-range-floor-arena-deck"
+      : "ironworks-arena-deck";
     arenaDeck.rotation.x = -Math.PI * 0.5;
     arenaDeck.position.y = 0.02;
     addArenaMesh(arenaDeck, {
       castShadow: false,
       receiveShadow: true
     });
+    applyMediumRangeFloorColorProof(arenaDeck, floorPlateMaterial);
+
+    const centralPadMaterial = new THREE.MeshStandardMaterial({
+      color: palette.centralPad,
+      roughness: 0.9,
+      metalness: 0.12
+    });
+    centralPadMaterial.name = isMediumRangeLightVariant
+      ? "medium-range-floor-central-pad-material"
+      : "ironworks-central-pad-material";
 
     const centralPad = new THREE.Mesh(
       new THREE.CircleGeometry(8.2, 40),
-      new THREE.MeshStandardMaterial({
-        color: 0x67625c,
-        roughness: 0.9,
-        metalness: 0.12
-      })
+      centralPadMaterial
     );
+    centralPad.name = isMediumRangeLightVariant
+      ? "medium-range-floor-central-pad"
+      : "ironworks-central-pad";
     centralPad.rotation.x = -Math.PI * 0.5;
     centralPad.position.set(0, 0.03, 0.2);
     addArenaMesh(centralPad, {
@@ -7742,6 +8321,7 @@ window.onload = () => {
       castShadow: false,
       receiveShadow: true
     });
+    applyMediumRangeFloorColorProof(centralPad, centralPadMaterial);
 
     const centralRing = new THREE.Mesh(
       new THREE.TorusGeometry(10.4, 0.15, 10, 36),
@@ -7777,11 +8357,15 @@ window.onload = () => {
     ];
     for (const curvePoints of laneCurves) {
       const laneStrip = createGardenPath(curvePoints, 1.55, laneStripMaterial);
+      laneStrip.name = isMediumRangeLightVariant
+        ? "medium-range-floor-lane-strip"
+        : "ironworks-lane-strip";
       addArenaMesh(laneStrip, {
         bulletCollision: false,
         castShadow: false,
         receiveShadow: true
       });
+      applyMediumRangeFloorColorProof(laneStrip, laneStripMaterial);
     }
 
     const perimeterWalls = [
@@ -7833,7 +8417,7 @@ window.onload = () => {
     const warehouseRoof = new THREE.Mesh(
       new THREE.CylinderGeometry(7.7, 7.7, 35.6, 28, 1, true, 0, Math.PI),
       new THREE.MeshStandardMaterial({
-        color: 0x3b434b,
+        color: palette.warehouseRoof,
         roughness: 0.68,
         metalness: 0.34,
         side: THREE.DoubleSide
@@ -8060,13 +8644,27 @@ window.onload = () => {
     });
 
     console.log("customArena_rescaled_1_5x", {
-      map: ironworksYardDisplayName,
+      map: isMediumRangeLightVariant
+        ? "Medium Range Jiggle Training light Ironworks variant"
+        : ironworksYardDisplayName,
       width: ironworksArenaWidth,
       depth: ironworksArenaDepth,
       addedStructureGroups: ironworksAddedStructureGroups,
       addedStructureObjects: ironworksAddedStructureObjects
     });
-    showStatusMessage("Ironworks Yard loaded from original in-game geometry.", 2600);
+    if (isMediumRangeLightVariant) {
+      console.log("[MEDIUM FLOOR DIAG] buildIronworksYard light variant active", {
+        visualVariant: options.visualVariant,
+        mapId: ironworksYardMapId,
+        mapChildren: mapGroup.children.length
+      });
+    }
+    showStatusMessage(
+      isMediumRangeLightVariant
+        ? "Medium Range Jiggle Training light yard loaded."
+        : "Ironworks Yard loaded from original in-game geometry.",
+      2600
+    );
   }
 
   function buildBlossomGarden() {
@@ -9851,7 +10449,8 @@ window.onload = () => {
 
   async function loadSelectedMap(mapId, {
     forceReload = false,
-    requestSource = "unknown"
+    requestSource = "unknown",
+    visualVariant = ""
   } = {}) {
     const normalizedMapId = normalizeMapId(mapId);
     const pipelineContext = createMapPipelineContext(normalizedMapId, requestSource);
@@ -9871,12 +10470,13 @@ window.onload = () => {
       return pendingMapLoadRequest.promise;
     }
 
-    if (!forceReload && currentLoadedMapId === normalizedMapId && mapGroup.children.length > 0) {
+    if (!forceReload && currentLoadedMapId === normalizedMapId && currentMapVisualVariant === visualVariant && mapGroup.children.length > 0) {
       selectedMap = normalizedMapId;
       mapSelect.value = selectedMap;
       logMapPipelineStep(pipelineContext, "map ready success", {
         reusedLoadedMap: true,
-        currentLoadedMapId
+        currentLoadedMapId,
+        visualVariant
       });
       if (player) {
         player.position.copy(playerPosition);
@@ -9898,6 +10498,7 @@ window.onload = () => {
 
       clearCurrentMap();
       currentLoadedMapId = "";
+      currentMapVisualVariant = "";
 
       if (
         selectedMap !== "sunsetCity" &&
@@ -9911,7 +10512,7 @@ window.onload = () => {
         if (selectedMap === "industrialDome") {
           buildIndustrialDome();
         } else if (selectedMap === ironworksYardMapId) {
-          buildIronworksYard();
+          buildIronworksYard({ visualVariant });
         } else if (selectedMap === "blossomGarden") {
           buildBlossomGarden();
         } else if (selectedMap === "proceduralCity") {
@@ -9960,6 +10561,7 @@ window.onload = () => {
         clearCurrentMap();
         selectedMap = "defaultVillage";
         mapSelect.value = selectedMap;
+        currentMapVisualVariant = "";
         buildDefaultVillage();
         showStatusMessage(
           mapId === warehouseRailyardMapId
@@ -9975,6 +10577,7 @@ window.onload = () => {
           emitLog: true
         });
         currentLoadedMapId = selectedMap;
+        currentMapVisualVariant = selectedMap === ironworksYardMapId ? visualVariant : "";
         if (player) {
           player.position.copy(playerPosition);
         }
@@ -10011,10 +10614,7 @@ window.onload = () => {
     return (
       mapId === "industrialDome" ||
       mapId === ironworksYardMapId ||
-      mapId === "blossomGarden" ||
-      mapId === "proceduralCity" ||
-      mapId === "warehouseRailyard" ||
-      mapId === "sunsetCity"
+      mapId === "blossomGarden"
     )
       ? mapId
       : "defaultVillage";
@@ -10246,6 +10846,11 @@ window.onload = () => {
       // Default training facing is typically Math.PI (negative Z)
       yaw = 0;
       updateLookDirection();
+    } else if (isMediumCombatActive) {
+      yaw = Math.atan2(mediumCombatForward.x, mediumCombatForward.z);
+      updateLookDirection();
+      aimLookTarget.copy(player.position).add(mediumCombatForward);
+      player.lookAt(aimLookTarget);
     }
   }
 
@@ -10430,7 +11035,40 @@ window.onload = () => {
     }
   }
 
-  function spawnGridShotBall(avoidPos = null) {
+  function generateAimTrainingTargetId(prefix = "target") {
+    nextAimTrainingTargetSequence += 1;
+    return `${prefix}-${Date.now().toString(36)}-${nextAimTrainingTargetSequence.toString(36)}`;
+  }
+
+  function disposeGridShotBall(ball) {
+    if (!ball) {
+      return;
+    }
+
+    scene.remove(ball);
+    ball.children.forEach(child => {
+      if (child.material) child.material.dispose();
+    });
+    if (ball.geometry) ball.geometry.dispose();
+    if (ball.material) ball.material.dispose();
+  }
+
+  function removeGridShotBall(ball) {
+    const ballIndex = gridShotBalls.indexOf(ball);
+    if (ballIndex > -1) {
+      gridShotBalls.splice(ballIndex, 1);
+    }
+    disposeGridShotBall(ball);
+  }
+
+  function clearGridShotBalls() {
+    gridShotBalls.forEach(ball => {
+      disposeGridShotBall(ball);
+    });
+    gridShotBalls.length = 0;
+  }
+
+  function spawnGridShotBall(avoidPos = null, options = {}) {
     const minX = GRID_SHOT_TARGET_BOUNDS.minX;
     const maxX = GRID_SHOT_TARGET_BOUNDS.maxX;
     const minY = GRID_SHOT_TARGET_BOUNDS.minY;
@@ -10439,8 +11077,16 @@ window.onload = () => {
     const maxZ = GRID_SHOT_TARGET_BOUNDS.maxZ;
 
     const diffConfig = getAimTrainingDifficultyConfig();
-    let x, y, z;
-    let found = false;
+    const fixedPosition = options.position;
+    let x = Number(fixedPosition?.x);
+    let y = Number(fixedPosition?.y);
+    let z = Number(fixedPosition?.z);
+    let found = Boolean(
+      fixedPosition &&
+      Number.isFinite(x) &&
+      Number.isFinite(y) &&
+      Number.isFinite(z)
+    );
     let attempts = 0;
 
     while (!found && attempts < 15) {
@@ -10467,6 +11113,10 @@ window.onload = () => {
     const sphere = new THREE.Mesh(geometry, material);
     sphere.position.set(x, y, z);
     sphere.userData.isGridShotTarget = true;
+    sphere.userData.aimTrainingTargetId =
+      typeof options.targetId === "string" && options.targetId.trim()
+        ? options.targetId.trim()
+        : generateAimTrainingTargetId("grid");
 
     // Add thin dark outline ring using BackSide scaling
     const outlineMaterial = new THREE.MeshBasicMaterial({ color: 0x110000, side: THREE.BackSide });
@@ -10477,6 +11127,7 @@ window.onload = () => {
 
     scene.add(sphere);
     gridShotBalls.push(sphere);
+    return sphere;
   }
 
   function updateGridShotHudText() {
@@ -10508,6 +11159,8 @@ window.onload = () => {
       jiggleTrainingHits = 0;
       jiggleTrainingMisses = 0;
       jiggleTrainingTimer = 60;
+      showAimTrainingStatsHud("Jiggle Training");
+      startNewAimTrainingSession("jiggleTraining");
 
       if (!aimTrainingManualInfiniteAmmoOverride) {
         currentGun.infiniteAmmo = true;
@@ -10534,6 +11187,8 @@ window.onload = () => {
           window.clearInterval(jiggleTrainingIntervalId);
           jiggleTrainingIntervalId = 0;
           if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+          broadcastAimTrainingState({ force: true });
+          broadcastAimTrainingFinished("jiggleTraining");
         }
       }, 1000);
 
@@ -10547,6 +11202,8 @@ window.onload = () => {
       statusMessage.classList.remove("visible");
 
       spawnJiggleTrainingEnemy();
+      broadcastAimTrainingState({ force: true });
+      broadcastAimTrainingTargetState({ force: true, log: true });
       console.log("[JIGGLE TRAINING] barrier enabled");
       console.log("[JIGGLE TRAINING] mode started");
     } catch (error) {
@@ -10642,6 +11299,7 @@ window.onload = () => {
     jiggleTrainingSideDirection.set(-toCenterFinal.z, 0, toCenterFinal.x);
 
     console.log("[JIGGLE TRAINING] enemy spawned close to wall", spawnPos);
+    broadcastAimTrainingTargetState({ force: true, log: true });
   }
 
   async function startGridShotMode() {
@@ -10661,6 +11319,8 @@ window.onload = () => {
       gridShotHits = 0;
       gridShotMisses = 0;
       gridShotTimer = 60;
+      showAimTrainingStatsHud("Grid Shot");
+      startNewAimTrainingSession("gridShot");
 
       // Quality Fix: Default Infinite Ammo to ON unless manually overridden
       if (!aimTrainingManualInfiniteAmmoOverride) {
@@ -10690,6 +11350,8 @@ window.onload = () => {
 
           // Stop gameplay but keep player in arena
           if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+          broadcastAimTrainingState({ force: true });
+          broadcastAimTrainingFinished("gridShot");
         }
       }, 1000);
 
@@ -10705,6 +11367,8 @@ window.onload = () => {
       for (let i = 0; i < 3; i++) {
         spawnGridShotBall();
       }
+      broadcastAimTrainingState({ force: true });
+      broadcastAimTrainingTargetState({ force: true, log: true });
     } catch (error) {
       console.error("Failed to start Grid Shot mode:", error);
       cleanupAimTrainingMode();
@@ -10716,20 +11380,62 @@ window.onload = () => {
     }
   }
 
-  function spawnTrackingBall() {
+  function updateTrackingBallHpBar() {
+    if (!trackingBallHpBarFill) {
+      return;
+    }
+
+    const scale = Math.max(0, trackingBallHp / trackingBallMaxHp);
+    trackingBallHpBarFill.scale.x = scale;
+    trackingBallHpBarFill.position.x = -0.6 * (1 - scale);
+  }
+
+  function removeTrackingBallObject() {
+    if (!trackingBallObject) {
+      return;
+    }
+
+    scene.remove(trackingBallObject);
+    trackingBallObject.children.forEach(child => {
+      if (child.material) child.material.dispose();
+      if (child instanceof THREE.Group) {
+        child.children.forEach(gc => {
+          if (gc.material) gc.material.dispose();
+          if (gc.geometry) gc.geometry.dispose();
+        });
+      }
+    });
+    if (trackingBallObject.geometry) trackingBallObject.geometry.dispose();
+    if (trackingBallObject.material) trackingBallObject.material.dispose();
+    trackingBallObject = null;
+    trackingBallHpBarFill = null;
+    trackingBallTargetId = "";
+  }
+
+  function spawnTrackingBall(options = {}) {
     const geometry = new THREE.SphereGeometry(0.6, 16, 16);
     const material = new THREE.MeshLambertMaterial({ color: 0xcc0000 });
     const sphere = new THREE.Mesh(geometry, material);
 
-    // Spawn at a valid random distance 8 to 14
-    const angle = (Math.random() - 0.5) * Math.PI * 0.5; // Front ±45 deg
-    const dist = 8 + Math.random() * 6;
-    const x = gridShotSpawn.x + Math.sin(angle) * dist;
-    const z = gridShotSpawn.z - Math.cos(angle) * dist;
-    const y = gridShotSpawn.y + 1.4 + Math.random() * 1.8;
+    const fixedPosition = options.position;
+    let x = Number(fixedPosition?.x);
+    let y = Number(fixedPosition?.y);
+    let z = Number(fixedPosition?.z);
+
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+      const angle = (Math.random() - 0.5) * Math.PI * 0.5;
+      const dist = 8 + Math.random() * 6;
+      x = gridShotSpawn.x + Math.sin(angle) * dist;
+      z = gridShotSpawn.z - Math.cos(angle) * dist;
+      y = gridShotSpawn.y + 1.4 + Math.random() * 1.8;
+    }
 
     sphere.position.set(x, y, z);
     sphere.userData.isTrackingBallTarget = true;
+    sphere.userData.aimTrainingTargetId =
+      typeof options.targetId === "string" && options.targetId.trim()
+        ? options.targetId.trim()
+        : generateAimTrainingTargetId("tracking");
 
     trackingBallSpawnBurstTimer = 1.25; // 1.25s burst on spawn
 
@@ -10760,13 +11466,24 @@ window.onload = () => {
 
     scene.add(sphere);
     trackingBallObject = sphere;
-    trackingBallHp = trackingBallMaxHp;
+    trackingBallTargetId = sphere.userData.aimTrainingTargetId;
+    trackingBallMaxHp = Math.max(1, Number(options.maxHp) || trackingBallMaxHp || 100);
+    trackingBallHp = THREE.MathUtils.clamp(
+      Number.isFinite(Number(options.hp)) ? Number(options.hp) : trackingBallMaxHp,
+      0,
+      trackingBallMaxHp
+    );
     trackingBallMovementTime = Math.random() * 100;
 
     // Initialize direction - weight X more for horizontal tracking
-    trackingBallDir.set(Math.random() - 0.5, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.6).normalize();
+    if (options.direction && readVector3FromNetwork(options.direction, trackingBallDir)) {
+      trackingBallDir.normalize();
+    } else {
+      trackingBallDir.set(Math.random() - 0.5, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.6).normalize();
+    }
     trackingBallMovePhase = "slow";
     trackingBallPhaseTimer = 2 + Math.random();
+    updateTrackingBallHpBar();
   }
 
   function updateTrackingBallMovement(dt) {
@@ -10850,6 +11567,8 @@ window.onload = () => {
       trackingBallScore = 0;
       trackingBallMisses = 0;
       trackingBallTimer = 60;
+      showAimTrainingStatsHud("Tracking Ball");
+      startNewAimTrainingSession("trackingBall");
 
       // Quality Fix: Default Infinite Ammo to ON unless manually overridden
       if (!aimTrainingManualInfiniteAmmoOverride) {
@@ -10876,6 +11595,8 @@ window.onload = () => {
           window.clearInterval(trackingBallIntervalId);
           trackingBallIntervalId = 0;
           if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+          broadcastAimTrainingState({ force: true });
+          broadcastAimTrainingFinished("trackingBall");
         }
       }, 1000);
 
@@ -10887,6 +11608,8 @@ window.onload = () => {
       resetPlayerToCurrentSpawn();
       statusMessage.classList.remove("visible");
       spawnTrackingBall();
+      broadcastAimTrainingState({ force: true });
+      broadcastAimTrainingTargetState({ force: true, log: true });
     } catch (error) {
       console.error("Failed to start Tracking Ball mode:", error);
       cleanupAimTrainingMode();
@@ -10896,6 +11619,1486 @@ window.onload = () => {
     } finally {
       resetAimTrainingCardLoadingStates();
     }
+  }
+
+  function updateMediumCombatHudText() {
+    if (aimTrainingStatsText) {
+      aimTrainingStatsText.textContent = `(${mediumCombatTimer}s) (hit-${mediumCombatHits} miss-${mediumCombatMisses})`;
+    }
+  }
+
+  function removeMediumCombatMovementBoundary() {
+    if (!mediumCombatMovementBoundaryGroup) {
+      return;
+    }
+
+    const materials = new Set();
+    mediumCombatMovementBoundaryGroup.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+
+      if (Array.isArray(object.material)) {
+        object.material.forEach((material) => materials.add(material));
+      } else if (object.material) {
+        materials.add(object.material);
+      }
+    });
+    materials.forEach((material) => material.dispose());
+
+    if (mediumCombatMovementBoundaryGroup.parent) {
+      mediumCombatMovementBoundaryGroup.parent.remove(mediumCombatMovementBoundaryGroup);
+    }
+    mediumCombatMovementBoundaryGroup = null;
+  }
+
+  function createMediumCombatMovementBoundary() {
+    removeMediumCombatMovementBoundary();
+
+    const boundaryMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffb23f,
+      emissive: 0x3a1800,
+      emissiveIntensity: 0.35,
+      roughness: 0.68,
+      metalness: 0.18,
+      transparent: true,
+      opacity: 0.68
+    });
+    const boundaryGroup = new THREE.Group();
+    boundaryGroup.name = "medium-combat-movement-boundary";
+    boundaryGroup.position.copy(mediumCombatPlayerSpawn);
+    boundaryGroup.rotation.y = mediumCombatBoundaryYaw;
+
+    const railHeight = 0.14;
+    const railThickness = 0.08;
+    const boundaryWidth = mediumCombatBoundaryHalfWidth * 2;
+    const addRail = (sizeX, sizeZ, x, z) => {
+      const rail = new THREE.Mesh(
+        new THREE.BoxGeometry(sizeX, railHeight, sizeZ),
+        boundaryMaterial
+      );
+      rail.position.set(x, railHeight * 0.5 + 0.03, z);
+      rail.castShadow = false;
+      rail.receiveShadow = true;
+      rail.userData.ignoreShotRay = true;
+      boundaryGroup.add(rail);
+    };
+
+    addRail(boundaryWidth, railThickness, 0, 0);
+    addRail(boundaryWidth, railThickness, 0, mediumCombatBoundaryLength);
+    addRail(railThickness, mediumCombatBoundaryLength, -mediumCombatBoundaryHalfWidth, mediumCombatBoundaryLength * 0.5);
+    addRail(railThickness, mediumCombatBoundaryLength, mediumCombatBoundaryHalfWidth, mediumCombatBoundaryLength * 0.5);
+
+    scene.add(boundaryGroup);
+    mediumCombatMovementBoundaryGroup = boundaryGroup;
+  }
+
+  function clampMediumCombatPosition(targetPosition) {
+    if (!isMediumCombatActive || !targetPosition) {
+      return false;
+    }
+
+    mediumCombatBoundsOffset.copy(targetPosition).sub(mediumCombatPlayerSpawn);
+    mediumCombatBoundsOffset.y = 0;
+
+    const forwardDistance = THREE.MathUtils.clamp(
+      mediumCombatBoundsOffset.dot(mediumCombatForward),
+      0,
+      mediumCombatBoundaryLength
+    );
+    const sideDistance = THREE.MathUtils.clamp(
+      mediumCombatBoundsOffset.dot(mediumCombatRight),
+      -mediumCombatBoundaryHalfWidth,
+      mediumCombatBoundaryHalfWidth
+    );
+    const clampedX = mediumCombatPlayerSpawn.x +
+      mediumCombatForward.x * forwardDistance +
+      mediumCombatRight.x * sideDistance;
+    const clampedZ = mediumCombatPlayerSpawn.z +
+      mediumCombatForward.z * forwardDistance +
+      mediumCombatRight.z * sideDistance;
+    const changed = Math.abs(targetPosition.x - clampedX) > 0.0001 ||
+      Math.abs(targetPosition.z - clampedZ) > 0.0001;
+
+    targetPosition.x = clampedX;
+    targetPosition.z = clampedZ;
+    return changed;
+  }
+
+  function applyMediumCombatPlayerBounds() {
+    if (!isMediumCombatActive) {
+      return;
+    }
+
+    if (clampMediumCombatPosition(playerPosition)) {
+      horizontalVelocity.x = 0;
+      horizontalVelocity.z = 0;
+    }
+  }
+
+  function spawnMediumCombatJiggleEnemy() {
+    if (mediumCombatEnemy) {
+      removeEnemy(mediumCombatEnemy);
+      mediumCombatEnemy = null;
+    }
+
+    const spawnPos = mediumCombatEnemySpawn.clone();
+    mediumCombatEnemy = createEnemy(spawnPos, {
+      difficultyKey: "moderate",
+      suppressStatus: true,
+      rotationY: Math.atan2(
+        mediumCombatPlayerSpawn.x - mediumCombatEnemySpawn.x,
+        mediumCombatPlayerSpawn.z - mediumCombatEnemySpawn.z
+      )
+    });
+
+    mediumCombatEnemy.isMediumCombatTarget = true;
+    mediumCombatEnemy.isTrainingModeTarget = true;
+    mediumCombatEnemySpawnCenter.copy(spawnPos);
+    mediumCombatSideDirection.copy(mediumCombatJiggleSideDirection).normalize();
+    mediumCombatMoveDirection = 1;
+    mediumCombatCurrentOffset = 0;
+    resetMediumCombatEnemyMovementState();
+    mediumCombatEnemy.root.lookAt(
+      mediumCombatPlayerSpawn.x,
+      mediumCombatEnemy.root.position.y,
+      mediumCombatPlayerSpawn.z
+    );
+    mediumCombatEnemy.networkTargetYaw = mediumCombatEnemy.root.rotation.y;
+
+    console.log("[Medium Range Jiggle Training] enemy spawned", mediumCombatEnemy.root.position.clone());
+    broadcastAimTrainingTargetState({ force: true, log: true });
+  }
+
+  function getRandomMediumCombatRange(min, max) {
+    return min + Math.random() * (max - min);
+  }
+
+  function moveMediumCombatOffsetToward(currentOffset, targetOffset, maxDelta) {
+    if (Math.abs(targetOffset - currentOffset) <= maxDelta) {
+      return targetOffset;
+    }
+
+    return currentOffset + Math.sign(targetOffset - currentOffset) * maxDelta;
+  }
+
+  function chooseMediumCombatStrafeTarget() {
+    let targetOffset = mediumCombatEnemySideOffset;
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const direction = Math.random() < 0.5 ? -1 : 1;
+      const distance = getRandomMediumCombatRange(1.4, MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH);
+      targetOffset = THREE.MathUtils.clamp(
+        mediumCombatEnemySideOffset + direction * distance,
+        -MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH,
+        MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH
+      );
+
+      if (Math.abs(targetOffset - mediumCombatEnemySideOffset) >= 0.9) {
+        return targetOffset;
+      }
+    }
+
+    return mediumCombatEnemySideOffset <= 0
+      ? MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH
+      : -MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH;
+  }
+
+  function chooseMediumCombatJiggleTarget(direction = mediumCombatEnemyJiggleDirection) {
+    const amplitude = getRandomMediumCombatRange(
+      MEDIUM_RANGE_JIGGLE_MIN_TARGET,
+      MEDIUM_RANGE_JIGGLE_MAX_TARGET
+    );
+    return THREE.MathUtils.clamp(
+      mediumCombatEnemyJiggleBaseOffset + direction * amplitude,
+      -MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH,
+      MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH
+    );
+  }
+
+  function updateMediumCombatJiggleVelocity() {
+    const distanceToTarget = Math.abs(mediumCombatEnemyMoveTargetOffset - mediumCombatEnemySideOffset);
+    mediumCombatEnemySideVelocity = distanceToTarget > 0.001
+      ? distanceToTarget / MEDIUM_RANGE_JIGGLE_CROSS_TIME
+      : 0;
+  }
+
+  function setMediumCombatEnemyMovementState(state) {
+    mediumCombatEnemyMoveState = state;
+
+    if (state === "jiggle") {
+      mediumCombatEnemyJiggleBaseOffset = mediumCombatEnemySideOffset;
+      mediumCombatEnemyMoveStateTimer = getRandomMediumCombatRange(1.2, 2.2);
+      mediumCombatEnemyJiggleDirection = Math.random() < 0.5 ? -1 : 1;
+      if (mediumCombatEnemyJiggleBaseOffset >= MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH - MEDIUM_RANGE_JIGGLE_MIN_TARGET) {
+        mediumCombatEnemyJiggleDirection = -1;
+      } else if (mediumCombatEnemyJiggleBaseOffset <= -MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH + MEDIUM_RANGE_JIGGLE_MIN_TARGET) {
+        mediumCombatEnemyJiggleDirection = 1;
+      }
+      mediumCombatEnemyMoveTargetOffset = chooseMediumCombatJiggleTarget();
+      updateMediumCombatJiggleVelocity();
+    } else if (state === "strafe") {
+      mediumCombatEnemyMoveStateTimer = getRandomMediumCombatRange(1.0, 2.4);
+      mediumCombatEnemySideVelocity = getRandomMediumCombatRange(2.8, 4.4);
+      mediumCombatEnemyMoveTargetOffset = chooseMediumCombatStrafeTarget();
+    } else {
+      mediumCombatEnemyMoveStateTimer = getRandomMediumCombatRange(0.05, 0.25);
+      mediumCombatEnemySideVelocity = 0;
+      mediumCombatEnemyMoveTargetOffset = mediumCombatEnemySideOffset;
+    }
+
+    console.log("[MEDIUM RANGE JIGGLE] movement state", {
+      state: mediumCombatEnemyMoveState,
+      targetOffset: Number(mediumCombatEnemyMoveTargetOffset.toFixed(3)),
+      sideOffset: Number(mediumCombatEnemySideOffset.toFixed(3))
+    });
+  }
+
+  function chooseNextMediumCombatEnemyMovementState() {
+    const previousState = mediumCombatEnemyMoveState;
+    const roll = Math.random();
+
+    if (previousState === "jiggle") {
+      setMediumCombatEnemyMovementState(roll < 0.55 ? "strafe" : roll < 0.78 ? "pause" : "jiggle");
+      return;
+    }
+
+    if (previousState === "strafe") {
+      setMediumCombatEnemyMovementState(roll < 0.72 ? "jiggle" : "pause");
+      return;
+    }
+
+    setMediumCombatEnemyMovementState(roll < 0.58 ? "jiggle" : "strafe");
+  }
+
+  function resetMediumCombatEnemyMovementState() {
+    mediumCombatEnemySideOffset = 0;
+    mediumCombatCurrentOffset = 0;
+    mediumCombatEnemySideVelocity = 0;
+    mediumCombatEnemyMoveTargetOffset = 0;
+    mediumCombatEnemyJiggleBaseOffset = 0;
+    mediumCombatEnemyJiggleDirection = 1;
+    setMediumCombatEnemyMovementState("jiggle");
+  }
+
+  function updateMediumCombatEnemy(enemyActor, delta) {
+    if (!enemyActor || enemyActor.isDead || !isMediumCombatActive) {
+      return;
+    }
+
+    mediumCombatEnemyMoveStateTimer -= delta;
+
+    if (mediumCombatEnemyMoveState === "pause") {
+      mediumCombatEnemyMoveTargetOffset = mediumCombatEnemySideOffset;
+    } else {
+      mediumCombatEnemySideOffset = moveMediumCombatOffsetToward(
+        mediumCombatEnemySideOffset,
+        mediumCombatEnemyMoveTargetOffset,
+        mediumCombatEnemySideVelocity * delta
+      );
+    }
+
+    mediumCombatEnemySideOffset = THREE.MathUtils.clamp(
+      mediumCombatEnemySideOffset,
+      -MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH,
+      MEDIUM_COMBAT_SIDE_LANE_HALF_WIDTH
+    );
+    mediumCombatCurrentOffset = mediumCombatEnemySideOffset;
+    enemyActor.root.position.copy(mediumCombatEnemySpawnCenter)
+      .addScaledVector(mediumCombatSideDirection, mediumCombatEnemySideOffset);
+    enemyActor.root.position.y = mediumCombatEnemySpawn.y;
+    enemyActor.root.lookAt(
+      mediumCombatPlayerSpawn.x,
+      enemyActor.root.position.y,
+      mediumCombatPlayerSpawn.z
+    );
+    enemyActor.networkTargetPosition.copy(enemyActor.root.position);
+    enemyActor.networkTargetYaw = enemyActor.root.rotation.y;
+
+    if (enemyActor.characterActions && enemyActor.characterActions.run) {
+      if (!enemyActor.characterActions.run.isRunning()) {
+        enemyActor.characterActions.run.play();
+      }
+      enemyActor.characterMixer.update(0);
+    }
+
+    const reachedMoveTarget =
+      Math.abs(mediumCombatEnemyMoveTargetOffset - mediumCombatEnemySideOffset) <= 0.05;
+
+    if (mediumCombatEnemyMoveState === "jiggle" && reachedMoveTarget) {
+      if (mediumCombatEnemyMoveStateTimer <= 0) {
+        chooseNextMediumCombatEnemyMovementState();
+      } else {
+        mediumCombatEnemyJiggleDirection *= -1;
+        mediumCombatEnemyMoveTargetOffset = chooseMediumCombatJiggleTarget();
+        updateMediumCombatJiggleVelocity();
+      }
+    } else if (
+      (mediumCombatEnemyMoveState === "strafe" && (mediumCombatEnemyMoveStateTimer <= 0 || reachedMoveTarget)) ||
+      (mediumCombatEnemyMoveState === "pause" && mediumCombatEnemyMoveStateTimer <= 0)
+    ) {
+      chooseNextMediumCombatEnemyMovementState();
+    }
+  }
+
+  function getActiveAimTrainingModeId() {
+    if (isGridShotActive) return "gridShot";
+    if (isTrackingBallActive) return "trackingBall";
+    if (isJiggleTrainingActive) return "jiggleTraining";
+    if (isMediumCombatActive) return "mediumRangeJiggleTraining";
+    return "";
+  }
+
+  function getAimTrainingModeDisplayName(mode) {
+    if (mode === "gridShot") return "Grid Shot";
+    if (mode === "trackingBall") return "Tracking Ball";
+    if (mode === "jiggleTraining") return "Jiggle Training";
+    if (mode === "mediumRangeJiggleTraining") return "Medium Range Jiggle Training";
+    return "Aim Training";
+  }
+
+  function getAimTrainingRemainingSeconds(mode = getActiveAimTrainingModeId()) {
+    if (mode === "gridShot") return gridShotTimer;
+    if (mode === "trackingBall") return trackingBallTimer;
+    if (mode === "jiggleTraining") return jiggleTrainingTimer;
+    if (mode === "mediumRangeJiggleTraining") return mediumCombatTimer;
+    return 0;
+  }
+
+  function setAimTrainingRemainingSeconds(mode, remainingSeconds) {
+    const safeRemaining = THREE.MathUtils.clamp(Math.ceil(Number(remainingSeconds) || 0), 0, 60);
+    if (mode === "gridShot") {
+      gridShotTimer = safeRemaining;
+      updateGridShotHudText();
+    } else if (mode === "trackingBall") {
+      trackingBallTimer = safeRemaining;
+      updateTrackingBallHudText();
+    } else if (mode === "jiggleTraining") {
+      jiggleTrainingTimer = safeRemaining;
+      updateJiggleTrainingHudText();
+    } else if (mode === "mediumRangeJiggleTraining") {
+      mediumCombatTimer = safeRemaining;
+      updateMediumCombatHudText();
+    }
+
+    if (aimTrainingStats.active) {
+      aimTrainingStats.remainingSeconds = safeRemaining;
+      aimTrainingStats.startTime = performance.now() - ((60 - safeRemaining) * 1000);
+      if (trainingStatTime) trainingStatTime.textContent = `${safeRemaining}s`;
+    }
+  }
+
+  function getAimTrainingModeMapLoad(mode) {
+    if (mode === "mediumRangeJiggleTraining") {
+      return {
+        mapId: ironworksYardMapId,
+        visualVariant: mediumRangeJiggleTrainingVisualVariant
+      };
+    }
+
+    return {
+      mapId: settingsPreviewMapId,
+      visualVariant: ""
+    };
+  }
+
+  function resetAimTrainingSyncSendMarkers() {
+    lastAimTrainingStateSentAt = -Infinity;
+    lastAimTrainingTimerSentAt = -Infinity;
+    lastAimTrainingTargetStateSentAt = -Infinity;
+    lastAimTrainingSyncedMode = "";
+    lastAimTrainingSyncedFinished = false;
+  }
+
+  function generateAimTrainingSessionId(mode = getActiveAimTrainingModeId()) {
+    const safeMode = String(mode || "aim-training").replace(/[^a-z0-9_-]/gi, "-");
+    return `${safeMode}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function startNewAimTrainingSession(mode = getActiveAimTrainingModeId()) {
+    if (isNetworkAimTrainingMirror) {
+      return aimTrainingSessionId;
+    }
+
+    aimTrainingSessionMode = String(mode || "");
+    aimTrainingSessionId = generateAimTrainingSessionId(aimTrainingSessionMode);
+    if (!isLanClient) {
+      currentHostAimTrainingSessionId = "";
+      hasLeftHostAimTrainingSession = false;
+      ignoredHostAimTrainingSessionId = "";
+    }
+    resetAimTrainingSyncSendMarkers();
+    return aimTrainingSessionId;
+  }
+
+  function ensureAimTrainingSessionId(mode = getActiveAimTrainingModeId()) {
+    const safeMode = String(mode || "");
+    if (!safeMode) {
+      return "";
+    }
+
+    if (!aimTrainingSessionId || aimTrainingSessionMode !== safeMode) {
+      return startNewAimTrainingSession(safeMode);
+    }
+
+    return aimTrainingSessionId;
+  }
+
+  function getHostAimTrainingMessageSessionId(message = {}) {
+    const state = message?.state && typeof message.state === "object" ? message.state : message;
+    const sessionId = String(state?.sessionId || message?.sessionId || "").trim();
+    if (sessionId) {
+      return sessionId;
+    }
+
+    const mode = String(state?.mode || message?.mode || "").trim();
+    return mode ? `legacy:${mode}` : "";
+  }
+
+  function shouldIgnoreHostAimTrainingMessage(message = {}, messageType = "aim_training_state") {
+    const sessionId = getHostAimTrainingMessageSessionId(message);
+    if (
+      hasLeftHostAimTrainingSession &&
+      ignoredHostAimTrainingSessionId &&
+      sessionId &&
+      sessionId === ignoredHostAimTrainingSessionId
+    ) {
+      console.log("[AIM TRAINING SYNC] ignored host update after client leave", messageType);
+      return true;
+    }
+
+    return false;
+  }
+
+  function rememberAcceptedHostAimTrainingSession(sessionId) {
+    if (!sessionId) {
+      return;
+    }
+
+    currentHostAimTrainingSessionId = sessionId;
+    aimTrainingSessionId = sessionId;
+    aimTrainingSessionMode = String(getActiveAimTrainingModeId() || aimTrainingSessionMode || "");
+    if (sessionId !== ignoredHostAimTrainingSessionId) {
+      hasLeftHostAimTrainingSession = false;
+      ignoredHostAimTrainingSessionId = "";
+    }
+  }
+
+  function cleanupLocalMirroredAimTraining(reason = "client local leave", { markIgnored = true } = {}) {
+    const sessionId =
+      currentHostAimTrainingSessionId ||
+      getHostAimTrainingMessageSessionId({ mode: getActiveAimTrainingModeId() }) ||
+      aimTrainingSessionId;
+
+    if (markIgnored && sessionId) {
+      hasLeftHostAimTrainingSession = true;
+      ignoredHostAimTrainingSessionId = sessionId;
+    }
+
+    currentHostAimTrainingSessionId = sessionId;
+    isNetworkAimTrainingMirror = false;
+    clearNetworkAimTrainingTargets();
+    cleanupAimTrainingMode(reason);
+    hideAimTrainingStatsHud(reason);
+    hideAimTrainingEndPanel(reason);
+
+    if (aimTrainingResultsContainer) {
+      aimTrainingResultsContainer.style.display = "none";
+    }
+
+    clearMovementInput();
+    clearActiveMobileGameplayInputs();
+    isShooting = false;
+    playerDead = false;
+    hideDeathOverlay();
+    if (document.pointerLockElement === canvas) {
+      document.exitPointerLock?.();
+    }
+
+    closeMenus();
+    showMainMenu();
+  }
+
+  function handleHomeFromOnlineClient(reason = "client home exit", { sendLeave = true, message = "" } = {}) {
+    const isJoinedClient = isLanClient && !isLanHost;
+    const hasClientSession =
+      isJoinedClient &&
+      (isLanSessionActive() || lanSocket || lanSessionIntent || localPlayerId || lanConnectionStatus !== "offline");
+
+    if (!hasClientSession) {
+      return false;
+    }
+
+    console.log("[ONLINE EXIT] client disconnecting before Home", reason);
+    disconnectLanSession({
+      preserveStatus: false,
+      preserveSessionIntent: false,
+      sendLeave
+    });
+    console.log("[ONLINE EXIT] LAN disconnected");
+
+    hasLeftHostAimTrainingSession = true;
+    ignoredHostAimTrainingSessionId =
+      currentHostAimTrainingSessionId ||
+      getHostAimTrainingMessageSessionId({ mode: getActiveAimTrainingModeId() }) ||
+      aimTrainingSessionId;
+    currentHostAimTrainingSessionId = "";
+    isNetworkAimTrainingMirror = false;
+
+    clearNetworkAimTrainingTargets();
+    cleanupAimTrainingMode(reason);
+    hideAimTrainingStatsHud(reason);
+    hideAimTrainingEndPanel(reason);
+    if (aimTrainingResultsContainer) {
+      aimTrainingResultsContainer.style.display = "none";
+    }
+    console.log("[ONLINE EXIT] cleared remote aim training state");
+
+    clearMovementInput();
+    clearActiveMobileGameplayInputs();
+    isShooting = false;
+    playerDead = false;
+    hideDeathOverlay();
+    if (document.pointerLockElement === canvas) {
+      document.exitPointerLock?.();
+    }
+
+    closeMenus();
+    showMainMenu();
+    if (message) {
+      showStatusMessage(message, 1800);
+    }
+    console.log("[ONLINE EXIT] returned Home");
+    return true;
+  }
+
+  function leaveMirroredHostAimTrainingLocally(reason = "client local leave") {
+    if (handleHomeFromOnlineClient(reason)) {
+      return true;
+    }
+
+    if (!isLanClient || !isNetworkAimTrainingMirror) {
+      return false;
+    }
+
+    console.log("[AIM TRAINING SYNC] client Home clicked while mirroring");
+    cleanupLocalMirroredAimTraining(reason, { markIgnored: true });
+    console.log("[AIM TRAINING SYNC] client local leave complete");
+    return true;
+  }
+
+  function cleanupMirroredAimTrainingAfterHostDisconnect(reason = "host disconnected") {
+    if (!isLanClient || !isNetworkAimTrainingMirror) {
+      return false;
+    }
+
+    console.log("[AIM TRAINING SYNC] host disconnected, cleaning mirrored training");
+    return handleHomeFromOnlineClient(reason, {
+      sendLeave: false,
+      message: "Host disconnected"
+    });
+  }
+
+  function buildGridShotTargetState() {
+    return gridShotBalls.map((ball) => ({
+      targetId: ball.userData.aimTrainingTargetId || "",
+      position: buildNetworkVector3Payload(ball.position, 3),
+      alive: true
+    }));
+  }
+
+  function buildTrackingBallTargetState() {
+    if (!trackingBallObject) {
+      return null;
+    }
+
+    return {
+      targetId: trackingBallTargetId || trackingBallObject.userData.aimTrainingTargetId || "",
+      position: buildNetworkVector3Payload(trackingBallObject.position, 3),
+      direction: buildNetworkVector3Payload(trackingBallDir, 4),
+      hp: Math.max(0, Math.round(trackingBallHp)),
+      maxHp: Math.max(1, Math.round(trackingBallMaxHp)),
+      alive: true
+    };
+  }
+
+  function getAimTrainingEnemyForMode(mode) {
+    if (mode === "jiggleTraining") return jiggleTrainingEnemy;
+    if (mode === "mediumRangeJiggleTraining") return mediumCombatEnemy;
+    return null;
+  }
+
+  function markNetworkAimTrainingEnemy(enemyActor, mode) {
+    if (!enemyActor) {
+      return null;
+    }
+
+    enemyActor.isTrainingModeTarget = true;
+    enemyActor.isJiggleTrainingTarget = mode === "jiggleTraining";
+    enemyActor.isMediumCombatTarget = mode === "mediumRangeJiggleTraining";
+
+    if (mode === "jiggleTraining") {
+      jiggleTrainingEnemy = enemyActor;
+    } else if (mode === "mediumRangeJiggleTraining") {
+      mediumCombatEnemy = enemyActor;
+    }
+
+    return enemyActor;
+  }
+
+  function buildAimTrainingEnemyTargetState(mode) {
+    const enemyActor = getAimTrainingEnemyForMode(mode);
+    if (!enemyActor) {
+      return null;
+    }
+
+    const enemyState = buildEnemyNetworkState(enemyActor);
+    if (!enemyState) {
+      return null;
+    }
+
+    enemyState.trainingTargetType = mode;
+    return enemyState;
+  }
+
+  function buildAimTrainingTargetState(mode = getActiveAimTrainingModeId()) {
+    if (mode === "gridShot") {
+      return {
+        targets: buildGridShotTargetState()
+      };
+    }
+
+    if (mode === "trackingBall") {
+      return {
+        target: buildTrackingBallTargetState()
+      };
+    }
+
+    if (mode === "jiggleTraining" || mode === "mediumRangeJiggleTraining") {
+      return {
+        enemy: buildAimTrainingEnemyTargetState(mode)
+      };
+    }
+
+    return {};
+  }
+
+  function buildAimTrainingSyncState() {
+    const mode = getActiveAimTrainingModeId();
+    const active = Boolean(mode);
+    const sessionId = active ? ensureAimTrainingSessionId(mode) : aimTrainingSessionId;
+    const remainingSeconds = active ? getAimTrainingRemainingSeconds(mode) : 0;
+    return {
+      active,
+      mode,
+      sessionId,
+      durationSeconds: 60,
+      remainingSeconds,
+      finished: active ? remainingSeconds <= 0 || Boolean(aimTrainingStats.finished) : false,
+      targetState: active ? buildAimTrainingTargetState(mode) : {}
+    };
+  }
+
+  function broadcastAimTrainingState({ force = false } = {}) {
+    if (!isLanHost || !isLanSessionActive()) {
+      return false;
+    }
+
+    const state = buildAimTrainingSyncState();
+    const now = performance.now();
+    const shouldSend =
+      force ||
+      now - lastAimTrainingStateSentAt >= aimTrainingStateSyncIntervalMs ||
+      state.mode !== lastAimTrainingSyncedMode ||
+      state.finished !== lastAimTrainingSyncedFinished;
+
+    if (!shouldSend) {
+      return false;
+    }
+
+    const didSend = sendNetworkMessage({
+      type: "aim_training_state",
+      state
+    });
+
+    if (didSend) {
+      lastAimTrainingStateSentAt = now;
+      lastAimTrainingSyncedMode = state.mode;
+      lastAimTrainingSyncedFinished = state.finished;
+      console.log("[AIM TRAINING SYNC] host broadcasting state", state);
+      console.log("[AIM TRAINING SYNC] timer sync", state.remainingSeconds);
+      if (state.finished) {
+        console.log("[AIM TRAINING SYNC] finished");
+      }
+    }
+
+    return didSend;
+  }
+
+  function broadcastAimTrainingTimer({ force = false } = {}) {
+    if (!isLanHost || !isLanSessionActive()) {
+      return false;
+    }
+
+    const mode = getActiveAimTrainingModeId();
+    if (!mode) {
+      return false;
+    }
+
+    const now = performance.now();
+    if (!force && now - lastAimTrainingTimerSentAt < aimTrainingStateSyncIntervalMs) {
+      return false;
+    }
+
+    const remainingSeconds = getAimTrainingRemainingSeconds(mode);
+    const didSend = sendNetworkMessage({
+      type: "aim_training_timer",
+      mode,
+      sessionId: ensureAimTrainingSessionId(mode),
+      remainingSeconds
+    });
+
+    if (didSend) {
+      lastAimTrainingTimerSentAt = now;
+      console.log("[AIM TRAINING SYNC] timer sync", remainingSeconds);
+    }
+
+    return didSend;
+  }
+
+  function broadcastAimTrainingTargetState({ force = false, log = false } = {}) {
+    if (!isLanHost || !isLanSessionActive()) {
+      return false;
+    }
+
+    const mode = getActiveAimTrainingModeId();
+    if (!mode) {
+      return false;
+    }
+
+    const now = performance.now();
+    if (!force && now - lastAimTrainingTargetStateSentAt < aimTrainingTargetSyncIntervalMs) {
+      return false;
+    }
+
+    const targetState = buildAimTrainingTargetState(mode);
+    const didSend = sendNetworkMessage({
+      type: "aim_training_target_state",
+      mode,
+      sessionId: ensureAimTrainingSessionId(mode),
+      remainingSeconds: getAimTrainingRemainingSeconds(mode),
+      targetState
+    });
+
+    if (didSend) {
+      lastAimTrainingTargetStateSentAt = now;
+      if (log) {
+        console.log("[AIM TRAINING SYNC] target state sync", targetState);
+      }
+    }
+
+    return didSend;
+  }
+
+  function broadcastAimTrainingFinished(mode = getActiveAimTrainingModeId()) {
+    if (!isLanHost || !isLanSessionActive() || !mode) {
+      return false;
+    }
+
+    const didSend = sendNetworkMessage({
+      type: "aim_training_finished",
+      mode,
+      sessionId: ensureAimTrainingSessionId(mode),
+      remainingSeconds: 0
+    });
+
+    if (didSend) {
+      console.log("[AIM TRAINING SYNC] finished");
+    }
+
+    return didSend;
+  }
+
+  function broadcastAimTrainingExit(mode = getActiveAimTrainingModeId()) {
+    if (!isLanHost || !isLanSessionActive()) {
+      return false;
+    }
+
+    return sendNetworkMessage({
+      type: "aim_training_exit",
+      mode,
+      sessionId: aimTrainingSessionId
+    });
+  }
+
+  function broadcastAimTrainingSyncIfNeeded(currentTime = performance.now()) {
+    if (!isLanHost || !isLanSessionActive()) {
+      return;
+    }
+
+    if (!getActiveAimTrainingModeId()) {
+      return;
+    }
+
+    broadcastAimTrainingState();
+    broadcastAimTrainingTimer();
+
+    if (
+      isTrackingBallActive ||
+      isJiggleTrainingActive ||
+      isMediumCombatActive
+    ) {
+      broadcastAimTrainingTargetState();
+    } else if (isGridShotActive) {
+      broadcastAimTrainingTargetState({
+        force: currentTime - lastAimTrainingTargetStateSentAt >= aimTrainingStateSyncIntervalMs
+      });
+    }
+  }
+
+  function clearNetworkAimTrainingTargets() {
+    clearGridShotBalls();
+    removeTrackingBallObject();
+
+    if (jiggleTrainingEnemy) {
+      removeEnemy(jiggleTrainingEnemy, {
+        suppressNetworkBroadcast: true,
+        suppressWaveUpdate: true
+      });
+      jiggleTrainingEnemy = null;
+    }
+
+    if (mediumCombatEnemy) {
+      removeEnemy(mediumCombatEnemy, {
+        suppressNetworkBroadcast: true,
+        suppressWaveUpdate: true
+      });
+      mediumCombatEnemy = null;
+    }
+
+    removeMediumCombatMovementBoundary();
+  }
+
+  function setNetworkAimTrainingActiveMode(mode, remainingSeconds) {
+    const previousMode = getActiveAimTrainingModeId();
+    const shouldResetTargets = previousMode && previousMode !== mode;
+
+    if (shouldResetTargets) {
+      clearNetworkAimTrainingTargets();
+    }
+
+    isNetworkAimTrainingMirror = true;
+    isGridShotActive = mode === "gridShot";
+    isTrackingBallActive = mode === "trackingBall";
+    isJiggleTrainingActive = mode === "jiggleTraining";
+    isMediumCombatActive = mode === "mediumRangeJiggleTraining";
+
+    if (aimTrainingStats.mode !== getAimTrainingModeDisplayName(mode) || !aimTrainingStats.active || aimTrainingStats.finished) {
+      showAimTrainingStatsHud(getAimTrainingModeDisplayName(mode));
+    }
+
+    if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "none";
+    if (aimTrainingHud) {
+      aimTrainingHud.removeAttribute("hidden");
+      aimTrainingHud.setAttribute("aria-hidden", "false");
+      aimTrainingHud.hidden = false;
+    }
+
+    if (mode === "mediumRangeJiggleTraining") {
+      createMediumCombatMovementBoundary();
+      temporaryPlayerSpawnOverride = mediumCombatPlayerSpawn.clone();
+    } else {
+      temporaryPlayerSpawnOverride = gridShotSpawn.clone();
+    }
+
+    gameStarted = true;
+    if (document.body.classList.contains("main-menu-open")) {
+      hideMainMenu();
+    }
+    updateAimTrainingHudVisibility();
+    setAimTrainingRemainingSeconds(mode, remainingSeconds);
+  }
+
+  function applyGridShotTargetState(targetState = {}) {
+    const targets = Array.isArray(targetState.targets) ? targetState.targets : [];
+    const activeIds = new Set(targets.map((target) => String(target.targetId || "")));
+
+    for (const ball of [...gridShotBalls]) {
+      const targetId = ball.userData.aimTrainingTargetId || "";
+      if (!activeIds.has(targetId)) {
+        removeGridShotBall(ball);
+      }
+    }
+
+    for (const target of targets) {
+      const targetId = String(target.targetId || "");
+      if (!targetId) {
+        continue;
+      }
+
+      let ball = gridShotBalls.find((candidate) => candidate.userData.aimTrainingTargetId === targetId);
+      if (!ball) {
+        ball = spawnGridShotBall(null, {
+          targetId,
+          position: target.position
+        });
+      } else {
+        readVector3FromNetwork(target.position, ball.position);
+      }
+    }
+  }
+
+  function applyTrackingBallTargetState(targetState = {}) {
+    const target = targetState.target;
+    if (!target || target.alive === false) {
+      removeTrackingBallObject();
+      return;
+    }
+
+    const targetId = String(target.targetId || "");
+    if (!trackingBallObject || trackingBallTargetId !== targetId) {
+      removeTrackingBallObject();
+      spawnTrackingBall({
+        targetId,
+        position: target.position,
+        direction: target.direction,
+        hp: target.hp,
+        maxHp: target.maxHp
+      });
+      return;
+    }
+
+    readVector3FromNetwork(target.position, trackingBallObject.position);
+    if (target.direction) {
+      readVector3FromNetwork(target.direction, trackingBallDir);
+      trackingBallDir.normalize();
+    }
+    trackingBallMaxHp = Math.max(1, Number(target.maxHp) || trackingBallMaxHp || 100);
+    trackingBallHp = THREE.MathUtils.clamp(
+      Number.isFinite(Number(target.hp)) ? Number(target.hp) : trackingBallHp,
+      0,
+      trackingBallMaxHp
+    );
+    updateTrackingBallHpBar();
+  }
+
+  function applyEnemyAimTrainingTargetState(mode, targetState = {}) {
+    const enemyState = targetState.enemy;
+    if (!enemyState?.enemyId) {
+      return;
+    }
+
+    enemyState.trainingTargetType = mode;
+    const enemyActor = spawnOrUpdateSharedEnemyFromNetwork(enemyState, { snap: !getAimTrainingEnemyForMode(mode) });
+    markNetworkAimTrainingEnemy(enemyActor, mode);
+
+    if (mode === "jiggleTraining" && enemyActor) {
+      jiggleTrainingEnemySpawnCenter.copy(enemyActor.root.position);
+    } else if (mode === "mediumRangeJiggleTraining" && enemyActor) {
+      mediumCombatEnemySpawnCenter.copy(mediumCombatEnemySpawn);
+      mediumCombatSideDirection.copy(mediumCombatJiggleSideDirection).normalize();
+    }
+  }
+
+  function applyAimTrainingTargetState(mode, targetState = {}) {
+    if (mode === "gridShot") {
+      applyGridShotTargetState(targetState);
+    } else if (mode === "trackingBall") {
+      applyTrackingBallTargetState(targetState);
+    } else if (mode === "jiggleTraining" || mode === "mediumRangeJiggleTraining") {
+      applyEnemyAimTrainingTargetState(mode, targetState);
+    }
+  }
+
+  async function applyAimTrainingStateFromHost(state = {}) {
+    console.log("[AIM TRAINING SYNC] client received state", state);
+    if (state.active !== false && shouldIgnoreHostAimTrainingMessage(state, "aim_training_state")) {
+      return;
+    }
+
+    const sessionId = getHostAimTrainingMessageSessionId(state);
+
+    if (!state.active) {
+      if (sessionId && sessionId === ignoredHostAimTrainingSessionId) {
+        hasLeftHostAimTrainingSession = false;
+        ignoredHostAimTrainingSessionId = "";
+      }
+      if (isNetworkAimTrainingMirror) {
+        console.log("[AIM TRAINING SYNC] host exit received, cleaning client");
+        clearNetworkAimTrainingTargets();
+        cleanupAimTrainingMode();
+        isNetworkAimTrainingMirror = false;
+      }
+      currentHostAimTrainingSessionId = "";
+      return;
+    }
+
+    const mode = String(state.mode || "");
+    const mapLoad = getAimTrainingModeMapLoad(mode);
+    if (!mapLoad.mapId) {
+      return;
+    }
+
+    const needsMapLoad =
+      currentLoadedMapId !== mapLoad.mapId ||
+      currentMapVisualVariant !== mapLoad.visualVariant;
+
+    if (needsMapLoad) {
+      await loadSelectedMap(mapLoad.mapId, {
+        forceReload: true,
+        requestSource: "aim training sync",
+        visualVariant: mapLoad.visualVariant
+      });
+    }
+
+    rememberAcceptedHostAimTrainingSession(sessionId);
+    console.log("[AIM TRAINING SYNC] client applying state", state);
+    setNetworkAimTrainingActiveMode(mode, state.remainingSeconds);
+    applyAimTrainingTargetState(mode, state.targetState || {});
+
+    if (state.finished) {
+      setAimTrainingRemainingSeconds(mode, 0);
+      finishAimTrainingSession("host time over");
+      if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+    }
+  }
+
+  function applyAimTrainingTimerSync(message = {}) {
+    if (shouldIgnoreHostAimTrainingMessage(message, "aim_training_timer")) {
+      return;
+    }
+
+    const mode = String(message.mode || getActiveAimTrainingModeId());
+    if (!isNetworkAimTrainingMirror || !mode) {
+      return;
+    }
+
+    rememberAcceptedHostAimTrainingSession(getHostAimTrainingMessageSessionId(message));
+    setAimTrainingRemainingSeconds(mode, message.remainingSeconds);
+    console.log("[AIM TRAINING SYNC] received aim_training_timer", message);
+    console.log("[AIM TRAINING SYNC] timer applied", getAimTrainingRemainingSeconds(mode));
+  }
+
+  function applyAimTrainingTargetSync(message = {}, messageType = "aim_training_target_state") {
+    if (shouldIgnoreHostAimTrainingMessage(message, messageType)) {
+      return;
+    }
+
+    const mode = String(message.mode || getActiveAimTrainingModeId());
+    if (!isNetworkAimTrainingMirror || !mode) {
+      return;
+    }
+
+    rememberAcceptedHostAimTrainingSession(getHostAimTrainingMessageSessionId(message));
+    if (Number.isFinite(Number(message.remainingSeconds))) {
+      setAimTrainingRemainingSeconds(mode, message.remainingSeconds);
+    }
+    console.log("[AIM TRAINING SYNC] received", messageType, message);
+    applyAimTrainingTargetState(mode, message.targetState || {});
+    console.log("[AIM TRAINING SYNC] client created mirrored target", message.targetState || {});
+  }
+
+  function getMediumRangeMaterialColor(material) {
+    return material?.color?.getHexString?.() || "";
+  }
+
+  function cloneMediumRangeFloorMaterial(material, targetColor) {
+    const clonedMaterial = material.clone();
+    clonedMaterial.name = material.name
+      ? `${material.name}-medium-range-floor-5d6378`
+      : "medium-range-floor-5d6378";
+    if (clonedMaterial.color) {
+      clonedMaterial.color.setHex(targetColor);
+    }
+    clonedMaterial.needsUpdate = true;
+    return clonedMaterial;
+  }
+
+  function applyMediumRangeMaterialColorToMesh(mesh, targetColor) {
+    if (!mesh?.material) {
+      return "";
+    }
+
+    if (Array.isArray(mesh.material)) {
+      mesh.material = mesh.material.map((material) => (
+        material ? cloneMediumRangeFloorMaterial(material, targetColor) : material
+      ));
+      return mesh.material
+        .map((material) => getMediumRangeMaterialColor(material))
+        .filter(Boolean)
+        .join(",");
+    }
+
+    mesh.material = cloneMediumRangeFloorMaterial(mesh.material, targetColor);
+    return getMediumRangeMaterialColor(mesh.material);
+  }
+
+  function ensureMediumRangeFloorProofMarker() {
+    const markerName = "medium-range-floor-proof-marker";
+    const existingMarker = mapGroup.getObjectByName(markerName);
+    if (existingMarker) {
+      if (existingMarker.parent) existingMarker.parent.remove(existingMarker);
+      if (existingMarker.geometry) existingMarker.geometry.dispose();
+      if (existingMarker.material) existingMarker.material.dispose();
+    }
+
+    const marker = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.85, 0.85),
+      new THREE.MeshBasicMaterial({
+        color: 0xff00ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.92
+      })
+    );
+    marker.name = markerName;
+    marker.rotation.x = -Math.PI * 0.5;
+    marker.position.set(mediumCombatPlayerSpawn.x, 0.055, mediumCombatPlayerSpawn.z);
+    marker.userData.ignoreShotRay = true;
+    marker.userData.registerBulletCollision = false;
+    addMapMesh(marker, {
+      collidable: false,
+      bulletCollision: false,
+      castShadow: false,
+      receiveShadow: false
+    });
+    console.log("[MEDIUM FLOOR DIAG] proof marker added at player spawn floor", {
+      name: marker.name,
+      position: marker.position.clone(),
+      color: marker.material.color.getHexString()
+    });
+  }
+
+  function applyMediumRangeFloorColor(environmentRoot = mapGroup) {
+    const targetColor = 0x5d6378;
+    const targetBox = new THREE.Box3();
+    const targetSize = new THREE.Vector3();
+    const targetCenter = new THREE.Vector3();
+    const floorCandidates = [];
+
+    console.log("[MEDIUM FLOOR DIAG] tracing Medium Range Jiggle Training environment path", {
+      selectedMap,
+      currentLoadedMapId,
+      currentMapVisualVariant,
+      expectedVariant: mediumRangeJiggleTrainingVisualVariant,
+      mapChildren: mapGroup.children.length
+    });
+
+    environmentRoot.updateMatrixWorld(true);
+    environmentRoot.traverse((node) => {
+      if (!node.isMesh) {
+        return;
+      }
+
+      node.updateMatrixWorld(true);
+      targetBox.setFromObject(node);
+      if (targetBox.isEmpty()) {
+        return;
+      }
+
+      targetBox.getSize(targetSize);
+      targetBox.getCenter(targetCenter);
+      const material = Array.isArray(node.material) ? node.material[0] : node.material;
+      const combinedName = `${node.name || ""} ${material?.name || ""}`.toLowerCase();
+      const footprintArea = Math.max(targetSize.x, 0) * Math.max(targetSize.z, 0);
+      const nearGround = targetBox.min.y <= 0.12 && targetBox.max.y >= -1.8;
+      const namedFloor =
+        combinedName.includes("floor") ||
+        combinedName.includes("ground") ||
+        combinedName.includes("yard") ||
+        combinedName.includes("base") ||
+        combinedName.includes("slab") ||
+        combinedName.includes("platform") ||
+        combinedName.includes("foundation") ||
+        combinedName.includes("deck") ||
+        combinedName.includes("lane") ||
+        combinedName.includes("pad");
+      const geometryFloor = nearGround && (
+        targetSize.y <= 0.18 ||
+        (targetBox.max.y <= 0.12 && footprintArea >= 250)
+      );
+      const isFloor = nearGround && (namedFloor || geometryFloor);
+
+      if (!isFloor) {
+        return;
+      }
+
+      const candidate = {
+        mesh: node,
+        material,
+        name: node.name || "",
+        materialName: material?.name || "",
+        color: getMediumRangeMaterialColor(material),
+        position: node.position.clone(),
+        scale: node.scale.clone(),
+        visible: node.visible,
+        worldMinY: Number(targetBox.min.y.toFixed(3)),
+        worldMaxY: Number(targetBox.max.y.toFixed(3)),
+        footprintArea: Number(footprintArea.toFixed(3))
+      };
+      floorCandidates.push(candidate);
+      console.log("[MEDIUM FLOOR DIAG] mesh", {
+        name: candidate.name,
+        materialName: candidate.materialName,
+        color: candidate.color,
+        position: candidate.position,
+        scale: candidate.scale,
+        visible: candidate.visible,
+        worldMinY: candidate.worldMinY,
+        worldMaxY: candidate.worldMaxY,
+        footprintArea: candidate.footprintArea
+      });
+    });
+
+    if (!floorCandidates.length) {
+      console.warn("[MEDIUM FLOOR FIX] NO FLOOR MESH FOUND - need manual selection");
+      return;
+    }
+
+    for (const candidate of floorCandidates) {
+      const color = applyMediumRangeMaterialColorToMesh(candidate.mesh, targetColor);
+      console.log(
+        "[MEDIUM FLOOR FIX] applied #5D6378 to",
+        candidate.mesh.name,
+        Array.isArray(candidate.mesh.material)
+          ? candidate.mesh.material.map((material) => material?.name || "").join(",")
+          : candidate.mesh.material?.name,
+        color
+      );
+    }
+
+    console.log("[MEDIUM FLOOR FIX] final visible floor color should be #5D6378");
+  }
+
+  function cloneMediumRangeWallMaterial(material, targetColor) {
+    const clonedMaterial = material.clone();
+    clonedMaterial.name = material.name
+      ? `${material.name}-b7aa98`
+      : "medium-range-wall-b7aa98";
+    if (clonedMaterial.color) {
+      clonedMaterial.color.setHex(targetColor);
+    }
+    clonedMaterial.needsUpdate = true;
+    return clonedMaterial;
+  }
+
+  function applyMediumRangeWallColorToMesh(mesh, targetColor) {
+    if (!mesh?.material) {
+      return "";
+    }
+
+    if (Array.isArray(mesh.material)) {
+      mesh.material = mesh.material.map((material) => (
+        material ? cloneMediumRangeWallMaterial(material, targetColor) : material
+      ));
+      return mesh.material
+        .map((material) => getMediumRangeMaterialColor(material))
+        .filter(Boolean)
+        .join(",");
+    }
+
+    mesh.material = cloneMediumRangeWallMaterial(mesh.material, targetColor);
+    return getMediumRangeMaterialColor(mesh.material);
+  }
+
+  function applyMediumRangeWallColor(environmentRoot = mapGroup) {
+    const targetColor = 0xb7aa98;
+    const wallBox = new THREE.Box3();
+    const wallSize = new THREE.Vector3();
+    let wallIndex = 0;
+
+    environmentRoot.updateMatrixWorld(true);
+    environmentRoot.traverse((node) => {
+      if (!node.isMesh) {
+        return;
+      }
+
+      const material = Array.isArray(node.material) ? node.material[0] : node.material;
+      const materialName = String(material?.name || "").toLowerCase();
+      const meshName = String(node.name || "").toLowerCase();
+      const isTaggedWallMaterial =
+        materialName.includes("medium-range-wall-material") ||
+        materialName.includes("medium-range-ruin-wall-material") ||
+        materialName.includes("medium-range-low-wall-material");
+      const isTaggedWallMesh =
+        meshName.includes("wall") ||
+        meshName.includes("barrier") ||
+        meshName.includes("panel") ||
+        meshName.includes("boundary") ||
+        meshName.includes("fence");
+
+      if (!isTaggedWallMaterial && !isTaggedWallMesh) {
+        return;
+      }
+
+      node.updateMatrixWorld(true);
+      wallBox.setFromObject(node);
+      if (wallBox.isEmpty()) {
+        return;
+      }
+
+      wallBox.getSize(wallSize);
+      const isFloorLike = wallSize.y <= 0.35 && Math.max(wallSize.x, wallSize.z) >= 4;
+      if (isFloorLike) {
+        return;
+      }
+
+      if (!node.name) {
+        wallIndex += 1;
+        node.name = `medium-range-wall-${wallIndex}`;
+      }
+
+      applyMediumRangeWallColorToMesh(node, targetColor);
+      const appliedMaterial = Array.isArray(node.material) ? node.material[0] : node.material;
+      console.log("[MEDIUM RANGE WALLS] applied wall color", {
+        meshName: node.name || "",
+        materialName: appliedMaterial?.name || "",
+        color: appliedMaterial?.color?.getHexString?.()
+      });
+    });
+  }
+
+  async function startMediumCombatMode() {
+    fadeOutMenuMusic("medium-combat-start");
+    cleanupAimTrainingMode();
+    if (!startMediumCombatModeButton) {
+      return;
+    }
+
+    commitPlayerIdentitySettings();
+    startMediumCombatModeButton.disabled = true;
+    const titleEl = startMediumCombatModeButton.querySelector('.aim-mode-title');
+    if (titleEl) titleEl.textContent = "Loading...";
+
+    try {
+      if (!cameraCustomizationPreviewPreviousMapId) {
+        cameraCustomizationPreviewPreviousMapId = selectedMap;
+      }
+      isMediumCombatActive = true;
+      mediumCombatHits = 0;
+      mediumCombatMisses = 0;
+      mediumCombatTimer = 60;
+      showAimTrainingStatsHud("Medium Range Jiggle Training");
+      startNewAimTrainingSession("mediumRangeJiggleTraining");
+
+      if (!aimTrainingManualInfiniteAmmoOverride) {
+        currentGun.infiniteAmmo = true;
+        if (gunInfiniteAmmoInput) gunInfiniteAmmoInput.checked = true;
+        syncGunInputs();
+      }
+
+      if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "none";
+      if (aimTrainingHud) {
+        aimTrainingHud.removeAttribute("hidden");
+        aimTrainingHud.setAttribute("aria-hidden", "false");
+        aimTrainingHud.hidden = false;
+      }
+      updateMediumCombatHudText();
+
+      if (mediumCombatIntervalId) window.clearInterval(mediumCombatIntervalId);
+      mediumCombatIntervalId = window.setInterval(() => {
+        if (!isMediumCombatActive || mediumCombatTimer <= 0) return;
+        mediumCombatTimer--;
+        updateMediumCombatHudText();
+
+        if (mediumCombatTimer <= 0) {
+          window.clearInterval(mediumCombatIntervalId);
+          mediumCombatIntervalId = 0;
+          if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+          broadcastAimTrainingState({ force: true });
+          broadcastAimTrainingFinished("mediumRangeJiggleTraining");
+        }
+      }, 1000);
+
+      temporaryPlayerSpawnOverride = mediumCombatPlayerSpawn.clone();
+
+      await loadSelectedMap(ironworksYardMapId, {
+        forceReload: true,
+        requestSource: "medium combat mode",
+        visualVariant: mediumRangeJiggleTrainingVisualVariant
+      });
+      console.log("[MEDIUM FLOOR DIAG] Medium Range map load complete", {
+        selectedMap,
+        currentLoadedMapId,
+        currentMapVisualVariant,
+        expectedVariant: mediumRangeJiggleTrainingVisualVariant,
+        usingLightVariant: currentLoadedMapId === ironworksYardMapId &&
+          currentMapVisualVariant === mediumRangeJiggleTrainingVisualVariant
+      });
+      applyMediumRangeFloorColor(mapGroup);
+      applyMediumRangeWallColor(mapGroup);
+      ensureMediumRangeFloorProofMarker();
+      gameStarted = true;
+      hideMainMenu();
+      resetPlayerToCurrentSpawn();
+      statusMessage.classList.remove("visible");
+
+      createMediumCombatMovementBoundary();
+      console.log("[Medium Range Jiggle Training] movement bounds active");
+      console.log("[Medium Range Jiggle Training] player spawned", player.position.clone());
+      spawnMediumCombatJiggleEnemy();
+      broadcastAimTrainingState({ force: true });
+      broadcastAimTrainingTargetState({ force: true, log: true });
+      console.log("[Medium Range Jiggle Training] mode started");
+    } catch (error) {
+      console.error("Failed to start Medium Range Jiggle Training:", error);
+      cleanupAimTrainingMode();
+      selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+      mapSelect.value = selectedMap;
+      cameraCustomizationPreviewPreviousMapId = "";
+    } finally {
+      resetAimTrainingCardLoadingStates();
+    }
+  }
+
+  function stopMediumCombatMode() {
+    cleanupAimTrainingMode();
+  }
+
+  function cleanupMediumCombatMode() {
+    const hadMediumCombatState = isMediumCombatActive ||
+      mediumCombatIntervalId ||
+      mediumCombatEnemy ||
+      mediumCombatMovementBoundaryGroup;
+
+    if (mediumCombatIntervalId) {
+      window.clearInterval(mediumCombatIntervalId);
+      mediumCombatIntervalId = 0;
+    }
+
+    isMediumCombatActive = false;
+    mediumCombatHits = 0;
+    mediumCombatMisses = 0;
+    mediumCombatTimer = 60;
+    mediumCombatCurrentOffset = 0;
+    mediumCombatMoveDirection = 1;
+    mediumCombatEnemySideOffset = 0;
+    mediumCombatEnemySideVelocity = 0;
+    mediumCombatEnemyMoveState = "jiggle";
+    mediumCombatEnemyMoveStateTimer = 0;
+    mediumCombatEnemyMoveTargetOffset = 0;
+    mediumCombatEnemyJiggleBaseOffset = 0;
+    mediumCombatEnemyJiggleDirection = 1;
+
+    if (mediumCombatEnemy) {
+      removeEnemy(mediumCombatEnemy);
+      mediumCombatEnemy = null;
+    }
+
+    removeMediumCombatMovementBoundary();
+
+    if (hadMediumCombatState) {
+      console.log("[Medium Range Jiggle Training] mode cleaned up");
+    }
+  }
+
+  async function restartMediumCombatMode() {
+    cleanupAimTrainingMode();
+    await startMediumCombatMode();
   }
 
   function resetAimTrainingCardLoadingStates() {
@@ -10921,10 +13124,22 @@ window.onload = () => {
       const titleEl = startJiggleTrainingButton.querySelector('.aim-mode-title');
       if (titleEl) titleEl.textContent = "JIGGLE TRAINING";
     }
+    if (startMediumCombatModeButton) {
+      startMediumCombatModeButton.disabled = false;
+      startMediumCombatModeButton.removeAttribute("aria-busy");
+      startMediumCombatModeButton.classList.remove("loading");
+      const titleEl = startMediumCombatModeButton.querySelector('.aim-mode-title');
+      if (titleEl) titleEl.textContent = "Medium Range Jiggle Training";
+    }
   }
 
   function cleanupAimTrainingMode() {
     console.log("[AIM TRAINING] Cleaning up current mode");
+    const exitingAimTrainingMode = getActiveAimTrainingModeId();
+    if (exitingAimTrainingMode && isLanHost && !isNetworkAimTrainingMirror) {
+      broadcastAimTrainingExit(exitingAimTrainingMode);
+    }
+    hideAimTrainingStatsHud("cleanup");
 
     // Stop all intervals
     if (gridShotIntervalId) {
@@ -10939,11 +13154,17 @@ window.onload = () => {
       window.clearInterval(jiggleTrainingIntervalId);
       jiggleTrainingIntervalId = 0;
     }
+    cleanupMediumCombatMode();
 
     // Deactivate flags
     isGridShotActive = false;
     isTrackingBallActive = false;
     isJiggleTrainingActive = false;
+    isMediumCombatActive = false;
+    isNetworkAimTrainingMirror = false;
+    aimTrainingSessionId = "";
+    aimTrainingSessionMode = "";
+    resetAimTrainingSyncSendMarkers();
 
     // Hide Results
     if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "none";
@@ -10954,32 +13175,10 @@ window.onload = () => {
     updateAimTrainingHudVisibility();
 
     // Cleanup Grid Shot Balls
-    gridShotBalls.forEach(ball => {
-      scene.remove(ball);
-      ball.children.forEach(child => {
-        if (child.material) child.material.dispose();
-      });
-      if (ball.geometry) ball.geometry.dispose();
-      if (ball.material) ball.material.dispose();
-    });
-    gridShotBalls.length = 0;
+    clearGridShotBalls();
 
     // Cleanup Tracking Ball
-    if (trackingBallObject) {
-      scene.remove(trackingBallObject);
-      trackingBallObject.children.forEach(child => {
-        if (child.material) child.material.dispose();
-        if (child instanceof THREE.Group) {
-          child.children.forEach(gc => {
-            if (gc.material) gc.material.dispose();
-            if (gc.geometry) gc.geometry.dispose();
-          });
-        }
-      });
-      if (trackingBallObject.geometry) trackingBallObject.geometry.dispose();
-      if (trackingBallObject.material) trackingBallObject.material.dispose();
-      trackingBallObject = null;
-    }
+    removeTrackingBallObject();
 
     // Cleanup Jiggle Training Enemy
     if (jiggleTrainingEnemy) {
@@ -10994,14 +13193,15 @@ window.onload = () => {
   }
 
   function updateAimTrainingHudVisibility() {
-    const active = !!(isGridShotActive || isTrackingBallActive || isJiggleTrainingActive);
+    const active = !!(isGridShotActive || isTrackingBallActive || isJiggleTrainingActive || isMediumCombatActive);
     if (aimTrainingHud) {
       if (active) {
         aimTrainingHud.classList.add("is-active");
         console.log("[AIM HUD] shown for training mode", {
           GridShot: isGridShotActive,
           Tracking: isTrackingBallActive,
-          Jiggle: isJiggleTrainingActive
+          Jiggle: isJiggleTrainingActive,
+          MediumCombat: isMediumCombatActive
         });
       } else {
         aimTrainingHud.classList.remove("is-active");
@@ -11042,6 +13242,26 @@ window.onload = () => {
     }
     if (aimTrainingView) {
       aimTrainingView.removeAttribute("hidden");
+      aimTrainingView.hidden = false;
+    }
+  }
+
+  function exitMediumCombatMode() {
+    cleanupAimTrainingMode();
+
+    selectedMap = cameraCustomizationPreviewPreviousMapId || selectedMap;
+    mapSelect.value = selectedMap;
+    cameraCustomizationPreviewPreviousMapId = "";
+
+    showMainMenu();
+    if (homePanel) {
+      homePanel.setAttribute("hidden", "true");
+      homePanel.setAttribute("aria-hidden", "true");
+      homePanel.hidden = true;
+    }
+    if (aimTrainingView) {
+      aimTrainingView.removeAttribute("hidden");
+      aimTrainingView.setAttribute("aria-hidden", "false");
       aimTrainingView.hidden = false;
     }
   }
@@ -11140,6 +13360,7 @@ window.onload = () => {
   }
 
   function showMainMenu() {
+    cleanupAimTrainingMode();
     playMenuMusic("main-menu-show");
     stopAdsAiming("mainMenu");
     clearActiveMobileGameplayInputs();
@@ -13039,7 +15260,12 @@ window.onload = () => {
       maxHealth: Math.max(1, Math.round(Number(enemyActor.maxHealth) || enemyMaxHp)),
       isDead: Boolean(enemyActor.isDead),
       state: String(enemyActor.state || "idle"),
-      targetPlayerId: typeof enemyActor.targetPlayerId === "string" ? enemyActor.targetPlayerId : ""
+      targetPlayerId: typeof enemyActor.targetPlayerId === "string" ? enemyActor.targetPlayerId : "",
+      trainingTargetType: enemyActor.isMediumCombatTarget
+        ? "mediumRangeJiggleTraining"
+        : enemyActor.isJiggleTrainingTarget
+          ? "jiggleTraining"
+          : ""
     };
   }
 
@@ -13927,6 +16153,9 @@ window.onload = () => {
           broadcastSharedEnemySpawns(enemies);
           broadcastSharedEnemyStates(performance.now(), { force: true });
           syncExistingOnlineHealthPickupsForLanHost();
+          broadcastAimTrainingState({ force: true });
+          broadcastAimTrainingTimer({ force: true });
+          broadcastAimTrainingTargetState({ force: true, log: true });
         }
 
         if (hostIsTemporarilyOffline && lanSessionIntent) {
@@ -13986,6 +16215,12 @@ window.onload = () => {
           broadcastSharedEnemySpawns(enemies);
           broadcastSharedEnemyStates(performance.now(), { force: true });
           syncExistingOnlineHealthPickupsForLanHost();
+          if (getActiveAimTrainingModeId()) {
+            console.log("[AIM TRAINING SYNC] player joined during active training, sending current state");
+          }
+          broadcastAimTrainingState({ force: true });
+          broadcastAimTrainingTimer({ force: true });
+          broadcastAimTrainingTargetState({ force: true, log: true });
         }
 
         showStatusMessage("Player joined the session.", 1500);
@@ -14025,6 +16260,12 @@ window.onload = () => {
           broadcastSharedEnemySpawns(enemies);
           broadcastSharedEnemyStates(performance.now(), { force: true });
           syncExistingOnlineHealthPickupsForLanHost();
+          if (getActiveAimTrainingModeId()) {
+            console.log("[AIM TRAINING SYNC] player joined during active training, sending current state");
+          }
+          broadcastAimTrainingState({ force: true });
+          broadcastAimTrainingTimer({ force: true });
+          broadcastAimTrainingTargetState({ force: true, log: true });
         }
 
         showStatusMessage("Player reconnected.", 1500);
@@ -14036,6 +16277,9 @@ window.onload = () => {
           return;
         }
 
+        if (cleanupMirroredAimTrainingAfterHostDisconnect("host connection lost")) {
+          break;
+        }
         lanConnectionStatus = "waiting_for_host";
         setLanMultiplayerStatus(
           `${lanSessionIntent.isLocalServer ? "LAN session paused." : "Shared session paused."}\nHost connection lost.\nWaiting for host to reconnect...`
@@ -14063,8 +16307,11 @@ window.onload = () => {
 
         playReplicatedPlayerShotEffect(shooterId);
         if (isLanHost) {
-          resolveHostAuthoritativePlayerShot(shooterId, parsedMessage.shot);
-          resolveHostAuthoritativeEnemyShot(shooterId, parsedMessage.shot);
+          const handledAimTrainingShot = resolveHostAuthoritativeAimTrainingShot(shooterId, parsedMessage.shot);
+          if (!handledAimTrainingShot) {
+            resolveHostAuthoritativePlayerShot(shooterId, parsedMessage.shot);
+            resolveHostAuthoritativeEnemyShot(shooterId, parsedMessage.shot);
+          }
         }
         break;
       }
@@ -14154,6 +16401,95 @@ window.onload = () => {
         break;
       }
 
+      case "aim_training_state": {
+        if (!isLanClient) {
+          return;
+        }
+        console.log("[AIM TRAINING SYNC] received aim_training_state", parsedMessage);
+        await applyAimTrainingStateFromHost(parsedMessage.state || parsedMessage || {});
+        break;
+      }
+
+      case "aim_training_timer": {
+        if (!isLanClient) {
+          return;
+        }
+        applyAimTrainingTimerSync(parsedMessage);
+        break;
+      }
+
+      case "aim_training_target_state": {
+        if (!isLanClient) {
+          return;
+        }
+        applyAimTrainingTargetSync(parsedMessage);
+        break;
+      }
+
+      case "aim_training_target_respawn": {
+        if (!isLanClient) {
+          return;
+        }
+        console.log("[AIM TRAINING SYNC] received aim_training_target_respawn", parsedMessage);
+        applyAimTrainingTargetSync(parsedMessage, "aim_training_target_respawn");
+        break;
+      }
+
+      case "aim_training_finished": {
+        if (!isLanClient) {
+          return;
+        }
+        if (shouldIgnoreHostAimTrainingMessage(parsedMessage, "aim_training_finished")) {
+          return;
+        }
+        if (!isNetworkAimTrainingMirror) {
+          return;
+        }
+        applyAimTrainingTimerSync({
+          mode: parsedMessage.mode,
+          sessionId: parsedMessage.sessionId,
+          remainingSeconds: 0
+        });
+        finishAimTrainingSession("host finished");
+        if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+        console.log("[AIM TRAINING SYNC] finished");
+        break;
+      }
+
+      case "aim_training_exit": {
+        if (!isLanClient) {
+          return;
+        }
+        await applyAimTrainingStateFromHost({
+          active: false,
+          mode: parsedMessage.mode,
+          sessionId: parsedMessage.sessionId
+        });
+        break;
+      }
+
+      case "aim_training_restart": {
+        if (!isLanClient) {
+          return;
+        }
+        console.log("[AIM TRAINING SYNC] received aim_training_restart", parsedMessage);
+        if (shouldIgnoreHostAimTrainingMessage(parsedMessage, "aim_training_restart")) {
+          return;
+        }
+        if (parsedMessage.state && typeof parsedMessage.state === "object") {
+          await applyAimTrainingStateFromHost(parsedMessage.state);
+        } else {
+          await applyAimTrainingStateFromHost({
+            active: true,
+            mode: parsedMessage.mode || getActiveAimTrainingModeId(),
+            sessionId: parsedMessage.sessionId,
+            remainingSeconds: parsedMessage.remainingSeconds ?? 60,
+            targetState: parsedMessage.targetState || {}
+          });
+        }
+        break;
+      }
+
       case "enemy_attack": {
         playReplicatedEnemyShotEffect(parsedMessage.enemyId);
         break;
@@ -14181,6 +16517,12 @@ window.onload = () => {
           : parsedMessage.reason === "host_disconnected"
             ? "Host connection was lost and could not be restored."
             : "Multiplayer session closed.";
+        if (isNetworkAimTrainingMirror && handleHomeFromOnlineClient("session closed", {
+          sendLeave: false,
+          message: reason
+        })) {
+          break;
+        }
         disconnectLanSession({
           preserveStatus: true,
           preserveSessionIntent: false,
@@ -14648,7 +16990,8 @@ window.onload = () => {
 
     // Restore crosshair
     if (preScopeCrosshairOpacity !== null) {
-      document.documentElement.style.setProperty("--crosshair-opacity", preScopeCrosshairOpacity);
+      const restoreOpacity = parseFloat(preScopeCrosshairOpacity) > 0 ? preScopeCrosshairOpacity : "1";
+      document.documentElement.style.setProperty("--crosshair-opacity", restoreOpacity);
       preScopeCrosshairOpacity = null;
     }
   }
@@ -14709,14 +17052,87 @@ window.onload = () => {
       : fallback;
   }
 
+  function clampAdvancedGraphicsNumber(value, fallback, min, max, decimals = 2) {
+    const parsedValue = Number(value);
+    const normalizedValue = Number.isFinite(parsedValue) ? parsedValue : fallback;
+    const multiplier = 10 ** decimals;
+    return THREE.MathUtils.clamp(
+      Math.round(normalizedValue * multiplier) / multiplier,
+      min,
+      max
+    );
+  }
+
+  function normalizeAdvancedGraphicsChoice(value, choices, fallback) {
+    return choices.includes(value) ? value : fallback;
+  }
+
+  function normalizeAdvancedGraphicsSettings(nextSettings = {}, fallback = graphicsSettings.advancedGraphics || advancedGraphicsDefaults) {
+    const base = {
+      ...advancedGraphicsDefaults,
+      ...(fallback || {})
+    };
+
+    return {
+      colorStyle: normalizeAdvancedGraphicsChoice(
+        nextSettings.colorStyle ?? base.colorStyle,
+        Object.keys(advancedGraphicsColorStylePresets),
+        base.colorStyle
+      ),
+      exposure: clampAdvancedGraphicsNumber(nextSettings.exposure ?? base.exposure, base.exposure, 0.6, 1.6, 2),
+      contrast: clampAdvancedGraphicsNumber(nextSettings.contrast ?? base.contrast, base.contrast, 0.75, 1.35, 2),
+      saturation: clampAdvancedGraphicsNumber(nextSettings.saturation ?? base.saturation, base.saturation, 0.6, 1.5, 2),
+      fogEnabled: typeof nextSettings.fogEnabled === "boolean" ? nextSettings.fogEnabled : Boolean(base.fogEnabled),
+      fogStrength: clampAdvancedGraphicsNumber(nextSettings.fogStrength ?? base.fogStrength, base.fogStrength, 0, 1, 2),
+      fogDistance: clampAdvancedGraphicsNumber(nextSettings.fogDistance ?? base.fogDistance, base.fogDistance, 30, 250, 0),
+      bloomEnabled: typeof nextSettings.bloomEnabled === "boolean" ? nextSettings.bloomEnabled : Boolean(base.bloomEnabled),
+      bloomStrength: clampAdvancedGraphicsNumber(nextSettings.bloomStrength ?? base.bloomStrength, base.bloomStrength, 0, 1.5, 2),
+      ambientOcclusionEnabled: typeof nextSettings.ambientOcclusionEnabled === "boolean"
+        ? nextSettings.ambientOcclusionEnabled
+        : Boolean(base.ambientOcclusionEnabled),
+      aoStrength: clampAdvancedGraphicsNumber(nextSettings.aoStrength ?? base.aoStrength, base.aoStrength, 0, 1, 2),
+      antiAliasing: normalizeAdvancedGraphicsChoice(
+        nextSettings.antiAliasing ?? base.antiAliasing,
+        ["Off", "FXAA", "High"],
+        base.antiAliasing
+      ),
+      materialQuality: normalizeAdvancedGraphicsChoice(
+        nextSettings.materialQuality ?? base.materialQuality,
+        ["Low", "Medium", "High"],
+        base.materialQuality
+      ),
+      dynamicLights: normalizeAdvancedGraphicsChoice(
+        nextSettings.dynamicLights ?? base.dynamicLights,
+        ["Off", "Low", "High"],
+        base.dynamicLights
+      ),
+      motionBlur: normalizeAdvancedGraphicsChoice(
+        "Off",
+        ["Off", "Low", "Medium"],
+        "Off"
+      ),
+      motionBlurStrength: clampAdvancedGraphicsNumber(
+        0,
+        0,
+        0,
+        100,
+        0
+      )
+    };
+  }
+
   function getDefaultGraphicsSettingsForDeviceMode(mode = startupDeviceMode.quality) {
     const normalizedMode = mode === "phone" || mode === "mobile"
       ? "mobile"
       : "desktop";
-    return { ...graphicsDefaultsByMode[normalizedMode] };
+    return {
+      ...graphicsDefaultsByMode[normalizedMode],
+      advancedGraphics: { ...advancedGraphicsDefaults }
+    };
   }
 
   function normalizeGraphicsSettings(nextSettings = {}, fallback = graphicsSettings) {
+    const fallbackAdvancedGraphics = fallback.advancedGraphics || advancedGraphicsDefaults;
     return {
       renderScalePercent: clampGraphicsRenderScalePercent(
         nextSettings.renderScalePercent ?? fallback.renderScalePercent
@@ -14737,6 +17153,10 @@ window.onload = () => {
       effectQuality: normalizeGraphicsEffectQuality(
         nextSettings.effectQuality ?? fallback.effectQuality,
         fallback.effectQuality
+      ),
+      advancedGraphics: normalizeAdvancedGraphicsSettings(
+        nextSettings.advancedGraphics ?? fallbackAdvancedGraphics,
+        fallbackAdvancedGraphics
       )
     };
   }
@@ -14748,7 +17168,11 @@ window.onload = () => {
       shadowsEnabled: settings.shadowsEnabled,
       shadowQuality: settings.shadowQuality,
       renderDistance: settings.renderDistance,
-      effectQuality: settings.effectQuality
+      effectQuality: settings.effectQuality,
+      advancedGraphics: {
+        ...advancedGraphicsDefaults,
+        ...(settings.advancedGraphics || {})
+      }
     };
   }
 
@@ -14915,6 +17339,39 @@ window.onload = () => {
     graphicsRenderDistanceInput.value = String(graphicsSettings.renderDistance);
     graphicsRenderDistanceValue.textContent = String(graphicsSettings.renderDistance);
     graphicsEffectQualitySelect.value = graphicsSettings.effectQuality;
+    syncAdvancedGraphicsSettingsInputs();
+  }
+
+  function syncAdvancedGraphicsSettingsInputs() {
+    const advancedGraphics = graphicsSettings.advancedGraphics || advancedGraphicsDefaults;
+    advancedColorStyleSelect.value = advancedGraphics.colorStyle;
+    advancedExposureInput.value = advancedGraphics.exposure.toFixed(2);
+    advancedExposureValue.textContent = advancedGraphics.exposure.toFixed(2);
+    advancedContrastInput.value = advancedGraphics.contrast.toFixed(2);
+    advancedContrastValue.textContent = advancedGraphics.contrast.toFixed(2);
+    advancedSaturationInput.value = advancedGraphics.saturation.toFixed(2);
+    advancedSaturationValue.textContent = advancedGraphics.saturation.toFixed(2);
+    advancedFogToggle.checked = advancedGraphics.fogEnabled;
+    advancedFogStrengthInput.value = advancedGraphics.fogStrength.toFixed(2);
+    advancedFogStrengthValue.textContent = advancedGraphics.fogStrength.toFixed(2);
+    advancedFogDistanceInput.value = String(Math.round(advancedGraphics.fogDistance));
+    advancedFogDistanceValue.textContent = String(Math.round(advancedGraphics.fogDistance));
+    advancedBloomToggle.checked = advancedGraphics.bloomEnabled;
+    advancedBloomStrengthInput.value = advancedGraphics.bloomStrength.toFixed(2);
+    advancedBloomStrengthValue.textContent = advancedGraphics.bloomStrength.toFixed(2);
+    advancedAoToggle.checked = advancedGraphics.ambientOcclusionEnabled;
+    advancedAoStrengthInput.value = advancedGraphics.aoStrength.toFixed(2);
+    advancedAoStrengthValue.textContent = advancedGraphics.aoStrength.toFixed(2);
+    advancedAntialiasingSelect.value = advancedGraphics.antiAliasing;
+    advancedMaterialQualitySelect.value = advancedGraphics.materialQuality;
+    advancedDynamicLightsSelect.value = advancedGraphics.dynamicLights;
+    advancedMotionBlurSelect.value = advancedGraphics.motionBlur;
+    advancedMotionBlurStrengthInput.value = String(Math.round(advancedGraphics.motionBlurStrength));
+    advancedMotionBlurStrengthValue.textContent = String(Math.round(advancedGraphics.motionBlurStrength));
+
+    // Force hide Motion Blur options safely
+    if (advancedMotionBlurSelect.parentElement) advancedMotionBlurSelect.parentElement.hidden = true;
+    if (advancedMotionBlurStrengthInput.parentElement) advancedMotionBlurStrengthInput.parentElement.hidden = true;
   }
 
   function applyRendererOutputSettings() {
@@ -15010,11 +17467,233 @@ window.onload = () => {
     }
   }
 
+  function applyAdvancedGraphicsCanvasFilter(advancedGraphics) {
+    renderer.toneMappingExposure = advancedGraphics.exposure;
+    // Keep only safe filters: contrast and saturate. Do NOT use blur here.
+    renderer.domElement.style.filter = [
+      `contrast(${advancedGraphics.contrast})`,
+      `saturate(${advancedGraphics.saturation})`
+    ].join(" ");
+  }
+
+  function restoreBaseSceneFogForAdvancedGraphics() {
+    if (activeLightingProfile) {
+      const effectiveFogFar = Math.max(activeLightingProfile.fogNear + 10, graphicsSettings.renderDistance);
+      scene.fog = new THREE.Fog(
+        activeLightingProfile.fogColor,
+        Math.min(activeLightingProfile.fogNear, Math.max(5, effectiveFogFar * 0.35)),
+        effectiveFogFar
+      );
+      return;
+    }
+
+    if (scene.fog?.isAdvancedVisualsFog) {
+      scene.fog = null;
+    }
+  }
+
+  function applyAdvancedGraphicsFog(advancedGraphics) {
+    if (!advancedGraphics.fogEnabled) {
+      restoreBaseSceneFogForAdvancedGraphics();
+      return;
+    }
+
+    const fogFar = THREE.MathUtils.clamp(advancedGraphics.fogDistance, 30, graphicsSettings.renderDistance);
+    const fogNearRatio = THREE.MathUtils.lerp(0.82, 0.18, advancedGraphics.fogStrength);
+    const fogNear = THREE.MathUtils.clamp(fogFar * fogNearRatio, 2, Math.max(3, fogFar - 5));
+    const backgroundColor = scene.background?.isColor ? scene.background : new THREE.Color(0xaeb8bd);
+    const fogColor = backgroundColor.clone().lerp(new THREE.Color(0xaeb8bd), 0.45);
+    scene.fog = new THREE.Fog(fogColor, fogNear, fogFar);
+    scene.fog.isAdvancedVisualsFog = true;
+  }
+
+  function getMaterialList(material) {
+    if (!material) {
+      return [];
+    }
+    return Array.isArray(material) ? material.filter(Boolean) : [material];
+  }
+
+  function cacheAdvancedGraphicsMaterialDefaults(material) {
+    if (!material?.userData) {
+      return null;
+    }
+
+    if (!material.userData.advancedGraphicsOriginalMaterial) {
+      material.userData.advancedGraphicsOriginalMaterial = {
+        roughness: typeof material.roughness === "number" ? material.roughness : null,
+        metalness: typeof material.metalness === "number" ? material.metalness : null,
+        envMapIntensity: typeof material.envMapIntensity === "number" ? material.envMapIntensity : null,
+        normalScale: material.normalScale?.clone?.() || null
+      };
+    }
+
+    return material.userData.advancedGraphicsOriginalMaterial;
+  }
+
+  function applyAdvancedGraphicsMaterialQuality(advancedGraphics) {
+    const materialQuality = advancedGraphics.materialQuality;
+
+    mapGroup.traverse((object) => {
+      if (!object?.isMesh) {
+        return;
+      }
+
+      for (const material of getMaterialList(object.material)) {
+        const original = cacheAdvancedGraphicsMaterialDefaults(material);
+        if (!original) {
+          continue;
+        }
+
+        if (typeof material.roughness === "number" && original.roughness !== null) {
+          if (materialQuality === "Low") {
+            material.roughness = Math.min(1, Math.max(original.roughness, 0.9));
+          } else if (materialQuality === "High") {
+            material.roughness = THREE.MathUtils.clamp(original.roughness * 0.85, 0.25, 1);
+          } else {
+            material.roughness = original.roughness;
+          }
+        }
+
+        if (typeof material.metalness === "number" && original.metalness !== null) {
+          material.metalness = materialQuality === "Low"
+            ? Math.min(original.metalness, 0.12)
+            : original.metalness;
+        }
+
+        if (typeof material.envMapIntensity === "number" && original.envMapIntensity !== null) {
+          if (materialQuality === "Low") {
+            material.envMapIntensity = Math.min(original.envMapIntensity, 0.65);
+          } else if (materialQuality === "High") {
+            material.envMapIntensity = Math.max(original.envMapIntensity, 1.05);
+          } else {
+            material.envMapIntensity = original.envMapIntensity;
+          }
+        }
+
+        if (material.normalScale && original.normalScale) {
+          material.normalScale.copy(original.normalScale);
+          if (materialQuality === "Low") {
+            material.normalScale.multiplyScalar(0.65);
+          }
+        }
+
+        material.needsUpdate = true;
+      }
+    });
+  }
+
+  function clearAdvancedGraphicsDynamicLights() {
+    for (const light of [...advancedGraphicsDynamicLightsGroup.children]) {
+      advancedGraphicsDynamicLightsGroup.remove(light);
+      light.dispose?.();
+    }
+  }
+
+  function applyAdvancedGraphicsDynamicLights(advancedGraphics) {
+    clearAdvancedGraphicsDynamicLights();
+
+    if (advancedGraphics.dynamicLights === "Off") {
+      return;
+    }
+
+    const fill = new THREE.HemisphereLight(
+      advancedGraphics.dynamicLights === "High" ? 0xd8e6ff : 0xcad8ee,
+      advancedGraphics.dynamicLights === "High" ? 0xb9aa92 : 0xa99c88,
+      advancedGraphics.dynamicLights === "High" ? 0.34 : 0.18
+    );
+    fill.name = "advanced-graphics-hemisphere-fill";
+    advancedGraphicsDynamicLightsGroup.add(fill);
+
+    const sideFill = new THREE.DirectionalLight(0xd8e8ff, advancedGraphics.dynamicLights === "High" ? 0.22 : 0.11);
+    sideFill.name = "advanced-graphics-side-fill";
+    sideFill.position.set(-16, 14, 10);
+    sideFill.castShadow = false;
+    advancedGraphicsDynamicLightsGroup.add(sideFill);
+
+    if (advancedGraphics.dynamicLights === "High") {
+      const rimFill = new THREE.DirectionalLight(0xfff1d7, 0.14);
+      rimFill.name = "advanced-graphics-rim-fill";
+      rimFill.position.set(18, 10, -12);
+      rimFill.castShadow = false;
+      advancedGraphicsDynamicLightsGroup.add(rimFill);
+    }
+  }
+
+  function logAdvancedGraphicsOptionalUnavailable(effectName, message) {
+    if (advancedGraphicsOptionalEffectLogs.has(effectName)) {
+      return;
+    }
+
+    advancedGraphicsOptionalEffectLogs.add(effectName);
+    console.log("[ADVANCED GRAPHICS] optional effect unavailable", effectName);
+    if (message) {
+      console.log(message);
+    }
+  }
+
+  function getEffectiveMotionBlurStrength(advancedGraphics) {
+    return 0;
+  }
+
+  function applyAdvancedGraphicsMotionBlur(advancedGraphics) {
+    if (!motionBlurCleanupLogged) {
+      console.log("[MOTION BLUR CLEANUP] hidden and disabled");
+      motionBlurCleanupLogged = true;
+    }
+
+    // Force Motion Blur OFF internally
+    // Disable any active motion blur passes or streak overlays here if they exist
+    // Currently ensuring standard renderer is used without AfterimagePass
+  }
+
+  function applyAdvancedGraphicsOptionalEffects(advancedGraphics) {
+    if (advancedGraphics.bloomEnabled) {
+      logAdvancedGraphicsOptionalUnavailable(
+        "Bloom",
+        "[ADVANCED GRAPHICS] Bloom saved but postprocessing not available"
+      );
+    }
+
+    if (advancedGraphics.ambientOcclusionEnabled) {
+      logAdvancedGraphicsOptionalUnavailable(
+        "Ambient Occlusion",
+        "[ADVANCED GRAPHICS] AO saved but SSAO pipeline not available"
+      );
+    }
+
+    if (advancedGraphics.antiAliasing !== "Off") {
+      logAdvancedGraphicsOptionalUnavailable(
+        "Anti-Aliasing",
+        "[ADVANCED GRAPHICS] Anti-aliasing change will apply on reload"
+      );
+    }
+
+    applyAdvancedGraphicsMotionBlur(advancedGraphics);
+  }
+
+  function applyAdvancedGraphicsSettingsRuntime({ reason = "manual", emitLog = true } = {}) {
+    const advancedGraphics = graphicsSettings.advancedGraphics || advancedGraphicsDefaults;
+    applyAdvancedGraphicsCanvasFilter(advancedGraphics);
+    applyAdvancedGraphicsFog(advancedGraphics);
+    applyAdvancedGraphicsMaterialQuality(advancedGraphics);
+    applyAdvancedGraphicsDynamicLights(advancedGraphics);
+    applyAdvancedGraphicsOptionalEffects(advancedGraphics);
+
+    if (emitLog) {
+      console.log("[ADVANCED GRAPHICS] applied live", {
+        reason,
+        ...advancedGraphics
+      });
+    }
+  }
+
   function applyGraphicsSettingsRuntime({ reason = "manual", emitLog = true } = {}) {
     applyRendererOutputSettings();
     applyGraphicsShadowSettings();
     applyGraphicsRenderDistanceSettings();
     applyGraphicsEffectQualitySettings();
+    applyAdvancedGraphicsSettingsRuntime({ reason, emitLog });
 
     if (emitLog) {
       console.log("graphics settings applied", {
@@ -15058,6 +17737,40 @@ window.onload = () => {
     );
   }
 
+  function applyAdvancedGraphicsSettingChange(key, value) {
+    if (key === "motionBlur") {
+      console.log("[ADVANCED GRAPHICS] motionBlur changed", value);
+    } else if (key === "motionBlurStrength") {
+      console.log("[ADVANCED GRAPHICS] motionBlurStrength changed", value);
+    }
+
+    console.log("[ADVANCED GRAPHICS] changed", key, value);
+    applyGraphicsSettings(
+      {
+        advancedGraphics: {
+          ...(graphicsSettings.advancedGraphics || advancedGraphicsDefaults),
+          [key]: value
+        }
+      },
+      { reason: `advanced-change:${key}` }
+    );
+  }
+
+  function applyAdvancedGraphicsColorStyleChange(colorStyle) {
+    const preset = advancedGraphicsColorStylePresets[colorStyle] || advancedGraphicsColorStylePresets.Default;
+    console.log("[ADVANCED GRAPHICS] changed", "colorStyle", colorStyle);
+    applyGraphicsSettings(
+      {
+        advancedGraphics: {
+          ...(graphicsSettings.advancedGraphics || advancedGraphicsDefaults),
+          colorStyle,
+          ...preset
+        }
+      },
+      { reason: "advanced-change:colorStyle" }
+    );
+  }
+
   function applyGraphicsDefaultsForDeviceModeIfNeeded(mode) {
     if (graphicsSettingsLoadedFromStorage) {
       syncGraphicsSettingsInputs();
@@ -15069,6 +17782,7 @@ window.onload = () => {
       source: `${mode === "phone" ? "phone" : "pc"}-defaults`,
       settings: getGraphicsSettingsSnapshot(defaults)
     });
+    console.log("[ADVANCED GRAPHICS] loaded", defaults.advancedGraphics);
     applyGraphicsSettings(defaults, {
       persist: false,
       syncInputs: true,
@@ -15355,6 +18069,7 @@ window.onload = () => {
             source: "storage",
             settings: getGraphicsSettingsSnapshot()
           });
+          console.log("[ADVANCED GRAPHICS] loaded", graphicsSettings.advancedGraphics);
         }
       } catch (error) {
         graphicsSettingsLoadedFromStorage = false;
@@ -16240,6 +18955,10 @@ window.onload = () => {
       setEnemyAliveState(enemyActor);
     }
 
+    if (state.trainingTargetType === "jiggleTraining" || state.trainingTargetType === "mediumRangeJiggleTraining") {
+      markNetworkAimTrainingEnemy(enemyActor, state.trainingTargetType);
+    }
+
     return enemyActor;
   }
 
@@ -16409,6 +19128,68 @@ window.onload = () => {
       amount: damageAmount,
       hitZone
     });
+  }
+
+  function resolveHostAuthoritativeAimTrainingShot(shooterId, shot) {
+    if (!isLanHost || !shooterId) {
+      return false;
+    }
+
+    if (!isGridShotActive && !isTrackingBallActive) {
+      return false;
+    }
+
+    const targetObjects = isGridShotActive
+      ? gridShotBalls
+      : (trackingBallObject ? [trackingBallObject] : []);
+
+    if (!targetObjects.length) {
+      return false;
+    }
+
+    const shotOrigin = resolveShotOriginForValidation(shooterId, shot, pvpShotOrigin);
+    const shotDirection = resolveShotDirectionForValidation(shooterId, shot, pvpShotDirection);
+
+    pvpRaycaster.near = 0;
+    pvpRaycaster.far = Infinity;
+    pvpRaycaster.set(shotOrigin, shotDirection);
+    const targetHits = pvpRaycaster.intersectObjects(targetObjects, false);
+    if (!targetHits.length) {
+      return false;
+    }
+
+    const closestTargetHit = targetHits[0];
+    pvpRaycaster.set(shotOrigin, shotDirection);
+    const worldHits = pvpRaycaster.intersectObjects(bulletCollisionMeshes, false);
+    const blockingWorldHit = worldHits.find((worldHit) => worldHit.distance <= closestTargetHit.distance);
+    if (blockingWorldHit) {
+      return false;
+    }
+
+    if (isGridShotActive) {
+      const targetBall = closestTargetHit.object;
+      const lastPos = targetBall.position.clone();
+      removeGridShotBall(targetBall);
+      spawnGridShotBall(lastPos);
+      broadcastAimTrainingTargetState({ force: true, log: true });
+      return true;
+    }
+
+    if (isTrackingBallActive && trackingBallObject) {
+      trackingBallHp -= TRACKING_BALL_DAMAGE;
+
+      if (trackingBallHp <= 0) {
+        removeTrackingBallObject();
+        spawnTrackingBall();
+      } else {
+        updateTrackingBallHpBar();
+      }
+
+      broadcastAimTrainingTargetState({ force: true, log: true });
+      return true;
+    }
+
+    return false;
   }
 
   function applyAuthoritativeLocalPlayerDamage(amount, { statusText = "Respawning..." } = {}) {
@@ -17001,6 +19782,7 @@ window.onload = () => {
       targetPosition.x = THREE.MathUtils.clamp(targetPosition.x, gridShotSpawn.x - 2, gridShotSpawn.x + 2);
       targetPosition.z = THREE.MathUtils.clamp(targetPosition.z, gridShotSpawn.z - 2, gridShotSpawn.z + 2);
     }
+    clampMediumCombatPosition(targetPosition);
 
     slideXPosition.copy(playerPosition);
     slideXPosition.x = targetPosition.x;
@@ -17442,12 +20224,36 @@ window.onload = () => {
     }
 
     const clampedCrouchBlend = THREE.MathUtils.clamp(crouchBlend, 0, 1);
-    actor.pvpHeadHitbox.position.set(0, 2.06 - (0.28 * clampedCrouchBlend), 0);
-    actor.pvpBodyHitbox.position.set(0, 1.22 - (0.18 * clampedCrouchBlend), 0);
-    actor.pvpLegsHitbox.position.set(0, 0.56 - (0.05 * clampedCrouchBlend), 0);
-    actor.pvpHeadHitbox.scale.set(1, 1 - (0.04 * clampedCrouchBlend), 1);
-    actor.pvpBodyHitbox.scale.set(1, 1 - (0.16 * clampedCrouchBlend), 1);
-    actor.pvpLegsHitbox.scale.set(1, 1 - (0.08 * clampedCrouchBlend), 1);
+
+    // ADJUSTED DROPS: Target ~50% of standing height (Top ~1.18 units)
+    actor.pvpHeadHitbox.position.set(0, 2.06 - (1.12 * clampedCrouchBlend), 0);
+    actor.pvpBodyHitbox.position.set(0, 1.22 - (0.60 * clampedCrouchBlend), 0);
+    actor.pvpLegsHitbox.position.set(0, 0.56 - (0.25 * clampedCrouchBlend), 0);
+
+    actor.pvpHeadHitbox.scale.set(1, 1 - (0.20 * clampedCrouchBlend), 1);
+    actor.pvpBodyHitbox.scale.set(1, 1 - (0.45 * clampedCrouchBlend), 1);
+    actor.pvpLegsHitbox.scale.set(1, 1 - (0.40 * clampedCrouchBlend), 1);
+
+    // Logging for state changes with 50% metric
+    if (actor === playerActor) {
+      const isCrouchingNow = clampedCrouchBlend > 0.5;
+      if (actor._lastLogCrouchState !== isCrouchingNow) {
+        actor._lastLogCrouchState = isCrouchingNow;
+        const standingTopY = 2.36;
+        const currentHeadCenter = 2.06 - (1.12 * clampedCrouchBlend);
+        const currentHeadHalfHeight = 0.3 * (1 - 0.20 * clampedCrouchBlend);
+        const crouchedTopY = currentHeadCenter + currentHeadHalfHeight;
+        const crouchHeightPercent = (crouchedTopY / standingTopY) * 100;
+
+        console.log("[CROUCH HITBOX] updated", {
+          crouching: isCrouchingNow,
+          crouchBlend: clampedCrouchBlend.toFixed(2),
+          standingTopY: standingTopY.toFixed(2),
+          crouchedTopY: crouchedTopY.toFixed(2),
+          crouchHeightPercent: crouchHeightPercent.toFixed(1) + "%"
+        });
+      }
+    }
   }
 
   function clearActorPvpHitboxes(actor) {
@@ -17771,6 +20577,19 @@ window.onload = () => {
           spawnJiggleTrainingEnemy();
         }
       }, 50); // Small delay to show death animation
+      return;
+    }
+    if (targetEnemy.isMediumCombatTarget) {
+      console.log("[Medium Range Jiggle Training] enemy killed, respawning");
+      setTimeout(() => {
+        removeEnemy(targetEnemy);
+        if (mediumCombatEnemy === targetEnemy) {
+          mediumCombatEnemy = null;
+        }
+        if (isMediumCombatActive) {
+          spawnMediumCombatJiggleEnemy();
+        }
+      }, 50);
       return;
     }
     if (shouldSpawnOnlinePickup) {
@@ -18746,6 +21565,11 @@ window.onload = () => {
         continue;
       }
 
+      if (enemyActor.isMediumCombatTarget) {
+        updateMediumCombatEnemy(enemyActor, delta);
+        continue;
+      }
+
       if (!isLanSessionActive() && (menuOpen || playerDead)) {
         continue;
       }
@@ -18846,6 +21670,7 @@ window.onload = () => {
     verticalVelocity -= moveConfig.gravity * delta;
     resolvePlayerVerticalMovement(delta);
     resolvePlayerPenetration();
+    applyMediumCombatPlayerBounds();
 
     player.position.copy(playerPosition);
 
@@ -19146,61 +21971,69 @@ window.onload = () => {
       if (shotImpact?.type === "gridshot" && shotImpact.object) {
         gridShotHits++;
         updateGridShotHudText();
+        recordAimTrainingShot(true);
 
-        const lastPos = shotImpact.object.position.clone();
-        const ballIndex = gridShotBalls.indexOf(shotImpact.object);
-        if (ballIndex > -1) {
-          gridShotBalls.splice(ballIndex, 1);
-          scene.remove(shotImpact.object);
-          shotImpact.object.children.forEach(child => {
-            if (child.material) child.material.dispose();
-          });
-          if (shotImpact.object.geometry) shotImpact.object.geometry.dispose();
-          if (shotImpact.object.material) shotImpact.object.material.dispose();
+        if (!isNetworkAimTrainingMirror) {
+          const lastPos = shotImpact.object.position.clone();
+          removeGridShotBall(shotImpact.object);
+
+          spawnGridShotBall(lastPos);
+          broadcastAimTrainingTargetState({ force: true, log: true });
         }
-
-        spawnGridShotBall(lastPos);
       } else {
         gridShotMisses++;
         updateGridShotHudText();
+        recordAimTrainingShot(false);
       }
     }
 
     if (isTrackingBallActive && trackingBallTimer > 0) {
       if (shotImpact?.type === "trackingball" && shotImpact.object) {
         trackingBallScore += 10;
-        trackingBallHp -= TRACKING_BALL_DAMAGE;
+        recordAimTrainingShot(true);
 
-        if (trackingBallHp <= 0) {
-          trackingBallScore += 50; // Bonus for kill
+        if (!isNetworkAimTrainingMirror) {
+          trackingBallHp -= TRACKING_BALL_DAMAGE;
 
-          scene.remove(trackingBallObject);
-          trackingBallObject.children.forEach(child => {
-            if (child.material) child.material.dispose();
-            if (child instanceof THREE.Group) {
-              child.children.forEach(gc => {
-                if (gc.material) gc.material.dispose();
-                if (gc.geometry) gc.geometry.dispose();
-              });
-            }
-          });
-          if (trackingBallObject.geometry) trackingBallObject.geometry.dispose();
-          if (trackingBallObject.material) trackingBallObject.material.dispose();
-          trackingBallObject = null;
+          if (trackingBallHp <= 0) {
+            trackingBallScore += 50; // Bonus for kill
 
-          spawnTrackingBall();
-        } else {
-          // Update HP Bar
-          if (trackingBallHpBarFill) {
-            const scale = Math.max(0, trackingBallHp / trackingBallMaxHp);
-            trackingBallHpBarFill.scale.x = scale;
-            trackingBallHpBarFill.position.x = -0.6 * (1 - scale);
+            removeTrackingBallObject();
+
+            spawnTrackingBall();
+          } else {
+            updateTrackingBallHpBar();
           }
+          broadcastAimTrainingTargetState({ force: true, log: true });
         }
         updateTrackingBallHudText();
       } else {
         trackingBallMisses++;
         updateTrackingBallHudText();
+        recordAimTrainingShot(false);
+      }
+    }
+
+    if (isJiggleTrainingActive && jiggleTrainingTimer > 0) {
+      if (shotImpact?.type === "enemy" && shotImpact.enemyActor?.isJiggleTrainingTarget) {
+        // Hit is recorded here, but hit count is handled in handleEnemyDeath
+        recordAimTrainingShot(true);
+      } else {
+        jiggleTrainingMisses++;
+        updateJiggleTrainingHudText();
+        recordAimTrainingShot(false);
+      }
+    }
+
+    if (isMediumCombatActive && mediumCombatTimer > 0) {
+      if (shotImpact?.type === "enemy" && shotImpact.enemyActor?.isMediumCombatTarget) {
+        mediumCombatHits++;
+        updateMediumCombatHudText();
+        recordAimTrainingShot(true);
+      } else {
+        mediumCombatMisses++;
+        updateMediumCombatHudText();
+        recordAimTrainingShot(false);
       }
     }
 
@@ -19337,6 +22170,10 @@ window.onload = () => {
       setHomeSettingsViewOpen(true);
     });
 
+    homeMusicToggleButton?.addEventListener("click", () => {
+      setMenuMusicEnabled(!isMenuMusicEnabled());
+    });
+
     homeFullscreenButton.addEventListener("click", async () => {
       await toggleFullscreenMode();
     });
@@ -19373,6 +22210,13 @@ window.onload = () => {
         e.preventDefault();
         e.stopPropagation();
         console.log("[AIM TRAINING] Home clicked");
+        if (
+          handleHomeFromOnlineClient("aim training home clicked") ||
+          leaveMirroredHostAimTrainingLocally("aim training home clicked")
+        ) {
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          return;
+        }
         cleanupAimTrainingMode();
         aimTrainingView.setAttribute("hidden", "true");
         aimTrainingView.setAttribute("aria-hidden", "true");
@@ -19389,6 +22233,7 @@ window.onload = () => {
         if (card.id === "start-grid-shot-button") return;
         if (card.id === "start-tracking-ball-button") return;
         if (card.id === "start-jiggle-training-button") return;
+        if (card.id === "start-medium-combat-mode-button") return;
         card.addEventListener("click", () => {
           alert("Aim Practice mode coming soon! This is a UI placeholder.");
         });
@@ -19431,9 +22276,20 @@ window.onload = () => {
       });
     }
 
+    if (startMediumCombatModeButton) {
+      startMediumCombatModeButton.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("[AIM TRAINING] Start Medium Range Jiggle Training clicked");
+        aimTrainingManualInfiniteAmmoOverride = false;
+        await startMediumCombatMode();
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
+    }
+
     if (gunInfiniteAmmoInput) {
       gunInfiniteAmmoInput.addEventListener("change", () => {
-        if (isGridShotActive || isTrackingBallActive) {
+        if (isGridShotActive || isTrackingBallActive || isMediumCombatActive) {
           aimTrainingManualInfiniteAmmoOverride = true;
           console.log("[AIM TRAINING] Manual Infinite Ammo override detected");
         }
@@ -19452,17 +22308,15 @@ window.onload = () => {
       aimTrainingRestartButton.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (isNetworkAimTrainingMirror && isLanClient) {
+          showStatusMessage("Host controls Aim Training restart.", 1400);
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          return;
+        }
         if (isGridShotActive) {
           console.log("[AIM TRAINING] Restart Grid Shot clicked");
-          gridShotBalls.forEach(ball => {
-            scene.remove(ball);
-            ball.children.forEach(child => {
-              if (child.material) child.material.dispose();
-            });
-            if (ball.geometry) ball.geometry.dispose();
-            if (ball.material) ball.material.dispose();
-          });
-          gridShotBalls.length = 0;
+          startNewAimTrainingSession("gridShot");
+          clearGridShotBalls();
           gridShotHits = 0;
           gridShotMisses = 0;
           gridShotTimer = 60;
@@ -19479,27 +22333,18 @@ window.onload = () => {
               window.clearInterval(gridShotIntervalId);
               gridShotIntervalId = 0;
               if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+              broadcastAimTrainingState({ force: true });
+              broadcastAimTrainingFinished("gridShot");
             }
           }, 1000);
 
           for (let i = 0; i < 3; i++) spawnGridShotBall();
+          broadcastAimTrainingState({ force: true });
+          broadcastAimTrainingTargetState({ force: true, log: true });
         } else if (isTrackingBallActive) {
           console.log("[AIM TRAINING] Restart Tracking Ball clicked");
-          if (trackingBallObject) {
-            scene.remove(trackingBallObject);
-            trackingBallObject.children.forEach(child => {
-              if (child.material) child.material.dispose();
-              if (child instanceof THREE.Group) {
-                child.children.forEach(gc => {
-                  if (gc.material) gc.material.dispose();
-                  if (gc.geometry) gc.geometry.dispose();
-                });
-              }
-            });
-            if (trackingBallObject.geometry) trackingBallObject.geometry.dispose();
-            if (trackingBallObject.material) trackingBallObject.material.dispose();
-            trackingBallObject = null;
-          }
+          startNewAimTrainingSession("trackingBall");
+          removeTrackingBallObject();
           trackingBallScore = 0;
           trackingBallMisses = 0;
           trackingBallTimer = 60;
@@ -19514,9 +22359,16 @@ window.onload = () => {
               window.clearInterval(trackingBallIntervalId);
               trackingBallIntervalId = 0;
               if (aimTrainingResultsContainer) aimTrainingResultsContainer.style.display = "flex";
+              broadcastAimTrainingState({ force: true });
+              broadcastAimTrainingFinished("trackingBall");
             }
           }, 1000);
           spawnTrackingBall();
+          broadcastAimTrainingState({ force: true });
+          broadcastAimTrainingTargetState({ force: true, log: true });
+        } else if (isMediumCombatActive) {
+          console.log("[AIM TRAINING] Restart Medium Range Jiggle Training clicked");
+          await restartMediumCombatMode();
         }
 
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
@@ -19527,9 +22379,17 @@ window.onload = () => {
       aimTrainingBackButton.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (
+          handleHomeFromOnlineClient("aim training back clicked") ||
+          leaveMirroredHostAimTrainingLocally("aim training back clicked")
+        ) {
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          return;
+        }
         if (isGridShotActive) exitGridShotMode();
         else if (isTrackingBallActive) exitTrackingBallMode();
         else if (isJiggleTrainingActive) exitJiggleTrainingMode();
+        else if (isMediumCombatActive) exitMediumCombatMode();
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       });
     }
@@ -19840,10 +22700,7 @@ window.onload = () => {
           return;
         }
 
-        document.documentElement.style.setProperty(
-          variableName,
-          `${input.value}${input.dataset.crosshairUnit || ""}`
-        );
+        applyCrosshairInputValue(input, input.value);
         saveBasicCrosshairSetting(variableName, input.value);
       };
 
@@ -19851,6 +22708,12 @@ window.onload = () => {
       input.addEventListener("change", applyCrosshairVisualValue);
       applyCrosshairVisualValue();
     }
+    console.log("[CROSSHAIR RESTORE] defaults validated");
+    console.log("[CROSSHAIR RESTORE] applied", Object.fromEntries(
+      crosshairVisualInputs
+        .filter((input) => input.dataset.crosshairVar)
+        .map((input) => [input.dataset.crosshairVar, input.value])
+    ));
 
     document.addEventListener("focusin", (event) => {
       if (!isEditableFormControl(event.target)) {
@@ -19884,6 +22747,13 @@ window.onload = () => {
     });
 
     settingsHomeButton?.addEventListener("click", () => {
+      if (
+        handleHomeFromOnlineClient("settings home clicked") ||
+        leaveMirroredHostAimTrainingLocally("settings home clicked")
+      ) {
+        return;
+      }
+      cleanupAimTrainingMode();
       exitCameraCustomizationPreviewMode();
       closeMenus();
       showMainMenu();
@@ -19983,6 +22853,155 @@ window.onload = () => {
 
     graphicsEffectQualitySelect.addEventListener("change", () => {
       applyGraphicsSettingChange("effectQuality", graphicsEffectQualitySelect.value);
+    });
+
+    advancedColorStyleSelect.addEventListener("change", () => {
+      applyAdvancedGraphicsColorStyleChange(advancedColorStyleSelect.value);
+    });
+
+    advancedExposureInput.addEventListener("input", () => {
+      if (advancedExposureInput.value === "") return;
+      applyAdvancedGraphicsSettingChange("exposure", advancedExposureInput.value);
+    });
+    advancedExposureInput.addEventListener("change", () => {
+      if (advancedExposureInput.value === "") {
+        syncSettingsInputs();
+        return;
+      }
+      applyAdvancedGraphicsSettingChange("exposure", advancedExposureInput.value);
+    });
+
+    advancedContrastInput.addEventListener("input", () => {
+      if (advancedContrastInput.value === "") return;
+      applyAdvancedGraphicsSettingChange("contrast", advancedContrastInput.value);
+    });
+    advancedContrastInput.addEventListener("change", () => {
+      if (advancedContrastInput.value === "") {
+        syncSettingsInputs();
+        return;
+      }
+      applyAdvancedGraphicsSettingChange("contrast", advancedContrastInput.value);
+    });
+
+    advancedSaturationInput.addEventListener("input", () => {
+      if (advancedSaturationInput.value === "") return;
+      applyAdvancedGraphicsSettingChange("saturation", advancedSaturationInput.value);
+    });
+    advancedSaturationInput.addEventListener("change", () => {
+      if (advancedSaturationInput.value === "") {
+        syncSettingsInputs();
+        return;
+      }
+      applyAdvancedGraphicsSettingChange("saturation", advancedSaturationInput.value);
+    });
+
+    advancedFogToggle.addEventListener("change", () => {
+      applyAdvancedGraphicsSettingChange("fogEnabled", advancedFogToggle.checked);
+    });
+
+    advancedFogStrengthInput.addEventListener("input", () => {
+      if (advancedFogStrengthInput.value === "") return;
+      applyAdvancedGraphicsSettingChange("fogStrength", advancedFogStrengthInput.value);
+    });
+    advancedFogStrengthInput.addEventListener("change", () => {
+      if (advancedFogStrengthInput.value === "") {
+        syncSettingsInputs();
+        return;
+      }
+      applyAdvancedGraphicsSettingChange("fogStrength", advancedFogStrengthInput.value);
+    });
+
+    advancedFogDistanceInput.addEventListener("input", () => {
+      if (advancedFogDistanceInput.value === "") return;
+      applyAdvancedGraphicsSettingChange("fogDistance", advancedFogDistanceInput.value);
+    });
+    advancedFogDistanceInput.addEventListener("change", () => {
+      if (advancedFogDistanceInput.value === "") {
+        syncSettingsInputs();
+        return;
+      }
+      applyAdvancedGraphicsSettingChange("fogDistance", advancedFogDistanceInput.value);
+    });
+
+    advancedBloomToggle.addEventListener("change", () => {
+      applyAdvancedGraphicsSettingChange("bloomEnabled", advancedBloomToggle.checked);
+    });
+
+    advancedBloomStrengthInput.addEventListener("input", () => {
+      if (advancedBloomStrengthInput.value === "") return;
+      applyAdvancedGraphicsSettingChange("bloomStrength", advancedBloomStrengthInput.value);
+    });
+    advancedBloomStrengthInput.addEventListener("change", () => {
+      if (advancedBloomStrengthInput.value === "") {
+        syncSettingsInputs();
+        return;
+      }
+      applyAdvancedGraphicsSettingChange("bloomStrength", advancedBloomStrengthInput.value);
+    });
+
+    advancedAoToggle.addEventListener("change", () => {
+      applyAdvancedGraphicsSettingChange("ambientOcclusionEnabled", advancedAoToggle.checked);
+    });
+
+    advancedAoStrengthInput.addEventListener("input", () => {
+      if (advancedAoStrengthInput.value === "") return;
+      applyAdvancedGraphicsSettingChange("aoStrength", advancedAoStrengthInput.value);
+    });
+    advancedAoStrengthInput.addEventListener("change", () => {
+      if (advancedAoStrengthInput.value === "") {
+        syncSettingsInputs();
+        return;
+      }
+      applyAdvancedGraphicsSettingChange("aoStrength", advancedAoStrengthInput.value);
+    });
+
+    advancedAntialiasingSelect.addEventListener("change", () => {
+      applyAdvancedGraphicsSettingChange("antiAliasing", advancedAntialiasingSelect.value);
+    });
+
+    advancedMaterialQualitySelect.addEventListener("change", () => {
+      applyAdvancedGraphicsSettingChange("materialQuality", advancedMaterialQualitySelect.value);
+    });
+
+    advancedDynamicLightsSelect.addEventListener("change", () => {
+      applyAdvancedGraphicsSettingChange("dynamicLights", advancedDynamicLightsSelect.value);
+    });
+
+    advancedMotionBlurSelect.addEventListener("change", () => {
+      const nextMotionBlur = advancedMotionBlurSelect.value;
+      const currentAdvancedGraphics = graphicsSettings.advancedGraphics || advancedGraphicsDefaults;
+      const nextMotionBlurStrength =
+        currentAdvancedGraphics.motionBlurStrength > 0
+          ? currentAdvancedGraphics.motionBlurStrength
+          : nextMotionBlur === "Low"
+            ? 20
+            : nextMotionBlur === "Medium"
+              ? 45
+              : currentAdvancedGraphics.motionBlurStrength;
+
+      console.log("[ADVANCED GRAPHICS] motionBlur changed", nextMotionBlur);
+      applyGraphicsSettings(
+        {
+          advancedGraphics: {
+            ...currentAdvancedGraphics,
+            motionBlur: nextMotionBlur,
+            motionBlurStrength: nextMotionBlurStrength
+          }
+        },
+        { reason: "advanced-change:motionBlur" }
+      );
+    });
+
+    advancedMotionBlurStrengthInput.addEventListener("input", () => {
+      if (advancedMotionBlurStrengthInput.value === "") return;
+      applyAdvancedGraphicsSettingChange("motionBlurStrength", advancedMotionBlurStrengthInput.value);
+    });
+    advancedMotionBlurStrengthInput.addEventListener("change", () => {
+      if (advancedMotionBlurStrengthInput.value === "") {
+        syncSettingsInputs();
+        return;
+      }
+      applyAdvancedGraphicsSettingChange("motionBlurStrength", advancedMotionBlurStrengthInput.value);
     });
 
     mobileCameraSensitivityInput.addEventListener("input", () => {
@@ -20820,6 +23839,7 @@ window.onload = () => {
 
     updateActorPvpHitboxes(playerActor, isCrouching ? 1 : 0);
     sendLocalPlayerState(frameTime);
+    updateAimTrainingStatsHud();
 
     updateEnemies(delta);
     broadcastSharedEnemyStates(frameTime);
@@ -20833,6 +23853,7 @@ window.onload = () => {
     updatePlayerNameplates();
     updateEnemyHpBars();
     updateShooting();
+    broadcastAimTrainingSyncIfNeeded(frameTime);
     if (isReloading) {
       updateAmmoUi();
     }
@@ -20853,10 +23874,7 @@ window.onload = () => {
   syncFullscreenButtons();
   bindDeviceModeChooserEvents();
   closeMenus();
-  ensureMapOption("proceduralCity", "Procedural City");
-  ensureMapOption("warehouseRailyard", "Warehouse Railyard");
   ensureMapOption(ironworksYardMapId, ironworksYardDisplayName);
-  ensureMapOption("sunsetCity", "Sunset City");
   setCrosshairCustomizationPanelOpen(false);
   updateStartupLoadingProgress();
   loadGunConfigs();

@@ -154,6 +154,7 @@
         <button id="home-camera-entry-button" type="button">Camera Customisation</button>
         <button id="home-gun-entry-button" type="button" aria-expanded="false">Gun Modification</button>
         <button id="home-settings-entry-button" type="button" aria-expanded="false">Settings</button>
+        <button id="home-music-toggle-button" class="home-music-toggle" type="button" aria-pressed="true">Music: ON</button>
         <button id="home-fullscreen-button" type="button">Fullscreen</button>
       </div>
       <div class="home-panel home-surface-panel">
@@ -184,7 +185,7 @@
                 <option value="defaultVillage">Default Village</option>
                 <option value="industrialDome">Industrial Dome</option>
                 <option value="blossomGarden">Blossom Garden</option>
-                <option value="sunsetCity">Sunset City</option>
+                <option value="ironworksYard">Iron Workshop Yard</option>
               </select>
             </label>
           </section>
@@ -283,6 +284,15 @@
                 </video>
               </div>
               <h3 class="aim-mode-title">JIGGLE TRAINING</h3>
+            </button>
+            <button id="start-medium-combat-mode-button" class="aim-mode-card" type="button" aria-label="Medium Range Jiggle Training">
+              <div class="aim-mode-preview">
+                <video class="aim-mode-preview-video" autoplay loop muted playsinline preload="auto"
+                  onerror="console.warn('[AIM TRAINING PREVIEW] Missing Medium Range Jiggle Training preview video: assets/aim-previews/medium-range-jiggle-training-preview.mp4')">
+                  <source src="assets/aim-previews/medium-range-jiggle-training-preview.mp4" type="video/mp4">
+                </video>
+              </div>
+              <h3 class="aim-mode-title">Medium Range Jiggle Training</h3>
             </button>
           </div>
         </div>
@@ -537,6 +547,122 @@
                     </label>
                     <div class="menu-help-text">
                       Applies live in both Home Settings and the in-game Settings menu without reloading.
+                    </div>
+                  </div>
+                  <div class="settings-card graphics-settings-card" aria-labelledby="advanced-visuals-subtitle">
+                    <h4 id="advanced-visuals-subtitle">Advanced Visuals</h4>
+                    <label class="menu-field" for="advanced-color-style-select">
+                      <span>Color Style</span>
+                      <select id="advanced-color-style-select">
+                        <option value="Default" selected>Default</option>
+                        <option value="Cinematic">Cinematic</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Cold">Cold</option>
+                        <option value="High Contrast">High Contrast</option>
+                      </select>
+                    </label>
+                    <label class="menu-field" for="advanced-exposure-input">
+                      <span class="menu-field-split">
+                        <span>Exposure</span>
+                        <strong id="advanced-exposure-value" class="menu-field-value">1.00</strong>
+                      </span>
+                      <input type="range" id="advanced-exposure-input" min="0.6" max="1.6" step="0.01" value="1">
+                    </label>
+                    <label class="menu-field" for="advanced-contrast-input">
+                      <span class="menu-field-split">
+                        <span>Contrast</span>
+                        <strong id="advanced-contrast-value" class="menu-field-value">1.00</strong>
+                      </span>
+                      <input type="range" id="advanced-contrast-input" min="0.75" max="1.35" step="0.01" value="1">
+                    </label>
+                    <label class="menu-field" for="advanced-saturation-input">
+                      <span class="menu-field-split">
+                        <span>Saturation</span>
+                        <strong id="advanced-saturation-value" class="menu-field-value">1.00</strong>
+                      </span>
+                      <input type="range" id="advanced-saturation-input" min="0.6" max="1.5" step="0.01" value="1">
+                    </label>
+                    <label class="menu-check" for="advanced-fog-toggle">
+                      <input type="checkbox" id="advanced-fog-toggle">
+                      <span>Atmosphere Fog</span>
+                    </label>
+                    <label class="menu-field" for="advanced-fog-strength-input">
+                      <span class="menu-field-split">
+                        <span>Fog Strength</span>
+                        <strong id="advanced-fog-strength-value" class="menu-field-value">0.25</strong>
+                      </span>
+                      <input type="range" id="advanced-fog-strength-input" min="0" max="1" step="0.01" value="0.25">
+                    </label>
+                    <label class="menu-field" for="advanced-fog-distance-input">
+                      <span class="menu-field-split">
+                        <span>Fog Distance</span>
+                        <strong id="advanced-fog-distance-value" class="menu-field-value">120</strong>
+                      </span>
+                      <input type="range" id="advanced-fog-distance-input" min="30" max="250" step="1" value="120">
+                    </label>
+                    <label class="menu-check" for="advanced-bloom-toggle">
+                      <input type="checkbox" id="advanced-bloom-toggle">
+                      <span>Bloom</span>
+                    </label>
+                    <label class="menu-field" for="advanced-bloom-strength-input">
+                      <span class="menu-field-split">
+                        <span>Bloom Strength</span>
+                        <strong id="advanced-bloom-strength-value" class="menu-field-value">0.35</strong>
+                      </span>
+                      <input type="range" id="advanced-bloom-strength-input" min="0" max="1.5" step="0.01" value="0.35">
+                    </label>
+                    <label class="menu-check" for="advanced-ao-toggle">
+                      <input type="checkbox" id="advanced-ao-toggle">
+                      <span>Ambient Occlusion</span>
+                    </label>
+                    <label class="menu-field" for="advanced-ao-strength-input">
+                      <span class="menu-field-split">
+                        <span>AO Strength</span>
+                        <strong id="advanced-ao-strength-value" class="menu-field-value">0.45</strong>
+                      </span>
+                      <input type="range" id="advanced-ao-strength-input" min="0" max="1" step="0.01" value="0.45">
+                    </label>
+                    <label class="menu-field" for="advanced-antialiasing-select">
+                      <span>Anti-Aliasing</span>
+                      <select id="advanced-antialiasing-select">
+                        <option value="Off" selected>Off</option>
+                        <option value="FXAA">FXAA</option>
+                        <option value="High">High</option>
+                      </select>
+                    </label>
+                    <label class="menu-field" for="advanced-material-quality-select">
+                      <span>Material Quality</span>
+                      <select id="advanced-material-quality-select">
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                      </select>
+                    </label>
+                    <label class="menu-field" for="advanced-dynamic-lights-select">
+                      <span>Dynamic Lights</span>
+                      <select id="advanced-dynamic-lights-select">
+                        <option value="Off" selected>Off</option>
+                        <option value="Low">Low</option>
+                        <option value="High">High</option>
+                      </select>
+                    </label>
+                    <label class="menu-field" for="advanced-motion-blur-select" hidden>
+                      <span>Motion Blur</span>
+                      <select id="advanced-motion-blur-select" disabled>
+                        <option value="Off" selected>Off</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                      </select>
+                    </label>
+                    <label class="menu-field" for="advanced-motion-blur-strength-input" hidden>
+                      <span class="menu-field-split">
+                        <span>Motion Blur Strength</span>
+                        <strong id="advanced-motion-blur-strength-value" class="menu-field-value">0</strong>
+                      </span>
+                      <input type="range" id="advanced-motion-blur-strength-input" min="0" max="100" step="1" value="0" disabled>
+                    </label>
+                    <div class="menu-help-text">
+                      Lightweight visual polish applies live when supported. Heavier post effects save safely if unavailable.
                     </div>
                   </div>
                 </section>
@@ -969,7 +1095,7 @@
       </div>
       <label class="crosshair-control" for="crosshair-size-input">
         <span>Size</span>
-        <input id="crosshair-size-input" type="range" min="6" max="42" step="1" value="12"
+        <input id="crosshair-size-input" type="range" min="6" max="42" step="1" value="18"
           data-crosshair-var="--crosshair-size" data-crosshair-unit="px">
       </label>
       <label class="crosshair-control" for="crosshair-thickness-input">
@@ -1031,6 +1157,32 @@
 
   </div>
   <canvas id="game"></canvas>
+
+  <!-- Aim Training Stats HUD -->
+  <div id="aim-training-stats-hud">
+    <div class="stats-item">TIME <span id="training-stat-time">00:00</span></div>
+    <div class="stats-divider">|</div>
+    <div class="stats-item">HIT <span id="training-stat-hit">0</span></div>
+    <div class="stats-divider">|</div>
+    <div class="stats-item">MISS <span id="training-stat-miss">0</span></div>
+    <div class="stats-divider">|</div>
+    <div class="stats-item">ACC <span id="training-stat-acc">0%</span></div>
+  </div>
+
+  <!-- Aim Training End Panel -->
+  <div id="aim-training-end-panel" style="display: none;">
+    <div class="end-panel-title">Training Complete</div>
+    <div class="end-panel-stats">
+      <div class="end-stat">HIT: <span id="end-stat-hit-val">0</span></div>
+      <div class="end-stat">MISS: <span id="end-stat-miss-val">0</span></div>
+      <div class="end-stat">ACC: <span id="end-stat-acc-val">0%</span></div>
+    </div>
+    <div class="end-panel-actions">
+      <button id="end-panel-restart-button" class="end-button restart">Restart</button>
+      <button id="end-panel-home-button" class="end-button home">Home</button>
+    </div>
+  </div>
+
   <script type="module" src="./src/main.js?diag=build-test-002"></script>
 </body>
 
