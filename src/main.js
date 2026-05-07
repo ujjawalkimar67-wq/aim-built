@@ -3,6 +3,8 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/
 import { FBXLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/FBXLoader.js/+esm";
 import { clone as cloneSkinnedObject } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js/+esm";
 
+console.warn("[BUILD PROOF] MOTUS DIAG BUILD 001 LOADED", new Date().toISOString());
+
 const DIAG_BUILD_LABEL = "Aim Forge Build Test 002";
 const DIAG_BUILD_TAG = "build-test-002";
 
@@ -31,6 +33,21 @@ window.onload = () => {
   const homeSettingsBackButton = document.getElementById("home-settings-back-button");
   const aimTrainingView = document.getElementById("aim-training-view");
   const trainAimButton = document.getElementById("train-aim-button");
+  const aimPracticeSection = document.getElementById("aim-practice-section");
+  const homeNavHomeButton = document.getElementById("home-nav-home-button");
+  const homeNavPlayButton = document.getElementById("home-nav-play-button");
+  const homeNavCharacterButton = document.getElementById("home-nav-character-button");
+  const homeNavMultiplayerButton = document.getElementById("home-nav-multiplayer-button");
+  const homeNavExitButton = document.getElementById("home-nav-exit-button");
+  const homeSelectedMapName = document.getElementById("home-selected-map-name");
+  const characterSelectionView = document.getElementById("character-selection-view");
+  const characterSelectionHomeButton = document.getElementById("character-selection-home-button");
+  const characterPreviousButton = document.getElementById("character-previous-button");
+  const characterNextButton = document.getElementById("character-next-button");
+  const characterSelectedName = document.getElementById("character-selected-name");
+  const characterPreviewImage = document.getElementById("character-preview-image");
+  const characterPreviewPlaceholderText = document.getElementById("character-preview-placeholder-text");
+  const characterApplyButton = document.getElementById("character-apply-button");
   const startGridShotButton = document.getElementById("start-grid-shot-button");
   const aimTrainingHomeButton = document.getElementById("aim-training-home-button");
   const aimTrainingHud = document.getElementById("aim-training-hud");
@@ -73,6 +90,7 @@ window.onload = () => {
   const settingsMobileLayoutPanel = document.getElementById("settings-panel-mobile-layout");
   const settingsGameplayPanel = document.getElementById("settings-panel-gameplay");
   const settingsAudioEffectsPanel = document.getElementById("settings-panel-audio-effects");
+  const settingsGunPositionPanel = document.getElementById("settings-panel-gun-position");
   const settingsDebugAdvancedPanel = document.getElementById("settings-panel-debug-advanced");
   const settingsMenuBackButton = document.getElementById("settings-menu-back-button");
   const settingsCategoryResetButton = document.getElementById("settings-category-reset-button");
@@ -400,6 +418,109 @@ window.onload = () => {
   const movementShootingSpeedValue = document.getElementById("movement-shooting-speed-value");
   const movementSprintSpeedSlider = document.getElementById("movement-sprint-speed");
   const movementSprintSpeedValue = document.getElementById("movement-sprint-speed-value");
+  const gunPositionActiveNote = document.getElementById("gun-position-active-note");
+  const gunPositionXInput = document.getElementById("gun-position-x-input");
+  const gunPositionXValue = document.getElementById("gun-position-x-value");
+  const gunPositionYInput = document.getElementById("gun-position-y-input");
+  const gunPositionYValue = document.getElementById("gun-position-y-value");
+  const gunPositionZInput = document.getElementById("gun-position-z-input");
+  const gunPositionZValue = document.getElementById("gun-position-z-value");
+  const gunRotationXInput = document.getElementById("gun-rotation-x-input");
+  const gunRotationXValue = document.getElementById("gun-rotation-x-value");
+  const gunRotationYInput = document.getElementById("gun-rotation-y-input");
+  const gunRotationYValue = document.getElementById("gun-rotation-y-value");
+  const gunRotationZInput = document.getElementById("gun-rotation-z-input");
+  const gunRotationZValue = document.getElementById("gun-rotation-z-value");
+  const gunScaleInput = document.getElementById("gun-scale-input");
+  const gunScaleValue = document.getElementById("gun-scale-value");
+  const gunPositionResetButton = document.getElementById("gun-position-reset-button");
+  const gunPositionSaveButton = document.getElementById("gun-position-save-button");
+  const sharedMotusManAnimationFolder = "assets/characters/motusman/Animation";
+  const motusManPreviewPath = "assets/characters/previews/motusman-preview.png";
+  const motusManModelPath = "assets/characters/motusman/MotusMan_v55.fbx";
+  const motusManResourcePath = "assets/characters/motusman/MotusMan_v55.fbm/";
+  const motusManRestoreCacheBust = "motusman-restore-001";
+  const character02MaterialFixCacheBust = "char02-original-textures-restore-002";
+  const venCharacterCacheBust = "ven-import-001";
+  const venTestCharacterCacheBust = "ven-motus-skeleton-fixed-bind-001";
+  const venTestTextureFileNames = Object.freeze([
+    "Ch31_1001_Diffuse.png",
+    "Ch31_1001_Normal.png",
+    "Ch31_1001_Specular.png",
+    "Ch31_1001_Glossiness.png",
+    "Ch31_1002_Diffuse.png"
+  ]);
+  const characterOptions = Object.freeze([
+    {
+      id: "defaultSoldier",
+      name: "Motus Man",
+      // Temporary default character: Motus Man using in-game screenshot preview.
+      previewPath: motusManPreviewPath,
+      modelPath: motusManModelPath,
+      cacheBustVersion: motusManRestoreCacheBust,
+      resourcePath: motusManResourcePath,
+      // All Mixamo-compatible characters reuse the shared Motus Man animation folder to avoid duplicating animation FBX files.
+      animationFolder: sharedMotusManAnimationFolder,
+      enabled: true
+    },
+    {
+      id: "character02",
+      name: "Metallic Hero",
+      previewPath: "assets/characters/previews/character-02.png",
+      modelPath: "assets/characters/character-02/Character02_MotusRig.fbx",
+      cacheBustVersion: character02MaterialFixCacheBust,
+      resourcePath: null,
+      animationFolder: sharedMotusManAnimationFolder,
+      usesMotusSkeleton: true,
+      enabled: true
+    },
+    {
+      id: "character-03",
+      name: "Ven",
+      previewPath: "assets/characters/previews/character-03.png",
+      modelPath: "assets/characters/character-03/Character03_MotusRig.fbx",
+      cacheBustVersion: venCharacterCacheBust,
+      resourcePath: null,
+      animationProfile: "motus",
+      animationFolder: sharedMotusManAnimationFolder,
+      usesMotusSkeleton: true,
+      enabled: false
+    },
+    {
+      id: "character-03-test",
+      name: "Ven TEST",
+      previewPath: "assets/characters/previews/character-03.png",
+      modelPath: "assets/characters/character-03/Ven_MotusSkeleton_FixedBind_Test.fbx",
+      cacheBustVersion: venTestCharacterCacheBust,
+      resourcePath: "assets/characters/character-03/Ven_MotusSkeleton_FixedBind_Test.fbm/",
+      animationProfile: "motusSkeleton",
+      animationFolder: sharedMotusManAnimationFolder,
+      usesMotusSkeleton: true,
+      enabled: true
+    }
+  ]);
+  const playableCharacters = Object.freeze(characterOptions.filter((character) => character.enabled));
+  let selectedPlayableCharacterId = playableCharacters[0].id;
+  let selectedPlayableCharacterIndex = 0;
+  let activePlayableCharacterId = playableCharacters[0].id;
+  const characterPreviewCache = new Map();
+  const missingCharacterPreviewPaths = new Set();
+  let characterPreviewRequestId = 0;
+  const getCharacterRegistryDiagnosticRow = (character, index = -1) => ({
+    index,
+    id: character.id,
+    label: character.name,
+    modelPath: character.modelPath,
+    previewPath: character.previewPath,
+    animationProfile: character.animationProfile || (character.usesMotusSkeleton ? "motusSkeleton" : (index === 0 ? "motusMan" : "custom")),
+    animationFolder: character.animationFolder || "",
+    resourceFolder: character.resourcePath || "",
+    fallbackModelPath: index === 0 ? "" : playableCharacters[0]?.modelPath || "",
+    enabled: character.enabled !== false
+  });
+  const characterRegistryDiagnosticRows = playableCharacters.map(getCharacterRegistryDiagnosticRow);
+  console.warn("[CHARACTER REGISTRY CHECK]", characterRegistryDiagnosticRows);
+  console.table?.(characterRegistryDiagnosticRows);
 
   if (
     !canvas ||
@@ -447,6 +568,7 @@ window.onload = () => {
     !settingsMobileLayoutPanel ||
     !settingsGameplayPanel ||
     !settingsAudioEffectsPanel ||
+    !settingsGunPositionPanel ||
     !settingsDebugAdvancedPanel ||
     !settingsMenuBackButton ||
     !settingsCategoryResetButton ||
@@ -459,8 +581,8 @@ window.onload = () => {
     !settingsAimingPanel ||
     !aimingZoomToggle ||
     !aimingScopeToggle ||
-    settingsTabButtons.length < 8 ||
-    settingsTabPanels.length < 8 ||
+    settingsTabButtons.length < 9 ||
+    settingsTabPanels.length < 9 ||
     !difficultySelect ||
     !spawnEnemyButton ||
     !enemyCountInput ||
@@ -542,6 +664,23 @@ window.onload = () => {
     !mobileCameraSensitivityValue ||
     !mobileLayoutSettingsSection ||
     !openMobileLayoutButton ||
+    !gunPositionActiveNote ||
+    !gunPositionXInput ||
+    !gunPositionXValue ||
+    !gunPositionYInput ||
+    !gunPositionYValue ||
+    !gunPositionZInput ||
+    !gunPositionZValue ||
+    !gunRotationXInput ||
+    !gunRotationXValue ||
+    !gunRotationYInput ||
+    !gunRotationYValue ||
+    !gunRotationZInput ||
+    !gunRotationZValue ||
+    !gunScaleInput ||
+    !gunScaleValue ||
+    !gunPositionResetButton ||
+    !gunPositionSaveButton ||
     !mobileHud ||
     !mobileLayoutEditBar ||
     !mobileLayoutCloseButton ||
@@ -784,6 +923,178 @@ window.onload = () => {
     }
 
     hideStartupLoadingOverlay();
+  }
+
+  function ensureCharacterApplyLoadingOverlay() {
+    if (characterApplyOverlay) {
+      return characterApplyOverlay;
+    }
+
+    characterApplyOverlay = document.createElement("div");
+    characterApplyOverlay.id = "character-apply-loading-overlay";
+    characterApplyOverlay.hidden = true;
+    characterApplyOverlay.setAttribute("aria-hidden", "true");
+    Object.assign(characterApplyOverlay.style, {
+      position: "fixed",
+      inset: "0",
+      zIndex: "6400",
+      display: "grid",
+      placeItems: "center",
+      padding: "24px",
+      background: "rgba(7, 16, 28, 0.78)",
+      color: "#eff6ff",
+      fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+      pointerEvents: "auto"
+    });
+
+    const panel = document.createElement("div");
+    Object.assign(panel.style, {
+      width: "min(420px, calc(100vw - 40px))",
+      border: "1px solid rgba(148, 163, 184, 0.35)",
+      borderRadius: "8px",
+      background: "rgba(15, 23, 42, 0.92)",
+      boxShadow: "0 18px 50px rgba(0, 0, 0, 0.42)",
+      padding: "20px",
+      textAlign: "left"
+    });
+
+    characterApplyOverlayTitle = document.createElement("div");
+    Object.assign(characterApplyOverlayTitle.style, {
+      fontSize: "18px",
+      fontWeight: "700",
+      marginBottom: "10px"
+    });
+
+    characterApplyOverlayStatus = document.createElement("div");
+    characterApplyOverlayStatus.setAttribute("aria-live", "polite");
+    Object.assign(characterApplyOverlayStatus.style, {
+      fontSize: "14px",
+      color: "#cbd5e1",
+      minHeight: "20px",
+      marginBottom: "14px"
+    });
+
+    const progressTrack = document.createElement("div");
+    Object.assign(progressTrack.style, {
+      height: "6px",
+      overflow: "hidden",
+      borderRadius: "999px",
+      background: "rgba(148, 163, 184, 0.24)"
+    });
+
+    characterApplyOverlayProgress = document.createElement("div");
+    Object.assign(characterApplyOverlayProgress.style, {
+      width: "0%",
+      height: "100%",
+      borderRadius: "inherit",
+      background: "#38bdf8",
+      transition: "width 180ms ease"
+    });
+
+    progressTrack.appendChild(characterApplyOverlayProgress);
+    panel.appendChild(characterApplyOverlayTitle);
+    panel.appendChild(characterApplyOverlayStatus);
+    panel.appendChild(progressTrack);
+    characterApplyOverlay.appendChild(panel);
+    document.body.appendChild(characterApplyOverlay);
+    return characterApplyOverlay;
+  }
+
+  function setCharacterApplyButtonLoading(isLoading) {
+    if (!characterApplyButton) {
+      return;
+    }
+
+    if (!CHARACTER_APPLY_LOADING_OVERLAY_ENABLED) {
+      characterApplyLoading = false;
+      characterApplyButton.disabled = false;
+      characterApplyButton.textContent = characterApplyButtonLabel || "Apply Character";
+      return;
+    }
+
+    if (isLoading) {
+      characterApplyButtonLabel ||= characterApplyButton.textContent || "Apply Character";
+      characterApplyButton.disabled = true;
+      characterApplyButton.textContent = "Loading...";
+      return;
+    }
+
+    characterApplyButton.disabled = false;
+    characterApplyButton.textContent = characterApplyButtonLabel || "Apply Character";
+  }
+
+  function disableCharacterApplyOverlayForTesting(reason = "") {
+    characterApplyLoading = false;
+    setCharacterApplyButtonLoading(false);
+    if (characterApplyOverlay) {
+      characterApplyOverlay.setAttribute("aria-hidden", "true");
+      characterApplyOverlay.hidden = true;
+    }
+    console.warn("[CHARACTER APPLY OVERLAY DISABLED_FOR_TESTING]", {
+      reason,
+      activePlayableCharacterId,
+      selectedPlayableCharacterId
+    });
+  }
+
+  function showCharacterLoadingOverlay(characterLabel = "selected character") {
+    if (!CHARACTER_APPLY_LOADING_OVERLAY_ENABLED) {
+      disableCharacterApplyOverlayForTesting(`Apply Character overlay suppressed for ${characterLabel}`);
+      return;
+    }
+
+    ensureCharacterApplyLoadingOverlay();
+    characterApplyLoading = true;
+    setCharacterApplyButtonLoading(true);
+    characterApplyOverlay.hidden = false;
+    characterApplyOverlay.setAttribute("aria-hidden", "false");
+    characterApplyOverlayTitle.textContent = `Loading ${characterLabel}...`;
+    characterApplyOverlayStatus.textContent = "Loading selected character...";
+    characterApplyOverlayProgress.style.width = "8%";
+  }
+
+  function updateCharacterLoadingOverlay(status, progress = null) {
+    if (!CHARACTER_APPLY_LOADING_OVERLAY_ENABLED) {
+      if (characterApplyOverlay && !characterApplyOverlay.hidden) {
+        disableCharacterApplyOverlayForTesting(status || "Apply Character progress suppressed");
+      }
+      return;
+    }
+
+    if (!characterApplyOverlay) {
+      return;
+    }
+
+    if (status) {
+      characterApplyOverlayStatus.textContent = status;
+    }
+    if (Number.isFinite(progress)) {
+      characterApplyOverlayProgress.style.width = `${THREE.MathUtils.clamp(Math.round(progress), 0, 100)}%`;
+    }
+  }
+
+  function hideCharacterLoadingOverlay() {
+    if (!CHARACTER_APPLY_LOADING_OVERLAY_ENABLED) {
+      disableCharacterApplyOverlayForTesting("Apply Character overlay hide requested while disabled");
+      return;
+    }
+
+    characterApplyLoading = false;
+    setCharacterApplyButtonLoading(false);
+    console.warn("[CHARACTER OVERLAY HIDE NOW]", {
+      activePlayableCharacterId,
+      selectedPlayableCharacterId
+    });
+    console.warn("[CHARACTER APPLY OVERLAY_HIDE]", {
+      activePlayableCharacterId,
+      selectedPlayableCharacterId
+    });
+    if (!characterApplyOverlay) {
+      return;
+    }
+
+    characterApplyOverlay.setAttribute("aria-hidden", "true");
+    characterApplyOverlay.hidden = true;
   }
 
   function applySelectedDeviceMode(mode) {
@@ -1494,6 +1805,7 @@ window.onload = () => {
       ["Mobile Layout", settingsMobileLayoutPanel],
       ["Gameplay", settingsGameplayPanel],
       ["UI", settingsAudioEffectsPanel],
+      ["Gun Position", settingsGunPositionPanel],
       ["Debug / Advanced", settingsDebugAdvancedPanel]
     ];
 
@@ -1572,6 +1884,10 @@ window.onload = () => {
 
     updateSettingsCategoryResetAvailability();
 
+    if (nextTabId === "gunPosition") {
+      logGunPositionMenuOpen();
+    }
+
     if (emitLog) {
       console.log("settings_tab_selected", {
         tab: nextTabId
@@ -1642,6 +1958,9 @@ window.onload = () => {
           syncInput: true
         });
         showStatusMessage("UI settings reset.", 1500);
+        return;
+      case "gunPosition":
+        resetVenTestGunTransformSettings();
         return;
       default:
         return;
@@ -3121,6 +3440,8 @@ window.onload = () => {
   const aimLookTarget = new THREE.Vector3();
   const impactNormal = new THREE.Vector3();
   const impactMarkForward = new THREE.Vector3(0, 0, 1);
+  const shotAimOrigin = new THREE.Vector3();
+  const shotAimDirection = new THREE.Vector3();
   const hpBarWorldPosition = new THREE.Vector3();
   const projectedHudPosition = new THREE.Vector3();
   const playerNameplateWorldPosition = new THREE.Vector3();
@@ -3197,7 +3518,26 @@ window.onload = () => {
   });
 
   function saveBasicUserSettings() {
+    let existingSettings = {};
+    try {
+      const savedSettings = localStorage.getItem(basicUserSettingsStorageKey);
+      existingSettings = savedSettings ? JSON.parse(savedSettings) : {};
+      if (!existingSettings || typeof existingSettings !== "object") {
+        existingSettings = {};
+      }
+    } catch (error) {
+      console.warn("[AIM BUILT BASIC SAVE] failed to merge existing settings", error);
+      existingSettings = {};
+    }
+
+    const existingHeldGunPosition =
+      existingSettings.heldGunPosition && typeof existingSettings.heldGunPosition === "object"
+        ? existingSettings.heldGunPosition
+        : {};
+    const heldGunPositionSettings = { ...existingHeldGunPosition };
+
     const settings = {
+      ...existingSettings,
       camera: {
         distance: thirdPersonCameraSettings.distance,
         offsetX: thirdPersonCameraSettings.offsetX,
@@ -3218,7 +3558,13 @@ window.onload = () => {
         sprintSpeedPercent: movementSettings.sprintSpeedPercent
       },
       audio: {
+        ...(existingSettings.audio || {}),
         menuMusicEnabled
+      },
+      heldGunPosition: heldGunPositionSettings,
+      appearance: {
+        ...(existingSettings.appearance || {}),
+        selectedCharacterId: activePlayableCharacterId
       }
     };
 
@@ -3232,6 +3578,7 @@ window.onload = () => {
     }
 
     localStorage.setItem(basicUserSettingsStorageKey, JSON.stringify(settings));
+    lastHeldGunSettingsSnapshot = settings;
     console.log("[AIM BUILT BASIC SAVE] saved settings", settings);
   }
 
@@ -3329,6 +3676,8 @@ window.onload = () => {
   function applyBasicUserSettings(settings) {
     if (!settings) return;
 
+    restoreVenTestGunTransformFromSettings(settings);
+
     if (settings.camera) {
       const applyOpts = { persist: false, syncInputs: true };
       if (settings.camera.distance !== undefined) applyCameraCustomizationSetting("distance", settings.camera.distance, applyOpts);
@@ -3404,6 +3753,57 @@ window.onload = () => {
     }
     updateHomeMusicToggleUi();
 
+    console.warn("[CHARACTER LOCALSTORAGE CHECK]", {
+      rawSettings: localStorage.getItem(basicUserSettingsStorageKey),
+      selectedCharacterIdFromStorage: settings.appearance?.selectedCharacterId,
+      selectedCharacterIndexFromStorage: settings.appearance?.selectedCharacterIndex
+    });
+
+    const savedAppearanceCharacterId = settings.appearance?.selectedCharacterId;
+    const savedAppearanceCharacterIsPlayable =
+      savedAppearanceCharacterId === undefined ||
+      playableCharacters.some((character) => character.id === savedAppearanceCharacterId);
+    let appearanceCharacterIdToApply = savedAppearanceCharacterId;
+    if (savedAppearanceCharacterId !== undefined && !savedAppearanceCharacterIsPlayable) {
+      appearanceCharacterIdToApply = playableCharacters[0].id;
+      settings.appearance = {
+        ...(settings.appearance || {}),
+        selectedCharacterId: appearanceCharacterIdToApply
+      };
+      try {
+        const rawSettings = localStorage.getItem(basicUserSettingsStorageKey);
+        const mergedSettings = rawSettings ? JSON.parse(rawSettings) : {};
+        mergedSettings.appearance = {
+          ...(mergedSettings.appearance || {}),
+          selectedCharacterId: appearanceCharacterIdToApply
+        };
+        localStorage.setItem(basicUserSettingsStorageKey, JSON.stringify(mergedSettings));
+        console.warn("[CHARACTER LOCALSTORAGE FIX] reset unavailable character selection", {
+          from: savedAppearanceCharacterId,
+          to: appearanceCharacterIdToApply
+        });
+      } catch (error) {
+        console.warn("[CHARACTER LOCALSTORAGE FIX] failed to repair selected character", error);
+      }
+    }
+
+    const previousActiveCharacterId = activePlayableCharacterId;
+    if (appearanceCharacterIdToApply !== undefined) {
+      setSelectedPlayableCharacter(appearanceCharacterIdToApply, {
+        persist: false
+      });
+      activePlayableCharacterId = playableCharacters[selectedPlayableCharacterIndex]?.id || playableCharacters[0].id;
+    } else {
+      syncCharacterSelectionUi();
+      activePlayableCharacterId = selectedPlayableCharacterId;
+    }
+    if (playerActor && activePlayableCharacterId !== previousActiveCharacterId) {
+      reloadLocalPlayerCharacterVisual("saved character settings")
+        .catch((error) => {
+          console.error("[CHARACTER] Failed to apply saved character to local player", error);
+        });
+    }
+
     console.log("[AIM BUILT BASIC SAVE] applied saved settings");
   }
   const firstPersonCameraSettingsStorageKey = "firstPersonCameraSettings";
@@ -3474,6 +3874,8 @@ window.onload = () => {
   const startupReadinessKeys = [
     "engineInitialized",
     "sceneCreated",
+    "characterPreviewsReady",
+    "characterAssetsCached",
     "mapReady",
     "playerModelReady",
     "playerStandingAnimReady",
@@ -3484,6 +3886,8 @@ window.onload = () => {
   const startupReadinessState = {
     engineInitialized: false,
     sceneCreated: false,
+    characterPreviewsReady: false,
+    characterAssetsCached: false,
     mapReady: false,
     playerModelReady: false,
     playerStandingAnimReady: false,
@@ -3494,10 +3898,12 @@ window.onload = () => {
   const startupProgressByKey = Object.freeze({
     engineInitialized: 5,
     sceneCreated: 15,
-    playerModelReady: 30,
-    playerStandingAnimReady: 45,
-    playerCrouchAnimReady: 60,
-    playerActionsReady: 75,
+    characterPreviewsReady: 22,
+    characterAssetsCached: 38,
+    playerModelReady: 45,
+    playerStandingAnimReady: 58,
+    playerCrouchAnimReady: 68,
+    playerActionsReady: 78,
     mapReady: 90,
     cameraReady: 100
   });
@@ -3921,7 +4327,8 @@ window.onload = () => {
     "graphics",
     "mobileLayout",
     "audioEffects",
-    "crosshair"
+    "crosshair",
+    "gunPosition"
   ]);
   const settingsTabOrder = Object.freeze([
     "controls",
@@ -3932,6 +4339,7 @@ window.onload = () => {
     "crosshair",
     "aiming",
     "movement",
+    "gunPosition",
     "debugAdvanced"
   ]);
   const startupDeviceMode = {
@@ -4456,6 +4864,7 @@ window.onload = () => {
   let startupOverlayHideTimeoutId = 0;
   let startupSequenceStartTime = performance.now();
   let animationLoopStarted = false;
+  let animationFrameId = 0;
   let forceNextCameraSnap = false;
   let startupProgressPercent = 0;
   setStartupPhase("Booting", "Starting startup pipeline.");
@@ -4518,6 +4927,20 @@ window.onload = () => {
     "clearcoatRoughnessMap",
     "bumpMap"
   ];
+  const DEBUG_CHARACTER_LOADING = false;
+  const DEBUG_HELD_GUN = false;
+  const DEBUG_VEN_FINGERS = false;
+  const BACKGROUND_CHARACTER_PRELOAD_ENABLED = false;
+  const BACKGROUND_CITY_PRELOAD_ENABLED = false;
+  const CHARACTER_PREVIEW_PRELOAD_ENABLED = false;
+  const CHARACTER_APPLY_LOADING_OVERLAY_ENABLED = false;
+  const AIM_BUILT_CHARACTER_CACHE = "aim-built-character-assets-v1";
+  const AIM_BUILT_CHARACTER_CACHE_PREFIX = "aim-built-character-assets-";
+  const CHARACTER_CACHE_DOWNLOAD_TIMEOUT_MS = 45000;
+  const CHARACTER_CACHE_SW_READY_TIMEOUT_MS = 5000;
+  const CHARACTER_APPLY_HARD_TIMEOUT_MS = 15000;
+  const requiredCharacterTextureTimeoutMs = 3000;
+  const characterTextureDiagnosticsEnabled = DEBUG_CHARACTER_LOADING;
   const cityAssetTemplateCache = new Map();
   const cityAssetLoadCache = new Map();
   let activeMapBuildId = 0;
@@ -4534,14 +4957,14 @@ window.onload = () => {
   const warehouseRailyardFatalLoadTimeoutMs = 120000;
   const proceduralCityModelUrl = new URL("../assets/models/procedural-city/procedural_city_5.glb", import.meta.url).href;
   const warehouseRailyardModelUrl = new URL(warehouseRailyardModelRelativePath, import.meta.url).href;
-  const motusManCharacterUrl = new URL("../assets/characters/motusman/MotusMan_v55.fbx", import.meta.url).href;
-  const motusManResourceUrl = new URL("../assets/characters/motusman/MotusMan_v55.fbm/", import.meta.url).href;
-  const motusManIdleAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Stand_Aim_Idle.fbx", import.meta.url).href;
-  const motusManCrouchIdleAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Crouch_Aim_Idle_IPC.fbx", import.meta.url).href;
-  const motusManWalkAimAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Walk_Aim_F_Loop_IPC.fbx", import.meta.url).href;
-  const motusManJogAimAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Jog_Aim_F_Loop_IPC.fbx", import.meta.url).href;
-  const motusManJumpStartAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Stand_Aim_Jump_Start_IPC.fbx", import.meta.url).href;
-  const motusManJumpAirAnimationUrl = new URL("../assets/characters/motusman/Animation/W1_Stand_Aim_Jump_Air_IPC.fbx", import.meta.url).href;
+  const sharedCharacterAnimationFiles = Object.freeze({
+    standAimIdle: "W1_Stand_Aim_Idle.fbx",
+    crouchAim: "W1_Crouch_Aim_Idle_IPC.fbx",
+    walkAim: "W1_Walk_Aim_F_Loop_IPC.fbx",
+    jogAim: "W1_Jog_Aim_F_Loop_IPC.fbx",
+    jumpStart: "W1_Stand_Aim_Jump_Start_IPC.fbx",
+    jumpAir: "W1_Stand_Aim_Jump_Air_IPC.fbx"
+  });
   const cityAssetPaths = Object.freeze({
     roadStraight: new URL("../assets/city/kenney_roads/Models/GLB format/road-straight.glb", import.meta.url).href,
     roadCurve: new URL("../assets/city/kenney_roads/Models/GLB format/road-curve.glb", import.meta.url).href,
@@ -4597,6 +5020,14 @@ window.onload = () => {
   });
   let motusManTemplate = null;
   let motusManLoadPromise = null;
+  let motusManTemplateCharacterId = "";
+  let motusManLoadPromiseCharacterId = "";
+  const characterAssetCache = new Map();
+  let startupCharacterCachePromise = null;
+  let startupCharacterCacheTimedOut = false;
+  let characterPreloadStarted = false;
+  let characterLoadPriorityMode = false;
+  let pendingCityAssetPreloadReason = "";
   let motusManIdleClip = null;
   let motusManIdleLoadPromise = null;
   let motusManCrouchIdleClip = null;
@@ -4618,26 +5049,3431 @@ window.onload = () => {
   let playerJumpAirAction = null;
   let playerJumpStartFinished = false;
   let playerVisualReadyPromise = Promise.resolve(null);
-  let playerCurrentAimIdleMode = "standing";
+  let playerCurrentAimIdleMode = "idle";
+  let playerCharacterAnimationDisabled = false;
+  let characterApplyRequestId = 0;
+  let characterApplyLoading = false;
+  let characterApplyOverlay = null;
+  let characterApplyOverlayTitle = null;
+  let characterApplyOverlayStatus = null;
+  let characterApplyOverlayProgress = null;
+  let characterApplyButtonLabel = "";
+  let characterApplySimpleModeLogged = false;
+  let character02AnimationTest = null;
+  let latestCharacter02AnimationStats = null;
+  let venTestOldAnimationStateStoppedBeforeLoad = false;
   const enemyMotusManBodyColor = 0x2f6bff;
   const remotePlayerMotusManAccentColor = 0x33c7ff;
+  let venAimPoseCorrectionEnabled = false;
+  let venAimPoseCorrectionLastFrameId = -1;
+  let venAimPoseOffsetDisabledForStabilityLogged = false;
+  let venFingerNeutralPoseEnabled = true;
+  let venFingerNeutralPoseAppliedLogged = false;
+  let venFingerNeutralPoseLastFrameId = -1;
+  let venFingerStabilityLastLogFrameId = -1;
+  const venFingerNeutralPoseVersion = "ven-test-finger-neutral-001";
+  const cosmeticHeldGunVersion = "cosmetic-held-uzi-001";
+  let cosmeticHeldGunMaterialCache = null;
+  const cosmeticHeldGunScratch = {
+    leftHandWorld: new THREE.Vector3(),
+    rightHandWorld: new THREE.Vector3(),
+    targetWorldPosition: new THREE.Vector3(),
+    forward: new THREE.Vector3(),
+    right: new THREE.Vector3(),
+    up: new THREE.Vector3(),
+    back: new THREE.Vector3(),
+    localPosition: new THREE.Vector3(),
+    parentQuaternion: new THREE.Quaternion(),
+    localQuaternion: new THREE.Quaternion(),
+    targetWorldQuaternion: new THREE.Quaternion(),
+    parentScale: new THREE.Vector3(),
+    rotationMatrix: new THREE.Matrix4(),
+    rotationEuler: new THREE.Euler(),
+    rotationOffsetEuler: new THREE.Euler(),
+    rotationOffsetQuaternion: new THREE.Quaternion()
+  };
+  const DEFAULT_COSMETIC_HELD_GUN_TRANSFORM = Object.freeze({
+    positionX: -0.02,
+    positionY: 0.2,
+    positionZ: 0.06,
+    rotationX: 0,
+    rotationY: 0,
+    rotationZ: 1,
+    scale: 0.7
+  });
+  const COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS = Object.freeze({
+    defaultSoldier: Object.freeze({ ...DEFAULT_COSMETIC_HELD_GUN_TRANSFORM, positionY: 0.1 }),
+    character02: Object.freeze({ ...DEFAULT_COSMETIC_HELD_GUN_TRANSFORM, positionY: 0.1 }),
+    "character-03-test": Object.freeze({ ...DEFAULT_COSMETIC_HELD_GUN_TRANSFORM })
+  });
+  const DEFAULT_VEN_TEST_GUN_TRANSFORM = DEFAULT_COSMETIC_HELD_GUN_TRANSFORM;
+  const venTestGunTransformControlConfigs = Object.freeze([
+    { key: "positionX", min: -2, max: 2, step: 0.01, decimals: 2, unit: "" },
+    { key: "positionY", min: -2, max: 2, step: 0.01, decimals: 2, unit: "" },
+    { key: "positionZ", min: -2, max: 2, step: 0.01, decimals: 2, unit: "" },
+    { key: "rotationX", min: -180, max: 180, step: 1, decimals: 0, unit: " deg" },
+    { key: "rotationY", min: -180, max: 180, step: 1, decimals: 0, unit: " deg" },
+    { key: "rotationZ", min: -180, max: 180, step: 1, decimals: 0, unit: " deg" },
+    { key: "scale", min: 0.1, max: 3, step: 0.01, decimals: 2, unit: "x" }
+  ]);
+  let venTestGunTransformSettings = { ...COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS.defaultSoldier };
+  let venTestGunTransformSource = "per-character-default";
+  let venTestGunTransformCharacterId = activePlayableCharacterId;
+  let venTestGunTransformSettingsRestored = false;
+  let lastHeldGunSettingsSnapshot = null;
 
-  function loadMotusManTemplate() {
-    if (motusManTemplate) {
-      return Promise.resolve(motusManTemplate);
+  function getSelectedPlayableCharacterConfig() {
+    return playableCharacters[getPlayableCharacterIndexById(selectedPlayableCharacterId)] || playableCharacters[0];
+  }
+
+  function getActivePlayableCharacterConfig() {
+    return playableCharacters[getPlayableCharacterIndexById(activePlayableCharacterId)] || playableCharacters[0];
+  }
+
+  function isCharacter02Config(characterConfig) {
+    return characterConfig?.id === "character02";
+  }
+
+  function isVenCharacterConfig(characterConfig) {
+    return characterConfig?.id === "character-03";
+  }
+
+  function isVenTestCharacterConfig(characterConfig) {
+    return characterConfig?.id === "character-03-test";
+  }
+
+  function isMotusManConfig(characterConfig) {
+    return characterConfig?.id === playableCharacters[0].id;
+  }
+
+  function isCosmeticHeldGunCharacterConfig(characterConfig) {
+    return Boolean(characterConfig?.id && COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS[characterConfig.id]);
+  }
+
+  function getPlayableCharacterConfigById(characterId) {
+    return playableCharacters[getPlayableCharacterIndexById(characterId)] || playableCharacters[0];
+  }
+
+  function getValidPlayableCharacterId(characterId) {
+    const normalizedCharacterId = String(characterId || "").trim();
+    return playableCharacters.some((character) => character.id === normalizedCharacterId)
+      ? normalizedCharacterId
+      : playableCharacters[0].id;
+  }
+
+  function getDefaultHeldGunTransformForCharacter(characterId = activePlayableCharacterId) {
+    const transform = characterId === "character-03-test"
+      ? COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS["character-03-test"]
+      : COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS.defaultSoldier;
+    return { ...transform };
+  }
+
+  function getDefaultCosmeticHeldGunTransform(characterId = activePlayableCharacterId) {
+    return getDefaultHeldGunTransformForCharacter(characterId);
+  }
+
+  function isVenFingerBoneKey(boneKey) {
+    return /(?:thumb|index|middle|ring|pinky|finger)/i.test(String(boneKey || ""));
+  }
+
+  function isVenFingerOrHandBoneName(boneName) {
+    return /(?:thumb|index|middle|ring|pinky|finger|hand)/i.test(String(boneName || ""));
+  }
+
+  function isFiniteQuaternion(quaternion) {
+    return Boolean(quaternion) &&
+      Number.isFinite(quaternion.x) &&
+      Number.isFinite(quaternion.y) &&
+      Number.isFinite(quaternion.z) &&
+      Number.isFinite(quaternion.w);
+  }
+
+  function getQuaternionLength(quaternion) {
+    if (!quaternion) {
+      return 0;
+    }
+    return Math.sqrt(
+      quaternion.x * quaternion.x +
+      quaternion.y * quaternion.y +
+      quaternion.z * quaternion.z +
+      quaternion.w * quaternion.w
+    );
+  }
+
+  function getRoundedEulerSnapshot(euler) {
+    return {
+      x: Number((euler?.x ?? 0).toFixed(4)),
+      y: Number((euler?.y ?? 0).toFixed(4)),
+      z: Number((euler?.z ?? 0).toFixed(4))
+    };
+  }
+
+  function getVenTestGunTransformControlConfig(key) {
+    return venTestGunTransformControlConfigs.find((config) => config.key === key) || null;
+  }
+
+  function getVenTestGunTransformControlElements(key) {
+    switch (key) {
+      case "positionX":
+        return { input: gunPositionXInput, value: gunPositionXValue };
+      case "positionY":
+        return { input: gunPositionYInput, value: gunPositionYValue };
+      case "positionZ":
+        return { input: gunPositionZInput, value: gunPositionZValue };
+      case "rotationX":
+        return { input: gunRotationXInput, value: gunRotationXValue };
+      case "rotationY":
+        return { input: gunRotationYInput, value: gunRotationYValue };
+      case "rotationZ":
+        return { input: gunRotationZInput, value: gunRotationZValue };
+      case "scale":
+        return { input: gunScaleInput, value: gunScaleValue };
+      default:
+        return { input: null, value: null };
+    }
+  }
+
+  function clampVenTestGunTransformValue(config, value, fallback) {
+    const parsedValue = Number(value);
+    const safeFallback = Number.isFinite(Number(fallback)) ? Number(fallback) : DEFAULT_VEN_TEST_GUN_TRANSFORM[config.key];
+    const normalizedValue = Number.isFinite(parsedValue) ? parsedValue : safeFallback;
+    const multiplier = 10 ** config.decimals;
+    return THREE.MathUtils.clamp(
+      Math.round(normalizedValue * multiplier) / multiplier,
+      config.min,
+      config.max
+    );
+  }
+
+  function normalizeVenTestGunTransformSettings(nextSettings = {}, fallbackSettings = DEFAULT_VEN_TEST_GUN_TRANSFORM) {
+    const base = {
+      ...DEFAULT_VEN_TEST_GUN_TRANSFORM,
+      ...(fallbackSettings || {})
+    };
+    const normalizedSettings = {};
+    for (const config of venTestGunTransformControlConfigs) {
+      normalizedSettings[config.key] = clampVenTestGunTransformValue(
+        config,
+        nextSettings?.[config.key] ?? base[config.key],
+        base[config.key]
+      );
+    }
+    return normalizedSettings;
+  }
+
+  function getHeldGunCharacterLabel(characterId = activePlayableCharacterId) {
+    return getPlayableCharacterConfigById(characterId)?.name || "";
+  }
+
+  function getHeldGunTransformLogPayload(characterId, transform, source) {
+    const safeTransform = transform || getDefaultHeldGunTransformForCharacter(characterId);
+    return {
+      activeCharacterId: characterId,
+      activeCharacterLabel: getHeldGunCharacterLabel(characterId),
+      positionY: safeTransform.positionY,
+      source
+    };
+  }
+
+  function logHeldGunCharacterDefault(characterId, transform, source) {
+    if (!DEBUG_HELD_GUN) {
+      return;
+    }
+    console.warn("[HELD GUN CHARACTER DEFAULT]", getHeldGunTransformLogPayload(characterId, transform, source));
+  }
+
+  function logHeldGunTransformSource(characterId, transform, source) {
+    if (!DEBUG_HELD_GUN) {
+      return;
+    }
+    console.warn("[HELD GUN TRANSFORM SOURCE]", getHeldGunTransformLogPayload(characterId, transform, source));
+  }
+
+  function getHeldGunPositionByCharacter(settings = lastHeldGunSettingsSnapshot) {
+    return settings?.heldGunPositionByCharacter && typeof settings.heldGunPositionByCharacter === "object"
+      ? settings.heldGunPositionByCharacter
+      : {};
+  }
+
+  function getSavedHeldGunTransformForCharacter(characterId, settings = lastHeldGunSettingsSnapshot) {
+    const byCharacter = getHeldGunPositionByCharacter(settings);
+    const savedTransform = byCharacter?.[characterId];
+    return savedTransform && typeof savedTransform === "object" ? savedTransform : null;
+  }
+
+  function setHeldGunTransformForCharacter(
+    characterId = activePlayableCharacterId,
+    { settings = lastHeldGunSettingsSnapshot, source = "", log = true } = {}
+  ) {
+    const defaultTransform = getDefaultHeldGunTransformForCharacter(characterId);
+    const savedTransform = source === "reset" ? null : getSavedHeldGunTransformForCharacter(characterId, settings);
+    const nextSource = source || (savedTransform ? "per-character-saved" : "per-character-default");
+    const nextTransform = normalizeVenTestGunTransformSettings(
+      savedTransform || defaultTransform,
+      defaultTransform
+    );
+
+    venTestGunTransformSettings = nextTransform;
+    venTestGunTransformSource = nextSource;
+    venTestGunTransformCharacterId = characterId;
+    venTestGunTransformSettingsRestored = nextSource !== "per-character-default";
+
+    if (log) {
+      if (nextSource === "per-character-default" || nextSource === "reset") {
+        logHeldGunCharacterDefault(characterId, defaultTransform, nextSource);
+      }
+      logHeldGunTransformSource(characterId, nextTransform, nextSource);
     }
 
-    if (motusManLoadPromise) {
-      return motusManLoadPromise;
+    return { settings: nextTransform, source: nextSource };
+  }
+
+  function getVenTestGunTransformSettings(characterId = activePlayableCharacterId) {
+    if (venTestGunTransformCharacterId !== characterId) {
+      setHeldGunTransformForCharacter(characterId, { log: true });
+    }
+    venTestGunTransformSettings = normalizeVenTestGunTransformSettings(
+      venTestGunTransformSettings,
+      getDefaultCosmeticHeldGunTransform(characterId)
+    );
+    return { ...venTestGunTransformSettings };
+  }
+
+  function formatVenTestGunTransformValue(config, value) {
+    const formattedValue = Number(value).toFixed(config.decimals);
+    return `${formattedValue}${config.unit}`;
+  }
+
+  function getActiveCosmeticHeldGunState(actor = playerActor) {
+    const candidates = [
+      actor?.cosmeticHeldGunState ?? null,
+      actor?.motusManVisual?.userData?.cosmeticHeldGunState ?? null,
+      actor?.venHeldGunState ?? null,
+      actor?.motusManVisual?.userData?.venHeldGunState ?? null
+    ];
+    return candidates.find((state) => state?.gun?.parent) || null;
+  }
+
+  function getVenTestGunTransformLogPayload(source = venTestGunTransformSource, state = getActiveCosmeticHeldGunState()) {
+    const characterId = state?.characterId || activePlayableCharacterId;
+    const settings = getVenTestGunTransformSettings(characterId);
+    const characterConfig = getPlayableCharacterConfigById(characterId);
+    return {
+      activeCharacterId: characterId,
+      activeCharacterLabel: characterConfig?.name || "",
+      gunObjectName: state?.gun?.name || "",
+      parentBoneName: state?.rightHandBone?.name || state?.gun?.parent?.name || "",
+      positionY: settings.positionY,
+      position: {
+        x: settings.positionX,
+        y: settings.positionY,
+        z: settings.positionZ
+      },
+      rotationDegrees: {
+        x: settings.rotationX,
+        y: settings.rotationY,
+        z: settings.rotationZ
+      },
+      scale: settings.scale,
+      source
+    };
+  }
+
+  function syncGunPositionAvailabilityNote() {
+    if (!gunPositionActiveNote) {
+      return;
+    }
+    const hasActiveHeldGun = Boolean(getActiveCosmeticHeldGunState());
+    gunPositionActiveNote.hidden = hasActiveHeldGun;
+    gunPositionActiveNote.textContent = "Start or preview the active character to tune held gun position.";
+  }
+
+  function syncGunPositionSlidersFromSettings() {
+    const settings = getVenTestGunTransformSettings();
+    for (const config of venTestGunTransformControlConfigs) {
+      const controls = getVenTestGunTransformControlElements(config.key);
+      if (controls.input) {
+        controls.input.value = String(settings[config.key]);
+      }
+      if (controls.value) {
+        controls.value.textContent = formatVenTestGunTransformValue(config, settings[config.key]);
+      }
+    }
+    syncGunPositionAvailabilityNote();
+  }
+
+  function syncGunPositionSliderValue(key) {
+    const config = getVenTestGunTransformControlConfig(key);
+    if (!config) {
+      return;
+    }
+    const controls = getVenTestGunTransformControlElements(key);
+    const value = getVenTestGunTransformSettings()[key];
+    if (controls.input) {
+      controls.input.value = String(value);
+    }
+    if (controls.value) {
+      controls.value.textContent = formatVenTestGunTransformValue(config, value);
+    }
+    syncGunPositionAvailabilityNote();
+  }
+
+  function applyVenTestGunTransform({ source = venTestGunTransformSource, syncInputs = false, emitLog = true } = {}) {
+    if (syncInputs) {
+      syncGunPositionSlidersFromSettings();
+    } else {
+      syncGunPositionAvailabilityNote();
     }
 
-    console.log("MotusMan load start");
+    const state = getActiveCosmeticHeldGunState();
+    const applied = Boolean(state && updateCosmeticHeldGunTransform(state, animationFrameId));
+    if (emitLog && DEBUG_HELD_GUN) {
+      console.warn("[GUN POSITION APPLY]", {
+        ...getVenTestGunTransformLogPayload(source, state),
+        applied
+      });
+      if (applied) {
+        console.warn("[HELD GUN TRANSFORM APPLIED]", getVenTestGunTransformLogPayload(source, state));
+      }
+    }
+    return applied;
+  }
+
+  function saveVenTestGunTransformSettings(source = "save") {
+    venTestGunTransformSettingsRestored = true;
+    const characterId = activePlayableCharacterId;
+    const nextSettings = getVenTestGunTransformSettings(characterId);
+    let existingSettings = {};
+    try {
+      const savedSettings = localStorage.getItem(basicUserSettingsStorageKey);
+      existingSettings = savedSettings ? JSON.parse(savedSettings) : {};
+      if (!existingSettings || typeof existingSettings !== "object") {
+        existingSettings = {};
+      }
+    } catch (error) {
+      console.warn("[GUN POSITION SAVE] failed to merge existing settings", error);
+      existingSettings = {};
+    }
+
+    const existingByCharacter =
+      existingSettings.heldGunPositionByCharacter &&
+      typeof existingSettings.heldGunPositionByCharacter === "object"
+        ? existingSettings.heldGunPositionByCharacter
+        : {};
+    const mergedSettings = {
+      ...existingSettings,
+      heldGunPositionByCharacter: {
+        ...existingByCharacter,
+        [characterId]: nextSettings
+      }
+    };
+
+    try {
+      localStorage.setItem(basicUserSettingsStorageKey, JSON.stringify(mergedSettings));
+      lastHeldGunSettingsSnapshot = mergedSettings;
+      console.warn("[GUN POSITION SAVE]", getVenTestGunTransformLogPayload(source));
+    } catch (error) {
+      console.warn("[GUN POSITION SAVE] failed", error);
+    }
+  }
+
+  function updateGunPositionFromSlider(key, value, { persist = true } = {}) {
+    const config = getVenTestGunTransformControlConfig(key);
+    if (!config) {
+      return;
+    }
+
+    venTestGunTransformSettingsRestored = true;
+    venTestGunTransformCharacterId = activePlayableCharacterId;
+    venTestGunTransformSettings = normalizeVenTestGunTransformSettings(
+      {
+        ...venTestGunTransformSettings,
+        [key]: value
+      },
+      venTestGunTransformSettings
+    );
+    venTestGunTransformSource = "slider";
+    syncGunPositionSliderValue(key);
+
+    console.warn("[GUN POSITION SLIDER CHANGE]", {
+      ...getVenTestGunTransformLogPayload("slider"),
+      changedKey: key
+    });
+    applyVenTestGunTransform({ source: "slider", syncInputs: false, emitLog: true });
+    if (persist) {
+      saveVenTestGunTransformSettings("slider");
+    }
+  }
+
+  function resetVenTestGunTransformSettings() {
+    setHeldGunTransformForCharacter(activePlayableCharacterId, { source: "reset", log: true });
+    syncGunPositionSlidersFromSettings();
+    console.warn("[GUN POSITION RESET]", getVenTestGunTransformLogPayload("reset"));
+    applyVenTestGunTransform({ source: "reset", syncInputs: false, emitLog: true });
+    saveVenTestGunTransformSettings("reset");
+    showStatusMessage("Gun position reset.", 1400);
+  }
+
+  function restoreVenTestGunTransformFromSettings(settings, characterId = activePlayableCharacterId) {
+    lastHeldGunSettingsSnapshot = settings && typeof settings === "object" ? settings : null;
+    setHeldGunTransformForCharacter(characterId, {
+      settings: lastHeldGunSettingsSnapshot,
+      log: true
+    });
+    syncGunPositionSlidersFromSettings();
+    applyVenTestGunTransform({
+      source: venTestGunTransformSource,
+      syncInputs: false,
+      emitLog: false
+    });
+  }
+
+  function logGunPositionMenuOpen(source = homeSettingsViewOpen ? "home-settings" : "in-game") {
+    syncGunPositionSlidersFromSettings();
+    console.warn("[GUN POSITION MENU OPEN]", getVenTestGunTransformLogPayload(source));
+  }
+
+  function getCosmeticHeldGunMaterials() {
+    if (cosmeticHeldGunMaterialCache) {
+      return cosmeticHeldGunMaterialCache;
+    }
+
+    cosmeticHeldGunMaterialCache = {
+      receiver: new THREE.MeshStandardMaterial({
+        color: 0x17191d,
+        roughness: 0.48,
+        metalness: 0.42
+      }),
+      detail: new THREE.MeshStandardMaterial({
+        color: 0x2d3238,
+        roughness: 0.52,
+        metalness: 0.36
+      }),
+      grip: new THREE.MeshStandardMaterial({
+        color: 0x0c0d0f,
+        roughness: 0.68,
+        metalness: 0.18
+      })
+    };
+    return cosmeticHeldGunMaterialCache;
+  }
+
+  function addCosmeticHeldGunBoxPart(group, name, size, position, rotation, material) {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(size.x, size.y, size.z),
+      material
+    );
+    mesh.name = name;
+    mesh.position.copy(position);
+    mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData.ignoreShotRay = true;
+    mesh.userData.registerBulletCollision = false;
+    mesh.userData.isCosmeticHeldGun = true;
+    group.add(mesh);
+    return mesh;
+  }
+
+  function addCosmeticHeldGunCylinderPart(group, name, radius, length, position, rotation, material) {
+    const mesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius, radius, length, 12),
+      material
+    );
+    mesh.name = name;
+    mesh.position.copy(position);
+    mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData.ignoreShotRay = true;
+    mesh.userData.registerBulletCollision = false;
+    mesh.userData.isCosmeticHeldGun = true;
+    group.add(mesh);
+    return mesh;
+  }
+
+  function createCosmeticHeldGunModel(characterConfig = getActivePlayableCharacterConfig()) {
+    const materials = getCosmeticHeldGunMaterials();
+    const gun = new THREE.Group();
+    gun.name = "cosmeticCompactUziHeldGun";
+    gun.userData.ignoreShotRay = true;
+    gun.userData.registerBulletCollision = false;
+    gun.userData.isCosmeticHeldGun = true;
+    gun.userData.cosmeticHeldGunVersion = cosmeticHeldGunVersion;
+
+    addCosmeticHeldGunBoxPart(
+      gun,
+      "ven-uzi-receiver",
+      new THREE.Vector3(0.14, 0.12, 0.34),
+      new THREE.Vector3(0, 0, -0.02),
+      new THREE.Vector3(0, 0, 0),
+      materials.receiver
+    );
+    addCosmeticHeldGunBoxPart(
+      gun,
+      "ven-uzi-top-cover",
+      new THREE.Vector3(0.125, 0.035, 0.26),
+      new THREE.Vector3(0, 0.078, -0.04),
+      new THREE.Vector3(0, 0, 0),
+      materials.detail
+    );
+    addCosmeticHeldGunCylinderPart(
+      gun,
+      "ven-uzi-short-barrel",
+      0.022,
+      0.17,
+      new THREE.Vector3(0, 0.012, -0.275),
+      new THREE.Vector3(Math.PI * 0.5, 0, 0),
+      materials.detail
+    );
+    addCosmeticHeldGunCylinderPart(
+      gun,
+      "ven-uzi-muzzle",
+      0.029,
+      0.045,
+      new THREE.Vector3(0, 0.012, -0.375),
+      new THREE.Vector3(Math.PI * 0.5, 0, 0),
+      materials.receiver
+    );
+    addCosmeticHeldGunBoxPart(
+      gun,
+      "ven-uzi-pistol-grip",
+      new THREE.Vector3(0.075, 0.19, 0.072),
+      new THREE.Vector3(0.045, -0.142, 0.065),
+      new THREE.Vector3(-0.14, 0, 0.08),
+      materials.grip
+    );
+    addCosmeticHeldGunBoxPart(
+      gun,
+      "ven-uzi-front-magazine",
+      new THREE.Vector3(0.07, 0.235, 0.065),
+      new THREE.Vector3(-0.035, -0.165, -0.065),
+      new THREE.Vector3(0.08, 0, -0.04),
+      materials.grip
+    );
+    addCosmeticHeldGunBoxPart(
+      gun,
+      "ven-uzi-trigger-guard",
+      new THREE.Vector3(0.085, 0.038, 0.055),
+      new THREE.Vector3(0.043, -0.06, -0.002),
+      new THREE.Vector3(0, 0, 0),
+      materials.detail
+    );
+    addCosmeticHeldGunBoxPart(
+      gun,
+      "ven-uzi-rear-sight",
+      new THREE.Vector3(0.06, 0.025, 0.025),
+      new THREE.Vector3(0, 0.112, 0.095),
+      new THREE.Vector3(0, 0, 0),
+      materials.detail
+    );
+    addCosmeticHeldGunBoxPart(
+      gun,
+      "ven-uzi-front-sight",
+      new THREE.Vector3(0.045, 0.027, 0.02),
+      new THREE.Vector3(0, 0.11, -0.205),
+      new THREE.Vector3(0, 0, 0),
+      materials.detail
+    );
+
+    if (DEBUG_HELD_GUN) {
+      console.warn("[HELD GUN CREATE]", {
+        activeCharacterId: characterConfig?.id || activePlayableCharacterId,
+        activeCharacterLabel: characterConfig?.name || "",
+        parentBoneName: "",
+        position: getRoundedVectorSnapshot(gun.position),
+        rotation: getRoundedEulerSnapshot(gun.rotation),
+        scale: getRoundedVectorSnapshot(gun.scale),
+        alreadyExisted: false
+      });
+    }
+
+    return gun;
+  }
+
+  function findCharacterBoneByKey(root, boneKey) {
+    let result = null;
+    root?.traverse((node) => {
+      if (result || !node.isBone || !node.name) {
+        return;
+      }
+      if (getCharacterBoneMatchKey(node.name) === boneKey) {
+        result = node;
+      }
+    });
+    return result;
+  }
+
+  function updateCosmeticHeldGunTransform(state, frameId = 0) {
+    const actorRoot = state?.actor?.root || playerActor?.root || null;
+    if (!state?.gun || !state.rightHandBone || !state.leftHandBone || !actorRoot) {
+      return false;
+    }
+
+    const characterId = state.characterId || activePlayableCharacterId;
+    const gunTransformSettings = state.transformSettings
+      ? normalizeVenTestGunTransformSettings(
+        state.transformSettings,
+        getDefaultCosmeticHeldGunTransform(characterId)
+      )
+      : getVenTestGunTransformSettings(characterId);
+    const scratch = cosmeticHeldGunScratch;
+    const parentBone = state.rightHandBone;
+    parentBone.updateMatrixWorld(true);
+    state.leftHandBone.updateMatrixWorld(true);
+    parentBone.getWorldPosition(scratch.rightHandWorld);
+    state.leftHandBone.getWorldPosition(scratch.leftHandWorld);
+
+    actorRoot.getWorldDirection(scratch.forward);
+    scratch.forward.y = 0;
+    if (scratch.forward.lengthSq() < 0.0001) {
+      scratch.forward.set(0, 0, -1);
+    } else {
+      scratch.forward.normalize();
+    }
+
+    scratch.right.crossVectors(scratch.forward, worldUp);
+    if (scratch.right.lengthSq() < 0.0001) {
+      scratch.right.set(1, 0, 0);
+    } else {
+      scratch.right.normalize();
+    }
+    scratch.up.crossVectors(scratch.right, scratch.forward).normalize();
+    scratch.back.copy(scratch.forward).multiplyScalar(-1);
+
+    scratch.targetWorldPosition
+      .copy(scratch.leftHandWorld)
+      .add(scratch.rightHandWorld)
+      .multiplyScalar(0.5)
+      .addScaledVector(scratch.forward, gunTransformSettings.positionZ)
+      .addScaledVector(scratch.up, gunTransformSettings.positionY)
+      .addScaledVector(scratch.right, gunTransformSettings.positionX);
+
+    scratch.rotationMatrix.makeBasis(scratch.right, scratch.up, scratch.back);
+    scratch.targetWorldQuaternion.setFromRotationMatrix(scratch.rotationMatrix);
+    scratch.rotationOffsetEuler.set(
+      THREE.MathUtils.degToRad(gunTransformSettings.rotationX),
+      THREE.MathUtils.degToRad(gunTransformSettings.rotationY),
+      THREE.MathUtils.degToRad(gunTransformSettings.rotationZ),
+      "XYZ"
+    );
+    scratch.rotationOffsetQuaternion.setFromEuler(scratch.rotationOffsetEuler);
+    scratch.targetWorldQuaternion.multiply(scratch.rotationOffsetQuaternion);
+
+    parentBone.worldToLocal(scratch.localPosition.copy(scratch.targetWorldPosition));
+    parentBone.getWorldQuaternion(scratch.parentQuaternion);
+    scratch.localQuaternion
+      .copy(scratch.parentQuaternion)
+      .invert()
+      .multiply(scratch.targetWorldQuaternion);
+
+    parentBone.getWorldScale(scratch.parentScale);
+    state.gun.position.copy(scratch.localPosition);
+    state.gun.quaternion.copy(scratch.localQuaternion);
+    state.gun.scale.set(
+      gunTransformSettings.scale / Math.max(0.0001, Math.abs(scratch.parentScale.x)),
+      gunTransformSettings.scale / Math.max(0.0001, Math.abs(scratch.parentScale.y)),
+      gunTransformSettings.scale / Math.max(0.0001, Math.abs(scratch.parentScale.z))
+    );
+    state.gun.updateMatrixWorld(true);
+
+    if (DEBUG_HELD_GUN && (!state.transformLogged || frameId - state.lastTransformLogFrameId >= 180)) {
+      scratch.rotationEuler.setFromQuaternion(state.gun.quaternion);
+      console.warn("[HELD GUN TRANSFORM APPLIED]", {
+        activeCharacterId: characterId,
+        activeCharacterLabel: state.characterLabel || getPlayableCharacterConfigById(characterId)?.name || "",
+        positionY: gunTransformSettings.positionY,
+        source: state.transformSource || venTestGunTransformSource,
+        parentBoneName: parentBone.name || "",
+        position: getRoundedVectorSnapshot(state.gun.position),
+        rotation: getRoundedEulerSnapshot(scratch.rotationEuler),
+        scale: getRoundedVectorSnapshot(state.gun.scale),
+        alreadyExisted: true
+      });
+      state.transformLogged = true;
+      state.lastTransformLogFrameId = frameId;
+    }
+
+    return true;
+  }
+
+  function ensureCosmeticHeldGunForActor(actor, characterConfig) {
+    if (!isCosmeticHeldGunCharacterConfig(characterConfig) || !actor?.motusManVisual) {
+      return null;
+    }
+
+    const root = actor.motusManVisual;
+    const existingState =
+      root.userData.cosmeticHeldGunState ||
+      actor.cosmeticHeldGunState ||
+      root.userData.venHeldGunState ||
+      actor.venHeldGunState ||
+      null;
+    if (
+      existingState?.version === cosmeticHeldGunVersion &&
+      existingState.gun?.parent
+    ) {
+      setHeldGunTransformForCharacter(characterConfig.id, {
+        settings: lastHeldGunSettingsSnapshot,
+        log: true
+      });
+      existingState.actor = actor;
+      existingState.characterId = characterConfig.id;
+      existingState.characterLabel = characterConfig.name;
+      root.userData.cosmeticHeldGunState = existingState;
+      actor.cosmeticHeldGunState = existingState;
+      root.userData.venHeldGunState = null;
+      actor.venHeldGunState = null;
+      cleanupExtraCosmeticHeldGuns(root, existingState.gun, characterConfig, "duplicate held gun cleanup");
+      if (DEBUG_HELD_GUN) {
+        console.warn("[HELD GUN ATTACH]", {
+          activeCharacterId: characterConfig.id,
+          activeCharacterLabel: characterConfig.name,
+          parentBoneName: existingState.rightHandBone?.name || "",
+          position: getRoundedVectorSnapshot(existingState.gun.position),
+          rotation: getRoundedEulerSnapshot(existingState.gun.rotation),
+          scale: getRoundedVectorSnapshot(existingState.gun.scale),
+          alreadyExisted: true
+        });
+      }
+      updateCosmeticHeldGunTransform(existingState, animationFrameId);
+      syncGunPositionAvailabilityNote();
+      return existingState;
+    }
+
+    if (existingState?.gun) {
+      removeCosmeticHeldGun(actor, "stale held gun replaced");
+    } else {
+      removeCosmeticHeldGun(actor, "orphan held gun cleanup before attach");
+    }
+
+    const rightHandBone = findCharacterBoneByKey(root, "righthand");
+    const leftHandBone = findCharacterBoneByKey(root, "lefthand");
+    if (!rightHandBone || !leftHandBone) {
+      if (DEBUG_HELD_GUN) {
+        console.warn("[HELD GUN ATTACH]", {
+          activeCharacterId: characterConfig.id,
+          activeCharacterLabel: characterConfig.name,
+          parentBoneName: rightHandBone?.name || "",
+          position: getRoundedVectorSnapshot(new THREE.Vector3()),
+          rotation: getRoundedEulerSnapshot(new THREE.Euler()),
+          scale: getRoundedVectorSnapshot(new THREE.Vector3(1, 1, 1)),
+          alreadyExisted: false,
+          missingLeftHand: !leftHandBone,
+          missingRightHand: !rightHandBone
+        });
+      }
+      return null;
+    }
+
+    const gun = createCosmeticHeldGunModel(characterConfig);
+    rightHandBone.add(gun);
+    setHeldGunTransformForCharacter(characterConfig.id, {
+      settings: lastHeldGunSettingsSnapshot,
+      log: true
+    });
+    const state = {
+      version: cosmeticHeldGunVersion,
+      gun,
+      actor,
+      characterId: characterConfig.id,
+      characterLabel: characterConfig.name,
+      rightHandBone,
+      leftHandBone,
+      transformLogged: false,
+      lastTransformLogFrameId: -Infinity
+    };
+    root.userData.cosmeticHeldGunState = state;
+    root.userData.venHeldGunState = null;
+    actor.cosmeticHeldGunState = state;
+    actor.venHeldGunState = null;
+    updateCosmeticHeldGunTransform(state, animationFrameId);
+    syncGunPositionAvailabilityNote();
+
+    if (DEBUG_HELD_GUN) {
+      console.warn("[HELD GUN ATTACH]", {
+        activeCharacterId: characterConfig.id,
+        activeCharacterLabel: characterConfig.name,
+        parentBoneName: rightHandBone.name || "",
+        position: getRoundedVectorSnapshot(gun.position),
+        rotation: getRoundedEulerSnapshot(gun.rotation),
+        scale: getRoundedVectorSnapshot(gun.scale),
+        alreadyExisted: false
+      });
+    }
+
+    return state;
+  }
+
+  function attachRemoteCosmeticHeldGunForActor(actor, characterConfig) {
+    if (!isCosmeticHeldGunCharacterConfig(characterConfig) || !actor?.motusManVisual) {
+      return null;
+    }
+
+    removeCosmeticHeldGun(actor, "remote held gun cleanup before attach");
+
+    const root = actor.motusManVisual;
+    const rightHandBone = findCharacterBoneByKey(root, "righthand");
+    const leftHandBone = findCharacterBoneByKey(root, "lefthand");
+    if (!rightHandBone || !leftHandBone) {
+      console.warn("[REMOTE HELD GUN SKIPPED_NO_HAND]", {
+        playerId: actor?.playerId || "",
+        characterId: characterConfig.id,
+        characterLabel: characterConfig.name,
+        missingRightHand: !rightHandBone,
+        missingLeftHand: !leftHandBone
+      });
+      return null;
+    }
+
+    const state = ensureCosmeticHeldGunForActor(actor, characterConfig);
+    if (!state?.gun?.parent) {
+      console.warn("[REMOTE HELD GUN SKIPPED_NO_HAND]", {
+        playerId: actor?.playerId || "",
+        characterId: characterConfig.id,
+        characterLabel: characterConfig.name,
+        missingRightHand: false,
+        missingLeftHand: false
+      });
+      return null;
+    }
+
+    state.transformSource = "remote-same-held-gun-helper";
+    const settings = getVenTestGunTransformSettings(characterConfig.id);
+    console.warn("[REMOTE HELD GUN ATTACH]", {
+      playerId: actor?.playerId || "",
+      characterId: characterConfig.id,
+      characterLabel: characterConfig.name
+    });
+    console.warn("[REMOTE HELD GUN PARENT]", {
+      playerId: actor?.playerId || "",
+      characterId: characterConfig.id,
+      parentBoneName: state.gun.parent?.name || "",
+      expectedRightHandBoneName: rightHandBone.name || "",
+      isParentedToRightHand: state.gun.parent === rightHandBone
+    });
+    console.warn("[REMOTE HELD GUN TRANSFORM]", {
+      playerId: actor?.playerId || "",
+      characterId: characterConfig.id,
+      positionX: settings.positionX,
+      positionY: settings.positionY,
+      positionZ: settings.positionZ,
+      rotationX: settings.rotationX,
+      rotationY: settings.rotationY,
+      rotationZ: settings.rotationZ,
+      scale: settings.scale
+    });
+    return state;
+  }
+
+  function disposeCosmeticHeldGun(gun) {
+    if (!gun) {
+      return;
+    }
+
+    if (gun.parent) {
+      gun.parent.remove(gun);
+    }
+    gun.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+      object.geometry?.dispose?.();
+    });
+  }
+
+  function collectCosmeticHeldGunRoots(root, keepGun = null) {
+    const guns = [];
+    root?.traverse((object) => {
+      if (
+        object !== keepGun &&
+        (object?.userData?.cosmeticHeldGunVersion || object?.userData?.venHeldGunVersion)
+      ) {
+        guns.push(object);
+      }
+    });
+    return guns;
+  }
+
+  function cleanupExtraCosmeticHeldGuns(root, keepGun, characterConfig, reason) {
+    const extraGuns = collectCosmeticHeldGunRoots(root, keepGun);
+    if (!extraGuns.length) {
+      return;
+    }
+
+    const firstGun = extraGuns[0];
+    const parentBoneName = firstGun?.parent?.name || "";
+    const position = getRoundedVectorSnapshot(firstGun?.position);
+    const rotation = getRoundedEulerSnapshot(firstGun?.rotation);
+    const scale = getRoundedVectorSnapshot(firstGun?.scale);
+    for (const gun of extraGuns) {
+      disposeCosmeticHeldGun(gun);
+    }
+
+    if (DEBUG_HELD_GUN) {
+      console.warn("[HELD GUN CLEANUP]", {
+        activeCharacterId: characterConfig?.id || activePlayableCharacterId,
+        activeCharacterLabel: characterConfig?.name || getActivePlayableCharacterConfig()?.name || "",
+        parentBoneName,
+        position,
+        rotation,
+        scale,
+        alreadyExisted: true,
+        orphanCount: extraGuns.length,
+        reason
+      });
+    }
+  }
+
+  function removeCosmeticHeldGun(actor = playerActor, reason = "character visual cleanup") {
+    const root = actor?.motusManVisual || null;
+    const state =
+      actor?.cosmeticHeldGunState ||
+      root?.userData?.cosmeticHeldGunState ||
+      actor?.venHeldGunState ||
+      root?.userData?.venHeldGunState ||
+      null;
+    const gunsToRemove = new Set();
+    if (state?.gun) {
+      gunsToRemove.add(state.gun);
+    }
+    for (const gun of collectCosmeticHeldGunRoots(root)) {
+      gunsToRemove.add(gun);
+    }
+
+    if (!gunsToRemove.size) {
+      return;
+    }
+
+    const firstGun = state?.gun || Array.from(gunsToRemove)[0];
+    const characterId = state?.characterId || root?.userData?.playableCharacterId || activePlayableCharacterId;
+    const characterLabel = state?.characterLabel || root?.userData?.playableCharacterName || getPlayableCharacterConfigById(characterId)?.name || "";
+    const parentBoneName = state?.rightHandBone?.name || firstGun?.parent?.name || "";
+    const position = getRoundedVectorSnapshot(firstGun?.position);
+    const rotation = getRoundedEulerSnapshot(firstGun?.rotation);
+    const scale = getRoundedVectorSnapshot(firstGun?.scale);
+
+    for (const gun of gunsToRemove) {
+      disposeCosmeticHeldGun(gun);
+    }
+
+    if (root?.userData) {
+      root.userData.cosmeticHeldGunState = null;
+      root.userData.venHeldGunState = null;
+    }
+    if (actor) {
+      actor.cosmeticHeldGunState = null;
+      actor.venHeldGunState = null;
+    }
+    syncGunPositionAvailabilityNote();
+
+    if (DEBUG_HELD_GUN) {
+      console.warn("[HELD GUN CLEANUP]", {
+        activeCharacterId: characterId,
+        activeCharacterLabel: characterLabel,
+        parentBoneName,
+        position,
+        rotation,
+        scale,
+        alreadyExisted: true,
+        orphanCount: Math.max(0, gunsToRemove.size - (state?.gun ? 1 : 0)),
+        reason
+      });
+    }
+  }
+
+  function updateCosmeticHeldGun(frameId) {
+    const state = getActiveCosmeticHeldGunState();
+    if (!state?.gun?.parent) {
+      return;
+    }
+
+    updateCosmeticHeldGunTransform(state, frameId);
+  }
+
+  function logVenFingerBoneCheck(root, characterConfig) {
+    if (!DEBUG_VEN_FINGERS) {
+      return;
+    }
+
+    if (!isVenTestCharacterConfig(characterConfig) || root?.userData.venFingerBoneCheckLogged) {
+      return;
+    }
+
+    const matchingBoneNames = [];
+    root?.traverse((node) => {
+      if (!node.isBone || !node.name || !isVenFingerOrHandBoneName(node.name)) {
+        return;
+      }
+      matchingBoneNames.push(node.name);
+    });
+
+    console.warn("[VEN FINGER BONE CHECK]", {
+      selectedCharacterId: characterConfig.id,
+      selectedLabel: characterConfig.name,
+      boneCount: matchingBoneNames.length,
+      boneNames: matchingBoneNames
+    });
+    root.userData.venFingerBoneCheckLogged = true;
+  }
+
+  function cacheVenFingerNeutralPose(root, characterConfig) {
+    if (!isVenTestCharacterConfig(characterConfig) || !root) {
+      return null;
+    }
+
+    logVenFingerBoneCheck(root, characterConfig);
+    const existingState = root.userData.venFingerNeutralPoseState;
+    if (existingState?.version === venFingerNeutralPoseVersion) {
+      return existingState;
+    }
+
+    const entries = [];
+    root.traverse((node) => {
+      if (!node.isBone || !node.name) {
+        return;
+      }
+
+      const boneKey = getCharacterBoneMatchKey(node.name);
+      if (!isVenFingerBoneKey(boneKey)) {
+        return;
+      }
+
+      entries.push({
+        bone: node,
+        boneName: node.name,
+        boneUuid: node.uuid,
+        neutralQuaternion: node.quaternion.clone()
+      });
+    });
+
+    const state = {
+      version: venFingerNeutralPoseVersion,
+      entries,
+      disabled: false,
+      autoDisabledLogged: false
+    };
+    root.userData.venFingerNeutralPoseState = state;
+
+    if (DEBUG_VEN_FINGERS) {
+      console.warn("[VEN FINGER NEUTRAL POSE CACHED]", {
+        selectedCharacterId: characterConfig.id,
+        selectedLabel: characterConfig.name,
+        fingerBoneCount: entries.length,
+        fingerBoneNames: entries.map((entry) => entry.boneName)
+      });
+    }
+
+    return state;
+  }
+
+  function disableVenFingerFixForSafety(root, state, reason, extra = {}) {
+    venFingerNeutralPoseEnabled = false;
+    if (state) {
+      state.disabled = true;
+    }
+
+    if (root && state?.entries?.length) {
+      for (const entry of state.entries) {
+        entry.bone.quaternion.copy(entry.neutralQuaternion);
+        entry.bone.updateMatrixWorld(true);
+      }
+      root.updateMatrixWorld(true);
+    }
+
+    if (DEBUG_VEN_FINGERS && !state?.autoDisabledLogged) {
+      console.warn("[VEN FINGER FIX AUTO_DISABLED]", {
+        reason,
+        ...extra
+      });
+      if (state) {
+        state.autoDisabledLogged = true;
+      }
+    }
+  }
+
+  function applyVenFingerNeutralPoseOncePerFrame(frameId) {
+    if (activePlayableCharacterId !== "character-03-test") {
+      return;
+    }
+
+    if (!venFingerNeutralPoseEnabled || venFingerNeutralPoseLastFrameId === frameId) {
+      return;
+    }
+    venFingerNeutralPoseLastFrameId = frameId;
+
+    const characterConfig = getActivePlayableCharacterConfig();
+    const root = playerActor?.motusManVisual;
+    const state = root?.userData.venFingerNeutralPoseState;
+    if (!isVenTestCharacterConfig(characterConfig) || !root || !state?.entries?.length || state.disabled) {
+      return;
+    }
+
+    let invalidBeforeCount = 0;
+    let maxPreResetAngleRadians = 0;
+    let extremeBeforeCount = 0;
+
+    for (const entry of state.entries) {
+      const currentQuaternion = entry.bone.quaternion;
+      if (!isFiniteQuaternion(currentQuaternion)) {
+        invalidBeforeCount += 1;
+      } else {
+        const length = getQuaternionLength(currentQuaternion);
+        if (!Number.isFinite(length) || length < 0.5 || length > 1.5) {
+          invalidBeforeCount += 1;
+        }
+
+        const angleFromNeutral = currentQuaternion.angleTo(entry.neutralQuaternion);
+        if (Number.isFinite(angleFromNeutral)) {
+          maxPreResetAngleRadians = Math.max(maxPreResetAngleRadians, angleFromNeutral);
+          if (angleFromNeutral > 2.6) {
+            extremeBeforeCount += 1;
+          }
+        } else {
+          invalidBeforeCount += 1;
+        }
+      }
+
+      entry.bone.quaternion.copy(entry.neutralQuaternion);
+      entry.bone.updateMatrixWorld(true);
+    }
+    root.updateMatrixWorld(true);
+
+    if (DEBUG_VEN_FINGERS && !venFingerNeutralPoseAppliedLogged) {
+      console.warn("[VEN FINGER NEUTRAL POSE APPLIED]", {
+        selectedCharacterId: characterConfig.id,
+        selectedLabel: characterConfig.name,
+        frameId,
+        fingerBoneCount: state.entries.length
+      });
+      venFingerNeutralPoseAppliedLogged = true;
+    }
+
+    if (DEBUG_VEN_FINGERS && (venFingerStabilityLastLogFrameId < 0 || frameId - venFingerStabilityLastLogFrameId >= 300)) {
+      console.warn("[VEN FINGER STABILITY CHECK]", {
+        selectedCharacterId: characterConfig.id,
+        selectedLabel: characterConfig.name,
+        frameId,
+        fingerBoneCount: state.entries.length,
+        invalidBeforeCount,
+        extremeBeforeCount,
+        maxPreResetAngleRadians: Number(maxPreResetAngleRadians.toFixed(5)),
+        enabled: venFingerNeutralPoseEnabled
+      });
+      venFingerStabilityLastLogFrameId = frameId;
+    }
+
+    if (invalidBeforeCount > 0 || extremeBeforeCount > 0) {
+      disableVenFingerFixForSafety(root, state, "invalid or extreme finger quaternion before neutral reset", {
+        selectedCharacterId: characterConfig.id,
+        selectedLabel: characterConfig.name,
+        invalidBeforeCount,
+        extremeBeforeCount,
+        maxPreResetAngleRadians: Number(maxPreResetAngleRadians.toFixed(5))
+      });
+    }
+  }
+
+  function applyVenAimPoseCorrectionOncePerFrame(frameId) {
+    const characterConfig = getActivePlayableCharacterConfig();
+    if (!isVenTestCharacterConfig(characterConfig)) {
+      return;
+    }
+
+    if (venAimPoseCorrectionLastFrameId === frameId) {
+      console.warn("[VEN AIM POSE OFFSET SKIPPED_ALREADY_THIS_FRAME]", {
+        frameId,
+        selectedCharacterId: characterConfig.id
+      });
+      return;
+    }
+    venAimPoseCorrectionLastFrameId = frameId;
+
+    if (!venAimPoseCorrectionEnabled) {
+      if (!venAimPoseOffsetDisabledForStabilityLogged) {
+        console.warn("[VEN AIM POSE OFFSET DISABLED_FOR_STABILITY]", {
+          selectedCharacterId: characterConfig.id,
+          selectedLabel: characterConfig.name,
+          reason: "runtime arm widening offset disabled to prevent cumulative deformation"
+        });
+        venAimPoseOffsetDisabledForStabilityLogged = true;
+      }
+      return;
+    }
+
+    console.warn("[VEN AIM POSE OFFSET AUTO_DISABLED]", {
+      selectedCharacterId: characterConfig.id,
+      selectedLabel: characterConfig.name,
+      reason: "Ven aim pose correction kill switch is off by default"
+    });
+    venAimPoseCorrectionEnabled = false;
+  }
+
+  function logVenAimPoseStabilityCheck() {
+    const characterConfig = getActivePlayableCharacterConfig();
+    if (!isVenTestCharacterConfig(characterConfig) || !venAimPoseCorrectionEnabled) {
+      return;
+    }
+
+    console.warn("[VEN AIM POSE OFFSET STABILITY_CHECK]", {
+      selectedCharacterId: characterConfig.id,
+      selectedLabel: characterConfig.name,
+      enabled: venAimPoseCorrectionEnabled
+    });
+  }
+
+  function getCharacterAnimationProfile(characterConfig) {
+    if (!characterConfig) {
+      return "";
+    }
+    if (isMotusManConfig(characterConfig)) {
+      return "motusMan";
+    }
+    if (characterConfig.animationProfile) {
+      return characterConfig.animationProfile;
+    }
+    if (characterConfig.usesMotusSkeleton) {
+      return "motusSkeleton";
+    }
+    return "custom";
+  }
+
+  function getCharacterSelectionDiagnosticPayload(characterConfig, selectedIndex = selectedPlayableCharacterIndex) {
+    return {
+      selectedIndex,
+      selectedCharacterId: characterConfig?.id || "",
+      selectedLabel: characterConfig?.name || "",
+      modelPath: characterConfig?.modelPath || "",
+      previewPath: characterConfig?.previewPath || "",
+      animationProfile: getCharacterAnimationProfile(characterConfig),
+      animationFolder: characterConfig?.animationFolder || "",
+      resourceFolder: characterConfig?.resourcePath || ""
+    };
+  }
+
+  function usesMotusManDirectAnimationPath(characterConfig) {
+    return characterConfig?.id === playableCharacters[0].id || characterConfig?.usesMotusSkeleton === true;
+  }
+
+  function logCharacter02ActiveConfig(characterConfig) {
+    if (!isCharacter02Config(characterConfig)) {
+      return;
+    }
+
+    console.log("[CHARACTER] Loading Character 02 Motus rig:", characterConfig.modelPath);
+    console.log("[CHARACTER] Character 02 using Motus Man shared animations:", characterConfig.animationFolder);
+    console.log("[CHARACTER] Character 02 direct Motus skeleton animation path active.");
+    console.warn("[CHARACTER02 ACTIVE MODEL PATH]", characterConfig.modelPath);
+  }
+
+  function logVenCharacterLoadCheck(characterConfig) {
+    if (!isVenCharacterConfig(characterConfig)) {
+      return;
+    }
+
+    console.warn("[VEN REGISTRY CHECK]", {
+      selectedCharacterId: characterConfig.id,
+      selectedLabel: characterConfig.name,
+      modelPath: characterConfig.modelPath,
+      previewPath: characterConfig.previewPath,
+      animationProfile: getCharacterAnimationProfile(characterConfig),
+      animationFolder: characterConfig.animationFolder
+    });
+    console.warn("[VEN CHARACTER LOAD CHECK]", {
+      selectedCharacterId: characterConfig.id,
+      selectedLabel: characterConfig.name,
+      modelPath: characterConfig.modelPath,
+      previewPath: characterConfig.previewPath,
+      animationProfile: getCharacterAnimationProfile(characterConfig),
+      animationFolder: characterConfig.animationFolder
+    });
+  }
+
+  function logVenTestCharacterLoadStart(characterConfig, modelUrl) {
+    if (!isVenTestCharacterConfig(characterConfig)) {
+      return;
+    }
+
+    console.warn("[VEN TEST RESOURCE PATH]", {
+      resourcePath: characterConfig.resourcePath,
+      resolvedResourceUrl: getCharacterAssetUrl(characterConfig.resourcePath || "")
+    });
+    if (characterTextureDiagnosticsEnabled) {
+      checkVenTestTextureFiles(characterConfig);
+    }
+    console.warn("[VEN TEST LOAD START]", {
+      selectedCharacterId: characterConfig.id,
+      selectedLabel: characterConfig.name,
+      modelPath: characterConfig.modelPath,
+      resolvedUrl: modelUrl,
+      resourcePath: characterConfig.resourcePath,
+      previewPath: characterConfig.previewPath,
+      animationProfile: getCharacterAnimationProfile(characterConfig),
+      animationFolder: characterConfig.animationFolder
+    });
+  }
+
+  function checkVenTestTextureFiles(characterConfig) {
+    if (!isVenTestCharacterConfig(characterConfig)) {
+      return;
+    }
+
+    for (const textureFileName of venTestTextureFileNames) {
+      const textureUrl = getCharacterAssetUrl(`${characterConfig.resourcePath || ""}${textureFileName}`);
+      console.warn("[VEN TEST TEXTURE FILE CHECK]", {
+        textureFileName,
+        textureUrl
+      });
+      fetch(textureUrl, {
+        method: "HEAD",
+        cache: "no-store"
+      })
+        .then((response) => {
+          const payload = {
+            textureFileName,
+            textureUrl,
+            status: response.status,
+            ok: response.ok,
+            contentType: response.headers.get("content-type"),
+            contentLength: response.headers.get("content-length")
+          };
+          if (response.ok) {
+            console.warn("[VEN TEST TEXTURE LOAD SUCCESS]", payload);
+          } else {
+            console.error("[VEN TEST TEXTURE LOAD FAIL]", payload);
+          }
+        })
+        .catch((error) => {
+          console.error("[VEN TEST TEXTURE LOAD FAIL]", {
+            textureFileName,
+            textureUrl,
+            error
+          });
+        });
+    }
+  }
+
+  function getMaterialTextureSource(texture) {
+    const textureImage = texture?.image || null;
+    return textureImage?.currentSrc || textureImage?.src || textureImage?.name || texture?.name || "";
+  }
+
+  function logVenTestMaterialCheck(root) {
+    if (!root) {
+      return;
+    }
+
+    root.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach((material, materialIndex) => {
+        console.warn("[VEN TEST MATERIAL CHECK]", {
+          meshName: object.name || "(unnamed mesh)",
+          materialIndex,
+          materialName: material?.name || "(no material)",
+          mapExists: Boolean(material?.map),
+          mapImageSource: getMaterialTextureSource(material?.map),
+          normalMapExists: Boolean(material?.normalMap),
+          normalMapImageSource: getMaterialTextureSource(material?.normalMap),
+          visible: object.visible,
+          opacity: material?.opacity,
+          transparent: material?.transparent,
+          roughness: material?.roughness,
+          metalness: material?.metalness
+        });
+      });
+    });
+  }
+
+  function getRoundedVectorSnapshot(vector) {
+    return {
+      x: Number((vector?.x ?? 0).toFixed(4)),
+      y: Number((vector?.y ?? 0).toFixed(4)),
+      z: Number((vector?.z ?? 0).toFixed(4))
+    };
+  }
+
+  function getRoundedQuaternionSnapshot(quaternion) {
+    return {
+      x: Number((quaternion?.x ?? 0).toFixed(4)),
+      y: Number((quaternion?.y ?? 0).toFixed(4)),
+      z: Number((quaternion?.z ?? 0).toFixed(4)),
+      w: Number((quaternion?.w ?? 1).toFixed(4))
+    };
+  }
+
+  function getPlayerAnimationActionSnapshot() {
+    const actions = [
+      ["idle", playerIdleAction],
+      ["crouch", playerCrouchIdleAction],
+      ["walk", playerWalkAction],
+      ["jog", playerJogAction],
+      ["jumpStart", playerJumpStartAction],
+      ["jumpAir", playerJumpAirAction]
+    ].map(([label, action]) => ({
+      label,
+      exists: Boolean(action),
+      enabled: Boolean(action?.enabled),
+      running: Boolean(action?.isRunning?.()),
+      weight: Number((action?.getEffectiveWeight?.() ?? 0).toFixed(4)),
+      time: Number((action?.time ?? 0).toFixed(4)),
+      clipName: action?.getClip?.()?.name || ""
+    }));
+
+    return {
+      hasMixer: Boolean(playerAnimationMixer),
+      anyActiveActions: actions.some((action) => action.exists && action.running),
+      currentActionNames: actions
+        .filter((action) => action.exists && (action.running || action.enabled))
+        .map((action) => action.clipName || action.label),
+      actions
+    };
+  }
+
+  function stopVenTestRuntimeAnimationState(reason = "Ven TEST visual-only pose load") {
+    const before = getPlayerAnimationActionSnapshot();
+    if (playerAnimationMixer) {
+      playerAnimationMixer.stopAllAction();
+    }
+    for (const action of [
+      playerIdleAction,
+      playerCrouchIdleAction,
+      playerWalkAction,
+      playerJogAction,
+      playerJumpStartAction,
+      playerJumpAirAction
+    ]) {
+      action?.stop?.();
+    }
+
+    playerAnimationMixer = null;
+    playerIdleAction = null;
+    playerCrouchIdleAction = null;
+    playerWalkAction = null;
+    playerJogAction = null;
+    playerJumpStartAction = null;
+    playerJumpAirAction = null;
+    playerJumpStartFinished = false;
+    playerCurrentAimIdleMode = "idle";
+    playerCharacterAnimationDisabled = true;
+    venTestOldAnimationStateStoppedBeforeLoad = true;
+
+    console.warn("[VEN ANIMATION DISABLED FOR TEST]", {
+      reason,
+      oldAnimationStateStopped: true,
+      before
+    });
+  }
+
+  function getVenPoseDiagnostics(root, {
+    animationProfile = "",
+    skeletonPoseCalled = false,
+    oldAnimationStateStopped = venTestOldAnimationStateStoppedBeforeLoad
+  } = {}) {
+    const skeletons = [];
+    const skinnedMeshes = [];
+    const allBones = [];
+    const namedBones = {};
+    const importantKeys = [
+      "hips",
+      "spine",
+      "spine1",
+      "spine2",
+      "chest",
+      "neck",
+      "head",
+      "leftshoulder",
+      "leftarm",
+      "leftforearm",
+      "lefthand",
+      "rightshoulder",
+      "rightarm",
+      "rightforearm",
+      "righthand",
+      "leftupleg",
+      "leftleg",
+      "leftfoot",
+      "rightupleg",
+      "rightleg",
+      "rightfoot"
+    ];
+
+    root?.traverse((object) => {
+      if (object.isSkinnedMesh) {
+        skinnedMeshes.push(object);
+        if (object.skeleton && !skeletons.includes(object.skeleton)) {
+          skeletons.push(object.skeleton);
+        }
+      }
+      if (object.isBone) {
+        allBones.push(object);
+        const key = getCharacterBoneMatchKey(object.name);
+        if (importantKeys.includes(key) && !namedBones[key]) {
+          namedBones[key] = object.name;
+        }
+      }
+    });
+
+    const bounds = new THREE.Box3().setFromObject(root);
+    const size = new THREE.Vector3();
+    bounds.getSize(size);
+    const rootObject = root?.children?.find?.((object) => object.type === "Group" || object.type === "Object3D" || object.type === "Bone" || object.type === "Armature") || root;
+    const animationState = getPlayerAnimationActionSnapshot();
+
+    return {
+      animationProfile,
+      hasMixer: animationState.hasMixer,
+      anyActiveActions: animationState.anyActiveActions,
+      currentActionNames: animationState.currentActionNames,
+      skeletonCount: skeletons.length,
+      skinnedMeshCount: skinnedMeshes.length,
+      skinnedMeshNames: skinnedMeshes.map((mesh) => mesh.name || "(unnamed skinned mesh)").slice(0, 20),
+      armatureRootObjectName: rootObject?.name || "(unnamed root)",
+      rootObjectRotation: getRoundedVectorSnapshot(rootObject?.rotation),
+      rootObjectScale: getRoundedVectorSnapshot(rootObject?.scale),
+      rootObjectLocation: getRoundedVectorSnapshot(rootObject?.position),
+      boundingBoxSize: getRoundedVectorSnapshot(size),
+      importantBoneNames: namedBones,
+      first20BoneRotations: allBones.slice(0, 20).map((bone) => ({
+        name: bone.name || "(unnamed bone)",
+        quaternion: getRoundedQuaternionSnapshot(bone.quaternion)
+      })),
+      skeletonPoseCalled,
+      oldAnimationStateStopped
+    };
+  }
+
+  function logVenPoseDiagnostics(root, phase, options = {}) {
+    console.warn("[VEN POSE DIAG]", {
+      phase,
+      ...getVenPoseDiagnostics(root, options)
+    });
+  }
+
+  function getVenMeshVisibilitySummary(root) {
+    const meshes = [];
+    root?.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      meshes.push({
+        name: object.name || "(unnamed mesh)",
+        isSkinnedMesh: Boolean(object.isSkinnedMesh),
+        visible: object.visible,
+        frustumCulled: object.frustumCulled,
+        materialNames: materials.map((material) => material?.name || "(no material)"),
+        textureMapNames: materials
+          .map((material) => getMaterialTextureSource(material?.map))
+          .filter(Boolean)
+      });
+    });
+    return meshes;
+  }
+
+  function logVenTestFullBodyCheck(root, characterConfig, skeletonPoseCalled = false) {
+    const meshVisibility = getVenMeshVisibilitySummary(root);
+    const bounds = new THREE.Box3().setFromObject(root);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    bounds.getSize(size);
+    bounds.getCenter(center);
+
+    console.warn("[VEN TEST FULL BODY CHECK]", {
+      modelPath: characterConfig.modelPath,
+      resourcePath: characterConfig.resourcePath,
+      meshCount: meshVisibility.length,
+      visibleMeshCount: meshVisibility.filter((mesh) => mesh.visible).length,
+      meshNames: meshVisibility.map((mesh) => mesh.name),
+      boundingBoxSize: getRoundedVectorSnapshot(size),
+      boundingBoxCenter: getRoundedVectorSnapshot(center),
+      rootScale: getRoundedVectorSnapshot(root?.scale),
+      rootLocation: getRoundedVectorSnapshot(root?.position),
+      rootRotation: getRoundedVectorSnapshot(root?.rotation),
+      materialNames: Array.from(new Set(meshVisibility.flatMap((mesh) => mesh.materialNames))),
+      textureMapNames: Array.from(new Set(meshVisibility.flatMap((mesh) => mesh.textureMapNames))),
+      skeletonPoseCalled
+    });
+
+    console.warn("[VEN TEST MESH VISIBILITY CHECK]", meshVisibility);
+  }
+
+  function prepareVenTestVisualOnlyModel(root) {
+    if (!root) {
+      return;
+    }
+
+    const characterConfig = getActivePlayableCharacterConfig();
+    logVenPoseDiagnostics(root, "before visual-only full-body prep", {
+      animationProfile: getCharacterAnimationProfile(characterConfig),
+      skeletonPoseCalled: false
+    });
+
+    console.warn("[VEN TEST USING FULL BODY FILE]", {
+      modelPath: characterConfig.modelPath,
+      resourcePath: characterConfig.resourcePath
+    });
+    console.warn("[VEN TEST VISUAL FILE SELECTED]", {
+      selectedCharacterId: characterConfig.id,
+      selectedLabel: characterConfig.name,
+      animationProfile: getCharacterAnimationProfile(characterConfig),
+      skeletonPoseCalled: false
+    });
+
+    root.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+
+      object.visible = true;
+      object.castShadow = true;
+      object.receiveShadow = true;
+      object.frustumCulled = false;
+    });
+
+    logVenPoseDiagnostics(root, "after visual-only full-body prep", {
+      animationProfile: getCharacterAnimationProfile(characterConfig),
+      skeletonPoseCalled: false
+    });
+    logVenTestFullBodyCheck(root, characterConfig, false);
+
+    const bounds = new THREE.Box3().setFromObject(root);
+    const size = new THREE.Vector3();
+    bounds.getSize(size);
+    console.warn("[VEN REST POSE CHECK]", {
+      rootName: root.name || "(unnamed root)",
+      uuid: root.uuid,
+      boundingBoxSize: {
+        x: Number(size.x.toFixed(4)),
+        y: Number(size.y.toFixed(4)),
+        z: Number(size.z.toFixed(4))
+      }
+    });
+    logVenTestMaterialCheck(root);
+  }
+
+  function logVenTestCharacterLoadSuccess(characterConfig, root) {
+    if (!isVenTestCharacterConfig(characterConfig)) {
+      return;
+    }
+
+    const runtimeSummary = buildCharacterRuntimeModelSummary(root);
+    const bounds = new THREE.Box3().setFromObject(root);
+    const size = new THREE.Vector3();
+    bounds.getSize(size);
+    console.warn("[VEN TEST LOAD SUCCESS]", {
+      rootName: root?.name || "(unnamed root)",
+      uuid: root?.uuid || "",
+      childCount: root?.children?.length || 0,
+      meshNames: runtimeSummary.meshNames,
+      armatureNames: runtimeSummary.armatureNames,
+      boundingBoxSize: {
+        x: Number(size.x.toFixed(4)),
+        y: Number(size.y.toFixed(4)),
+        z: Number(size.z.toFixed(4))
+      },
+      materialNames: runtimeSummary.materialNames,
+      textureMapSources: runtimeSummary.textureMapSources,
+      uvExists: runtimeSummary.uvExists
+    });
+  }
+
+  function logVenTestCharacterLoadFailed(characterConfig, error) {
+    if (!isVenTestCharacterConfig(characterConfig)) {
+      return;
+    }
+
+    console.error("[VEN TEST LOAD FAILED]", {
+      modelPath: characterConfig.modelPath,
+      resourcePath: characterConfig.resourcePath,
+      animationProfile: getCharacterAnimationProfile(characterConfig),
+      animationFolder: characterConfig.animationFolder,
+      error
+    });
+  }
+
+  function buildCharacterRuntimeModelSummary(root) {
+    const meshNames = [];
+    const armatureNames = [];
+    const materialNames = [];
+    const textureMapSources = [];
+    let uvExists = false;
+
+    root?.traverse((object) => {
+      if (object.isMesh) {
+        meshNames.push(object.name || "(unnamed mesh)");
+        uvExists = uvExists || Boolean(object.geometry?.attributes?.uv);
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        for (const material of materials) {
+          if (!material) {
+            continue;
+          }
+          materialNames.push(material.name || "(unnamed material)");
+          const textureImage = material.map?.image || null;
+          const textureSource = textureImage?.currentSrc || textureImage?.src || textureImage?.name || material.map?.name || "";
+          if (textureSource) {
+            textureMapSources.push(textureSource);
+          }
+        }
+      } else if (object.isBone || object.type === "Bone" || object.type === "Skeleton") {
+        armatureNames.push(object.name || object.type || "(unnamed armature)");
+      }
+    });
+
+    return {
+      meshNames,
+      armatureNames: armatureNames.slice(0, 80),
+      materialNames: Array.from(new Set(materialNames)),
+      textureMapSources: Array.from(new Set(textureMapSources)),
+      uvExists
+    };
+  }
+
+  function getCharacterAssetUrl(assetPath) {
+    return new URL(`../${assetPath}`, import.meta.url).href;
+  }
+
+  function appendCharacterAssetCacheBust(assetUrl, cacheBustVersion) {
+    if (!cacheBustVersion) {
+      return assetUrl;
+    }
+
+    const url = new URL(assetUrl);
+    url.searchParams.set("v", cacheBustVersion);
+    return url.href;
+  }
+
+  function getSelectedCharacterModelUrl(characterConfig = getActivePlayableCharacterConfig()) {
+    return appendCharacterAssetCacheBust(
+      getCharacterAssetUrl(characterConfig.modelPath || playableCharacters[0].modelPath),
+      characterConfig.cacheBustVersion
+    );
+  }
+
+  function getSelectedCharacterResourceUrl(characterConfig = getActivePlayableCharacterConfig()) {
+    const resourcePath = characterConfig.resourcePath || playableCharacters[0].resourcePath || motusManResourcePath;
+    return getCharacterAssetUrl(resourcePath);
+  }
+
+  function getSelectedCharacterAnimationUrl(animationKey, characterConfig = getActivePlayableCharacterConfig()) {
+    const animationFile = sharedCharacterAnimationFiles[animationKey];
+    const animationFolder = characterConfig.animationFolder || sharedMotusManAnimationFolder;
+    return getCharacterAssetUrl(`${animationFolder}/${animationFile}`);
+  }
+
+  function createCharacterCacheAsset(path, {
+    label = "",
+    characterLabel = "",
+    startupStatus = "",
+    debugStatus = "",
+    required = true,
+    type = "asset"
+  } = {}) {
+    return {
+      path,
+      url: getCharacterAssetUrl(path),
+      label: label || path,
+      characterLabel,
+      startupStatus: startupStatus || `Downloading ${label || path}`,
+      debugStatus: debugStatus || startupStatus || label || path,
+      required,
+      type
+    };
+  }
+
+  function getStartupCharacterCacheAssets() {
+    return Object.freeze([
+      createCharacterCacheAsset(motusManModelPath, {
+        label: "Motus Man model",
+        characterLabel: "Motus Man",
+        startupStatus: "Downloading Motus Man...",
+        required: true,
+        type: "model"
+      }),
+      createCharacterCacheAsset("assets/characters/character-02/Character02_MotusRig.fbx", {
+        label: "Metallic Hero model",
+        characterLabel: "Metallic Hero",
+        startupStatus: "Downloading Metallic Hero...",
+        required: true,
+        type: "model"
+      }),
+      createCharacterCacheAsset("assets/characters/character-03/Ven_MotusSkeleton_FixedBind_Test.fbx", {
+        label: "Ven TEST model",
+        characterLabel: "Ven TEST",
+        startupStatus: "Downloading Ven TEST...",
+        required: true,
+        type: "model"
+      }),
+      createCharacterCacheAsset("assets/characters/motusman/MotusMan_v55.fbm/MCG_diff.jpg", {
+        label: "Motus Man diffuse texture",
+        characterLabel: "Motus Man",
+        startupStatus: "Caching Motus Man textures",
+        required: true,
+        type: "texture"
+      }),
+      createCharacterCacheAsset("assets/characters/motusman/MotusMan_v55.fbm/MCG_spec.jpg", {
+        label: "Motus Man spec texture",
+        characterLabel: "Motus Man",
+        startupStatus: "Caching Motus Man textures",
+        required: true,
+        type: "texture"
+      }),
+      createCharacterCacheAsset("assets/characters/character-03/Ven_MotusSkeleton_FixedBind_Test.fbm/Ch31_1001_Diffuse.png", {
+        label: "Ven TEST 1001 diffuse texture",
+        characterLabel: "Ven TEST",
+        startupStatus: "Caching Ven TEST textures",
+        required: true,
+        type: "texture"
+      }),
+      createCharacterCacheAsset("assets/characters/character-03/Ven_MotusSkeleton_FixedBind_Test.fbm/Ch31_1002_Diffuse.png", {
+        label: "Ven TEST 1002 diffuse texture",
+        characterLabel: "Ven TEST",
+        startupStatus: "Caching Ven TEST textures",
+        required: true,
+        type: "texture"
+      }),
+      createCharacterCacheAsset(`${sharedMotusManAnimationFolder}/${sharedCharacterAnimationFiles.standAimIdle}`, {
+        label: "Shared standing aim idle animation",
+        startupStatus: "Loading shared animations",
+        required: true,
+        type: "animation"
+      }),
+      createCharacterCacheAsset(`${sharedMotusManAnimationFolder}/${sharedCharacterAnimationFiles.walkAim}`, {
+        label: "Shared walk aim animation",
+        startupStatus: "Loading shared animations",
+        required: true,
+        type: "animation"
+      }),
+      createCharacterCacheAsset(`${sharedMotusManAnimationFolder}/${sharedCharacterAnimationFiles.jogAim}`, {
+        label: "Shared jog aim animation",
+        startupStatus: "Loading shared animations",
+        required: true,
+        type: "animation"
+      }),
+      createCharacterCacheAsset(`${sharedMotusManAnimationFolder}/${sharedCharacterAnimationFiles.crouchAim}`, {
+        label: "Shared crouch aim animation",
+        startupStatus: "Loading shared animations",
+        required: true,
+        type: "animation"
+      }),
+      createCharacterCacheAsset(`${sharedMotusManAnimationFolder}/${sharedCharacterAnimationFiles.jumpStart}`, {
+        label: "Shared jump start animation",
+        startupStatus: "Loading shared animations",
+        required: true,
+        type: "animation"
+      }),
+      createCharacterCacheAsset(`${sharedMotusManAnimationFolder}/${sharedCharacterAnimationFiles.jumpAir}`, {
+        label: "Shared jump air animation",
+        startupStatus: "Loading shared animations",
+        required: true,
+        type: "animation"
+      }),
+      createCharacterCacheAsset("assets/characters/previews/motusman-preview.png", {
+        label: "Motus Man preview",
+        startupStatus: "Caching character previews",
+        required: false,
+        type: "preview"
+      }),
+      createCharacterCacheAsset("assets/characters/previews/character-02.png", {
+        label: "Metallic Hero preview",
+        characterLabel: "Metallic Hero",
+        startupStatus: "Caching character previews",
+        required: false,
+        type: "preview"
+      }),
+      createCharacterCacheAsset("assets/characters/previews/character-03.png", {
+        label: "Ven TEST preview",
+        characterLabel: "Ven TEST",
+        startupStatus: "Caching character previews",
+        required: false,
+        type: "preview"
+      })
+    ]);
+  }
+
+  function getCharacterCacheElapsedMs(startedAt) {
+    return Number((performance.now() - startedAt).toFixed(1));
+  }
+
+  function getCharacterCacheContentLength(response) {
+    const contentLength = Number(response?.headers?.get?.("content-length") || 0);
+    return Number.isFinite(contentLength) && contentLength > 0 ? contentLength : null;
+  }
+
+  function logCharacterCacheEvent(eventName, asset, details = {}) {
+    const { startedAt = null, error = null, ...safeDetails } = details;
+    const elapsedMs = Number.isFinite(safeDetails.elapsedMs)
+      ? safeDetails.elapsedMs
+      : (startedAt ? getCharacterCacheElapsedMs(startedAt) : 0);
+    const payload = {
+      url: asset?.url || "",
+      path: asset?.path || "",
+      label: asset?.label || "",
+      type: asset?.type || "",
+      required: asset?.required !== false,
+      cached: false,
+      downloaded: false,
+      bytes: null,
+      elapsedMs,
+      ...safeDetails
+    };
+    if (error) {
+      payload.error = String(error?.message || error);
+    }
+    console.log(eventName, payload);
+  }
+
+  function updateCharacterCacheStartupUi(message, completedCount = 0, totalCount = 1, debugMessage = message) {
+    if (startupCharacterCacheTimedOut || startupReady) {
+      return;
+    }
+
+    const startProgress = startupProgressByKey.characterPreviewsReady ?? 22;
+    const endProgress = startupProgressByKey.characterAssetsCached ?? 38;
+    const ratio = totalCount > 0 ? THREE.MathUtils.clamp(completedCount / totalCount, 0, 1) : 0;
+    const progress = startProgress + ((endProgress - startProgress) * ratio);
+    setStartupProgress(progress, "character asset cache");
+    setStartupLoadingStatus(message);
+    setStartupLoadingDebug(`Phase: ${debugMessage} | Progress: ${startupProgressPercent}%`);
+  }
+
+  function waitForServiceWorkerController(timeoutMs = CHARACTER_CACHE_SW_READY_TIMEOUT_MS) {
+    if (navigator.serviceWorker?.controller) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (controlled) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        navigator.serviceWorker?.removeEventListener?.("controllerchange", onControllerChange);
+        window.clearTimeout(timeoutId);
+        resolve(controlled);
+      };
+      const onControllerChange = () => finish(Boolean(navigator.serviceWorker?.controller));
+      const timeoutId = window.setTimeout(() => finish(Boolean(navigator.serviceWorker?.controller)), timeoutMs);
+      navigator.serviceWorker?.addEventListener?.("controllerchange", onControllerChange, { once: true });
+    });
+  }
+
+  async function registerCharacterAssetServiceWorker() {
+    const startedAt = performance.now();
+    const serviceWorkerUrl = new URL("../sw.js", import.meta.url).href;
+    console.log("[ASSET CACHE SW REGISTER_START]", {
+      url: serviceWorkerUrl,
+      required: false,
+      cached: false,
+      downloaded: false,
+      bytes: null,
+      elapsedMs: 0
+    });
+
+    if (!("serviceWorker" in navigator)) {
+      console.warn("[ASSET CACHE SW READY]", {
+        url: serviceWorkerUrl,
+        supported: false,
+        controlled: false,
+        required: false,
+        cached: false,
+        downloaded: false,
+        bytes: null,
+        elapsedMs: getCharacterCacheElapsedMs(startedAt)
+      });
+      return { supported: false, controlled: false };
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.register(serviceWorkerUrl);
+      const readyRegistration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((resolve) => {
+          window.setTimeout(() => resolve(null), CHARACTER_CACHE_SW_READY_TIMEOUT_MS);
+        })
+      ]);
+      const controlled = await waitForServiceWorkerController(CHARACTER_CACHE_SW_READY_TIMEOUT_MS);
+      console.log("[ASSET CACHE SW READY]", {
+        url: serviceWorkerUrl,
+        scope: registration.scope,
+        supported: true,
+        ready: Boolean(readyRegistration),
+        controlled,
+        required: false,
+        cached: false,
+        downloaded: false,
+        bytes: null,
+        elapsedMs: getCharacterCacheElapsedMs(startedAt)
+      });
+      return { supported: true, controlled, registration };
+    } catch (error) {
+      console.warn("[ASSET CACHE SW READY]", {
+        url: serviceWorkerUrl,
+        supported: false,
+        controlled: false,
+        required: false,
+        cached: false,
+        downloaded: false,
+        bytes: null,
+        elapsedMs: getCharacterCacheElapsedMs(startedAt),
+        error: String(error?.message || error)
+      });
+      return { supported: false, controlled: false, error };
+    }
+  }
+
+  async function cleanupOldCharacterAssetCaches() {
+    if (!("caches" in window)) {
+      return [];
+    }
+
+    const cacheNames = await caches.keys();
+    const oldCacheNames = cacheNames.filter((cacheName) => (
+      cacheName.startsWith(AIM_BUILT_CHARACTER_CACHE_PREFIX) &&
+      cacheName !== AIM_BUILT_CHARACTER_CACHE
+    ));
+
+    await Promise.all(oldCacheNames.map((cacheName) => caches.delete(cacheName)));
+    return oldCacheNames;
+  }
+
+  async function readCharacterCacheDownloadBytes(response, asset, startedAt, bytesExpected = null) {
+    if (!response?.body || typeof response.body.getReader !== "function") {
+      const fallbackBuffer = await response.arrayBuffer();
+      const fallbackBytes = fallbackBuffer.byteLength;
+      logCharacterCacheEvent("[CHARACTER CACHE DOWNLOAD_PROGRESS]", asset, {
+        startedAt,
+        cached: false,
+        downloaded: false,
+        bytes: fallbackBytes,
+        bytesExpected,
+        progressPercent: 100
+      });
+      return fallbackBytes;
+    }
+
+    const reader = response.body.getReader();
+    let bytesReceived = 0;
+    let lastProgressBucket = -1;
+    let lastProgressLogAt = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      bytesReceived += value?.byteLength || 0;
+      const now = performance.now();
+      const progressPercent = bytesExpected
+        ? THREE.MathUtils.clamp(Math.round((bytesReceived / bytesExpected) * 100), 0, 100)
+        : null;
+      const progressBucket = progressPercent !== null
+        ? Math.floor(progressPercent / 25)
+        : Math.floor(bytesReceived / (1024 * 1024 * 4));
+      if (
+        progressBucket !== lastProgressBucket ||
+        now - lastProgressLogAt >= 1200
+      ) {
+        lastProgressBucket = progressBucket;
+        lastProgressLogAt = now;
+        logCharacterCacheEvent("[CHARACTER CACHE DOWNLOAD_PROGRESS]", asset, {
+          startedAt,
+          cached: false,
+          downloaded: false,
+          bytes: bytesReceived,
+          bytesExpected,
+          progressPercent
+        });
+      }
+    }
+
+    logCharacterCacheEvent("[CHARACTER CACHE DOWNLOAD_PROGRESS]", asset, {
+      startedAt,
+      cached: false,
+      downloaded: false,
+      bytes: bytesReceived,
+      bytesExpected,
+      progressPercent: 100
+    });
+    return bytesReceived;
+  }
+
+  async function downloadAndCacheCharacterAsset(cache, asset, completedCount, totalCount) {
+    const startedAt = performance.now();
+    updateCharacterCacheStartupUi(
+      asset.startupStatus,
+      completedCount,
+      totalCount,
+      `${asset.startupStatus} (${completedCount + 1} / ${totalCount})`
+    );
+    logCharacterCacheEvent("[CHARACTER CACHE DOWNLOAD_START]", asset, {
+      startedAt,
+      cached: false,
+      downloaded: false
+    });
+
+    try {
+      const response = await fetch(asset.url, {
+        method: "GET",
+        cache: "default"
+      });
+      const bytesExpected = getCharacterCacheContentLength(response);
+
+      if (!response.ok) {
+        const details = {
+          startedAt,
+          cached: false,
+          downloaded: false,
+          bytes: bytesExpected,
+          status: response.status,
+          statusText: response.statusText
+        };
+        if (asset.required === false) {
+          logCharacterCacheEvent("[CHARACTER CACHE OPTIONAL_MISSING]", asset, details);
+          return { asset, cached: false, downloaded: false, optionalMissing: true, bytes: bytesExpected };
+        }
+
+        logCharacterCacheEvent("[CHARACTER CACHE DOWNLOAD_FAILED]", asset, details);
+        return { asset, cached: false, downloaded: false, failed: true, bytes: bytesExpected };
+      }
+
+      const cachePutPromise = cache.put(asset.url, response.clone());
+      const bytes = await readCharacterCacheDownloadBytes(response, asset, startedAt, bytesExpected);
+      await cachePutPromise;
+      logCharacterCacheEvent("[CHARACTER CACHE DOWNLOAD_SUCCESS]", asset, {
+        startedAt,
+        cached: true,
+        downloaded: true,
+        bytes
+      });
+      return { asset, cached: true, downloaded: true, bytes };
+    } catch (error) {
+      if (asset.required === false) {
+        logCharacterCacheEvent("[CHARACTER CACHE OPTIONAL_MISSING]", asset, {
+          startedAt,
+          cached: false,
+          downloaded: false,
+          error
+        });
+        return { asset, cached: false, downloaded: false, optionalMissing: true, error };
+      }
+
+      logCharacterCacheEvent("[CHARACTER CACHE DOWNLOAD_FAILED]", asset, {
+        startedAt,
+        cached: false,
+        downloaded: false,
+        error
+      });
+      return { asset, cached: false, downloaded: false, failed: true, error };
+    }
+  }
+
+  async function cacheStartupCharacterAssets() {
+    const startedAt = performance.now();
+    const assets = getStartupCharacterCacheAssets();
+    const totalAssets = assets.length;
+    updateCharacterCacheStartupUi("Checking character cache", 0, totalAssets, "Opening character asset cache.");
+
+    await registerCharacterAssetServiceWorker();
+
+    if (!("caches" in window)) {
+      console.warn("[CHARACTER CACHE DOWNLOAD_FAILED]", {
+        url: "",
+        required: true,
+        cached: false,
+        downloaded: false,
+        bytes: null,
+        elapsedMs: getCharacterCacheElapsedMs(startedAt),
+        error: "Cache Storage is not available in this browser."
+      });
+      return {
+        cached: false,
+        downloadedCount: 0,
+        failedRequiredCount: assets.filter((asset) => asset.required !== false).length,
+        optionalMissingCount: 0,
+        elapsedMs: getCharacterCacheElapsedMs(startedAt)
+      };
+    }
+
+    const deletedOldCaches = await cleanupOldCharacterAssetCaches();
+    const cache = await caches.open(AIM_BUILT_CHARACTER_CACHE);
+    const missingAssets = [];
+    let checkedCount = 0;
+
+    console.log("[CHARACTER CACHE CHECK_START]", {
+      cacheName: AIM_BUILT_CHARACTER_CACHE,
+      url: "",
+      required: true,
+      cached: false,
+      downloaded: false,
+      bytes: null,
+      totalAssets,
+      deletedOldCaches,
+      elapsedMs: getCharacterCacheElapsedMs(startedAt)
+    });
+
+    for (const asset of assets) {
+      const assetStartedAt = performance.now();
+      updateCharacterCacheStartupUi(
+        "Checking character cache",
+        checkedCount,
+        totalAssets,
+        `Checking ${asset.label}`
+      );
+      logCharacterCacheEvent("[CHARACTER CACHE CHECK_START]", asset, {
+        startedAt: assetStartedAt,
+        cached: false,
+        downloaded: false
+      });
+      const cachedResponse = await cache.match(asset.url, {
+        ignoreSearch: true
+      });
+      const bytes = getCharacterCacheContentLength(cachedResponse);
+      if (cachedResponse) {
+        logCharacterCacheEvent("[CHARACTER CACHE HIT]", asset, {
+          startedAt: assetStartedAt,
+          cached: true,
+          downloaded: false,
+          bytes
+        });
+      } else {
+        missingAssets.push(asset);
+        logCharacterCacheEvent("[CHARACTER CACHE MISS]", asset, {
+          startedAt: assetStartedAt,
+          cached: false,
+          downloaded: false,
+          bytes
+        });
+      }
+      checkedCount += 1;
+    }
+
+    if (missingAssets.length <= 0) {
+      updateCharacterCacheStartupUi("Character assets ready", totalAssets, totalAssets, "Character assets ready.");
+      logCharacterCacheEvent("[CHARACTER CACHE READY]", null, {
+        startedAt,
+        cacheName: AIM_BUILT_CHARACTER_CACHE,
+        cached: true,
+        downloaded: false,
+        bytes: null,
+        totalAssets,
+        hitCount: totalAssets,
+        missCount: 0,
+        downloadedCount: 0,
+        failedRequiredCount: 0,
+        optionalMissingCount: 0
+      });
+      return {
+        cached: true,
+        downloadedCount: 0,
+        failedRequiredCount: 0,
+        optionalMissingCount: 0,
+        elapsedMs: getCharacterCacheElapsedMs(startedAt)
+      };
+    }
+
+    updateCharacterCacheStartupUi(
+      `Downloading character assets 0 / ${missingAssets.length}`,
+      checkedCount,
+      totalAssets + missingAssets.length,
+      "Downloading missing character assets."
+    );
+    const results = [];
+    for (let index = 0; index < missingAssets.length; index += 1) {
+      const asset = missingAssets[index];
+      updateCharacterCacheStartupUi(
+        `Downloading character assets ${index + 1} / ${missingAssets.length}`,
+        checkedCount + index,
+        totalAssets + missingAssets.length,
+        asset.debugStatus
+      );
+      results.push(await downloadAndCacheCharacterAsset(
+        cache,
+        asset,
+        checkedCount + index,
+        totalAssets + missingAssets.length
+      ));
+    }
+
+    const downloadedCount = results.filter((result) => result.downloaded).length;
+    const failedRequiredCount = results.filter((result) => result.failed && result.asset?.required !== false).length;
+    const optionalMissingCount = results.filter((result) => result.optionalMissing).length;
+    updateCharacterCacheStartupUi("Character assets cached", totalAssets, totalAssets, "Character assets cached.");
+    logCharacterCacheEvent("[CHARACTER CACHE READY]", null, {
+      startedAt,
+      cacheName: AIM_BUILT_CHARACTER_CACHE,
+      cached: failedRequiredCount === 0,
+      downloaded: downloadedCount > 0,
+      bytes: results.reduce((total, result) => total + (result.bytes || 0), 0),
+      totalAssets,
+      hitCount: totalAssets - missingAssets.length,
+      missCount: missingAssets.length,
+      downloadedCount,
+      failedRequiredCount,
+      optionalMissingCount
+    });
+
+    return {
+      cached: failedRequiredCount === 0,
+      downloadedCount,
+      failedRequiredCount,
+      optionalMissingCount,
+      elapsedMs: getCharacterCacheElapsedMs(startedAt)
+    };
+  }
+
+  async function ensureStartupCharacterAssetCacheReady() {
+    if (startupReadinessState.characterAssetsCached) {
+      return { alreadyReady: true };
+    }
+
+    startupCharacterCacheTimedOut = false;
+    startupCharacterCachePromise ||= cacheStartupCharacterAssets();
+
+    let timeoutId = 0;
+    const timeoutResult = new Promise((resolve) => {
+      timeoutId = window.setTimeout(() => {
+        resolve({ timedOut: true });
+      }, CHARACTER_CACHE_DOWNLOAD_TIMEOUT_MS);
+    });
+
+    const result = await Promise.race([
+      startupCharacterCachePromise
+        .then((cacheResult) => ({ timedOut: false, cacheResult }))
+        .catch((error) => ({ timedOut: false, error })),
+      timeoutResult
+    ]);
+
+    if (result.timedOut) {
+      startupCharacterCacheTimedOut = true;
+      console.warn("[CHARACTER CACHE TIMEOUT_CONTINUE]", {
+        url: "",
+        required: true,
+        cached: false,
+        downloaded: false,
+        bytes: null,
+        timeoutMs: CHARACTER_CACHE_DOWNLOAD_TIMEOUT_MS,
+        elapsedMs: CHARACTER_CACHE_DOWNLOAD_TIMEOUT_MS
+      });
+      setStartupLoadingStatus("Some character assets will finish loading in background");
+      setStartupLoadingDebug(`Phase: Character asset cache timeout. Continuing startup. | Progress: ${startupProgressPercent}%`);
+      setStartupReadiness("characterAssetsCached", true, {
+        statusMessage: "Some character assets will finish loading in background",
+        debugMessage: "Character cache download is continuing in background.",
+        logPhase: "character asset cache timeout continue"
+      });
+      startupCharacterCachePromise.catch((error) => {
+        console.warn("[CHARACTER CACHE DOWNLOAD_FAILED]", {
+          url: "",
+          required: true,
+          cached: false,
+          downloaded: false,
+          bytes: null,
+          elapsedMs: CHARACTER_CACHE_DOWNLOAD_TIMEOUT_MS,
+          error: String(error?.message || error)
+        });
+      });
+      return { timedOut: true };
+    }
+
+    window.clearTimeout(timeoutId);
+    if (result.error) {
+      console.warn("[CHARACTER CACHE DOWNLOAD_FAILED]", {
+        url: "",
+        required: true,
+        cached: false,
+        downloaded: false,
+        bytes: null,
+        elapsedMs: 0,
+        error: String(result.error?.message || result.error)
+      });
+    }
+
+    const cacheResult = result.cacheResult || {};
+    setStartupReadiness("characterAssetsCached", true, {
+      statusMessage: cacheResult.downloadedCount > 0 ? "Character assets cached" : "Character assets ready",
+      debugMessage: cacheResult.failedRequiredCount > 0
+        ? "Some character assets were not cached; gameplay will continue."
+        : "Character asset cache ready.",
+      logPhase: "character asset cache ready"
+    });
+    return result;
+  }
+
+  function checkMotusAssetUrl(assetPathOrUrl) {
+    const url = assetPathOrUrl.startsWith("http")
+      ? assetPathOrUrl
+      : getCharacterAssetUrl(assetPathOrUrl);
+
+    fetch(url, {
+      method: "HEAD",
+      cache: "no-store"
+    })
+      .then((response) => {
+        console.warn("[MOTUS ASSET URL CHECK]", url, response.status, response.ok, response.headers.get("content-type"));
+      })
+      .catch((error) => {
+        console.error("[MOTUS ASSET URL FAIL]", url, error);
+      });
+  }
+
+  function checkVenAssetUrl(assetUrl) {
+    fetch(assetUrl, {
+      method: "GET",
+      cache: "no-store"
+    })
+      .then((response) => {
+        console.warn("[VEN ASSET URL CHECK]", {
+          url: assetUrl,
+          status: response.status,
+          ok: response.ok,
+          contentType: response.headers.get("content-type"),
+          contentLength: response.headers.get("content-length")
+        });
+      })
+      .catch((error) => {
+        console.error("[VEN ASSET URL FAIL]", {
+          url: assetUrl,
+          error
+        });
+      });
+  }
+
+  function loadCharacterPreviewImage(previewPath) {
+    if (!CHARACTER_PREVIEW_PRELOAD_ENABLED) {
+      return Promise.resolve({
+        loaded: false,
+        image: null,
+        error: new Error("Character preview preload disabled")
+      });
+    }
+
+    if (!previewPath) {
+      return Promise.resolve({
+        loaded: false,
+        image: null,
+        error: new Error("Missing character preview path")
+      });
+    }
+
+    const cachedPreview = characterPreviewCache.get(previewPath);
+    if (cachedPreview?.loaded || cachedPreview?.loadingPromise) {
+      return cachedPreview.loaded
+        ? Promise.resolve(cachedPreview)
+        : cachedPreview.loadingPromise;
+    }
+
+    console.warn("[CHARACTER PREVIEW PRELOAD]", previewPath);
+    const image = new Image();
+    const loadingPromise = new Promise((resolve) => {
+      const finishSuccess = () => {
+        const result = {
+          loaded: true,
+          image,
+          error: null
+        };
+        characterPreviewCache.set(previewPath, result);
+        console.warn("[CHARACTER PREVIEW LOAD SUCCESS]", previewPath);
+        resolve(result);
+      };
+      const finishFailure = (error) => {
+        const result = {
+          loaded: false,
+          image: null,
+          error
+        };
+        characterPreviewCache.set(previewPath, result);
+        console.warn("[CHARACTER PREVIEW LOAD FAIL]", previewPath, error);
+        resolve(result);
+      };
+
+      image.onload = () => {
+        if (typeof image.decode === "function") {
+          image.decode()
+            .then(finishSuccess)
+            .catch(finishSuccess);
+          return;
+        }
+        finishSuccess();
+      };
+      image.onerror = (event) => {
+        finishFailure(event instanceof Error ? event : new Error("Character preview image failed to load"));
+      };
+      image.src = previewPath;
+    });
+
+    characterPreviewCache.set(previewPath, {
+      loaded: false,
+      image: null,
+      loadingPromise
+    });
+
+    return loadingPromise;
+  }
+
+  async function preloadCharacterPreviewImages() {
+    if (!CHARACTER_PREVIEW_PRELOAD_ENABLED) {
+      return;
+    }
+
+    const previewPaths = Array.from(new Set(
+      playableCharacters
+        .map((character) => character.previewPath)
+        .filter(Boolean)
+    ));
+
+    await Promise.all(previewPaths.map((previewPath) => loadCharacterPreviewImage(previewPath)));
+  }
+
+  function repairCharacter02Materials(root) {
+    if (!root) {
+      return;
+    }
+
+    root.traverse((obj) => {
+      if (!obj.isMesh) {
+        return;
+      }
+
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+
+      if (obj.geometry && !obj.geometry.attributes.normal) {
+        obj.geometry.computeVertexNormals();
+      }
+
+      const originalMaterials = Array.isArray(obj.material) ? obj.material : [obj.material];
+      const repairedMaterials = originalMaterials.map((mat, index) => {
+        const matName = mat?.name || "(no material name)";
+        const hasMap = Boolean(mat?.map);
+        const hasUsableMap = Boolean(mat?.map?.image);
+        const textureImage = mat?.map?.image || null;
+        const textureImageSource = textureImage?.currentSrc || textureImage?.src || textureImage?.name || mat?.map?.name || "";
+        const hasColor = Boolean(mat?.color);
+        const colorHex = hasColor ? mat.color.getHexString() : "(no color)";
+        const vertexColorsEnabled = Boolean(mat?.vertexColors);
+
+        console.log("[CHARACTER02 MATERIAL RUNTIME]", {
+          mesh: obj.name,
+          materialIndex: index,
+          materialName: matName,
+          hasTextureMap: hasMap,
+          textureImageSource,
+          textureName: mat?.map?.name || textureImage?.name || "",
+          colorHex,
+          uvAttributeExists: Boolean(obj.geometry?.attributes?.uv),
+          vertexColorsEnabled,
+          hasNormalAttribute: Boolean(obj.geometry?.attributes?.normal),
+          hasColorAttribute: Boolean(obj.geometry?.attributes?.color)
+        });
+
+        let material = mat || null;
+        let looksBrokenBlack = false;
+
+        if (!material) {
+          looksBrokenBlack = true;
+        } else {
+          const noTexture = !material.map || !hasUsableMap;
+          const blackColor = Boolean(
+            material.color &&
+            material.color.r < 0.12 &&
+            material.color.g < 0.12 &&
+            material.color.b < 0.12
+          );
+
+          if (!noTexture && blackColor && material.color) {
+            if (DEBUG_CHARACTER_LOADING) {
+              console.warn("[CHARACTER02 MATERIAL FIX] Preserving texture but clearing black color multiplier:", {
+                mesh: obj.name,
+                materialName: matName,
+                colorHex
+              });
+            }
+            material = material.clone();
+            material.color.setHex(0xffffff);
+            material.needsUpdate = true;
+          }
+
+          if (noTexture && blackColor) {
+            looksBrokenBlack = true;
+          }
+
+          if (material.vertexColors && obj.geometry?.attributes?.color) {
+            if (DEBUG_CHARACTER_LOADING) {
+              console.warn("[CHARACTER02 MATERIAL DEBUG] Vertex colors are enabled. Disabling for Character 02 because they may be making the mesh black.");
+            }
+            material = material.clone();
+            material.vertexColors = false;
+            material.needsUpdate = true;
+          }
+        }
+
+        if (looksBrokenBlack) {
+          console.error("[CHARACTER02 MATERIAL FIX] Character 02 material is still black and has no usable original texture map. Not applying fake fallback color.", {
+            mesh: obj.name,
+            materialName: matName,
+            colorHex
+          });
+        }
+
+        if (material) {
+          if (material.map) {
+            material = material.clone();
+            material.map.colorSpace = THREE.SRGBColorSpace;
+            material.map.needsUpdate = true;
+          }
+
+          if ("roughness" in material) {
+            material.roughness = Math.max(0.45, material.roughness ?? 0.65);
+          }
+          if ("metalness" in material) {
+            material.metalness = Math.min(0.15, material.metalness ?? 0.05);
+          }
+
+          material.side = THREE.FrontSide;
+          material.needsUpdate = true;
+        }
+
+        return material;
+      });
+
+      obj.material = Array.isArray(obj.material) ? repairedMaterials : repairedMaterials[0];
+    });
+  }
+
+  function getCharacterLoadPayload(characterConfig, requestId, extra = {}) {
+    return {
+      requestId,
+      selectedCharacterId: characterConfig?.id || "",
+      selectedLabel: characterConfig?.name || "",
+      modelPath: characterConfig?.modelPath || "",
+      resourcePath: characterConfig?.resourcePath || "",
+      animationFolder: characterConfig?.animationFolder || "",
+      ...extra
+    };
+  }
+
+  function getCharacterAssetCacheKey(characterConfig) {
+    return `${characterConfig?.id || "unknown"}::${characterConfig?.modelPath || ""}`;
+  }
+
+  function getCharacterAssetCacheEntry(characterConfig) {
+    const cacheKey = getCharacterAssetCacheKey(characterConfig);
+    if (!characterAssetCache.has(cacheKey)) {
+      characterAssetCache.set(cacheKey, {
+        cacheKey,
+        characterId: characterConfig?.id || "",
+        modelPath: characterConfig?.modelPath || "",
+        modelTemplate: null,
+        modelPromise: null,
+        animationClips: null,
+        preloadPromise: null,
+        textureStatus: null,
+        readyState: {
+          modelReady: false,
+          texturesReady: false,
+          animationsReady: false,
+          ready: false
+        }
+      });
+    }
+    return characterAssetCache.get(cacheKey);
+  }
+
+  function cloneCharacterModelTemplate(template, characterConfig, source = "cache") {
+    if (!template) {
+      return null;
+    }
+
+    const savedVenFingerNeutralPoseState = template.userData?.venFingerNeutralPoseState;
+    const savedCosmeticHeldGunState = template.userData?.cosmeticHeldGunState;
+    const savedVenHeldGunState = template.userData?.venHeldGunState;
+    if (template.userData) {
+      template.userData.venFingerNeutralPoseState = null;
+      template.userData.cosmeticHeldGunState = null;
+      template.userData.venHeldGunState = null;
+    }
+
+    let clone = null;
+    try {
+      clone = cloneSkinnedObject(template);
+    } finally {
+      if (template.userData) {
+        template.userData.venFingerNeutralPoseState = savedVenFingerNeutralPoseState;
+        template.userData.cosmeticHeldGunState = savedCosmeticHeldGunState;
+        template.userData.venHeldGunState = savedVenHeldGunState;
+      }
+    }
+    clone.userData = {
+      ...clone.userData,
+      playableCharacterId: characterConfig?.id || "",
+      playableCharacterName: characterConfig?.name || "",
+      clonedFromCharacterCache: true
+    };
+    clone.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+      object.castShadow = true;
+      object.receiveShadow = true;
+      object.userData.ignoreShotRay = true;
+    });
+    if (DEBUG_CHARACTER_LOADING) {
+      console.warn("[CHARACTER CACHE CLONE ATTACH]", getCharacterLoadPayload(characterConfig, 0, {
+        source,
+        clonedRootName: clone.name || "",
+        visibleMeshCount: getVisibleCharacterMeshCount(clone)
+      }));
+    }
+    return clone;
+  }
+
+  function createStaleCharacterLoadError(characterConfig, requestId, phase) {
+    const error = new Error(`Stale character load ignored during ${phase}`);
+    error.isStaleCharacterLoad = true;
+    error.characterId = characterConfig?.id || "";
+    error.requestId = requestId;
+    error.phase = phase;
+    return error;
+  }
+
+  function assertCharacterApplyRequestCurrent(characterConfig, requestId, phase) {
+    if (requestId !== characterApplyRequestId) {
+      console.warn("[CHARACTER LOAD STALE IGNORED]", getCharacterLoadPayload(characterConfig, requestId, {
+        phase,
+        currentRequestId: characterApplyRequestId,
+        activePlayableCharacterId
+      }));
+      throw createStaleCharacterLoadError(characterConfig, requestId, phase);
+    }
+  }
+
+  function getVisibleCharacterMeshCount(root) {
+    let visibleMeshCount = 0;
+    root?.traverse((object) => {
+      if (object.isMesh && object.visible !== false && object.userData?.isCosmeticHeldGun !== true) {
+        visibleMeshCount += 1;
+      }
+    });
+    return visibleMeshCount;
+  }
+
+  function validateLoadedCharacterMeshes(root, characterConfig, requestId) {
+    const visibleMeshCount = getVisibleCharacterMeshCount(root);
+    if (visibleMeshCount <= 0) {
+      const error = new Error("no visible meshes");
+      error.fallbackReason = "no visible meshes";
+      console.error("[CHARACTER LOAD FAILED]", getCharacterLoadPayload(characterConfig, requestId, {
+        reason: error.fallbackReason
+      }));
+      throw error;
+    }
+    return visibleMeshCount;
+  }
+
+  function isTextureImageReady(image) {
+    if (!image) {
+      return false;
+    }
+
+    if (typeof image.complete === "boolean") {
+      return image.complete && ((image.naturalWidth || image.width || 0) > 0);
+    }
+
+    return (image.width || 0) > 0 && (image.height || 0) > 0;
+  }
+
+  function isTextureImageFinished(image) {
+    if (!image) {
+      return true;
+    }
+
+    if (typeof image.complete === "boolean") {
+      return image.complete;
+    }
+
+    return isTextureImageReady(image);
+  }
+
+  function getTextureImage(texture) {
+    return texture?.image || texture?.source?.data || null;
+  }
+
+  function repairCharacterMaterialsNotBlack(root, characterConfig, requestId) {
+    let repairedMaterialCount = 0;
+    let mainTextureCount = 0;
+    root?.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+
+      if (object.geometry?.attributes?.color) {
+        object.geometry.deleteAttribute("color");
+      }
+
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        if (!material) {
+          continue;
+        }
+
+        if (material.color) {
+          material.color.set(0xffffff);
+        }
+        if ("vertexColors" in material) {
+          material.vertexColors = false;
+        }
+        if (material.map) {
+          mainTextureCount += 1;
+          material.map.colorSpace = THREE.SRGBColorSpace;
+          material.map.needsUpdate = true;
+        }
+        if ("metalness" in material) {
+          material.metalness = Math.min(material.metalness ?? 0, 0.65);
+        }
+        if ("roughness" in material) {
+          material.roughness = Math.max(material.roughness ?? 0.65, 0.35);
+        }
+        material.needsUpdate = true;
+        repairedMaterialCount += 1;
+      }
+    });
+
+    console.warn("[CHARACTER MATERIAL_NOT_BLACK_REPAIR]", getCharacterLoadPayload(characterConfig, requestId, {
+      repairedMaterialCount,
+      mainTextureCount
+    }));
+    return { repairedMaterialCount, mainTextureCount };
+  }
+
+  function waitForTextureImage(texture, timeoutMs = 120000) {
+    const image = getTextureImage(texture);
+    if (!image || isTextureImageFinished(image) || typeof image.addEventListener !== "function") {
+      return Promise.resolve({
+        loaded: Boolean(image && isTextureImageReady(image)),
+        timedOut: false
+      });
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (loaded, timedOut = false) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        image.removeEventListener("load", onLoad);
+        image.removeEventListener("error", onError);
+        window.clearTimeout(timeoutId);
+        resolve({ loaded, timedOut });
+      };
+      const onLoad = () => finish(isTextureImageReady(image), false);
+      const onError = () => finish(false, false);
+      const timeoutId = window.setTimeout(() => finish(isTextureImageReady(image), true), timeoutMs);
+      image.addEventListener("load", onLoad, { once: true });
+      image.addEventListener("error", onError, { once: true });
+    });
+  }
+
+  async function waitForCharacterTexturesReady(root, characterConfig, requestId, { cacheEntry = null } = {}) {
+    const repairSummary = repairCharacterMaterialsNotBlack(root, characterConfig, requestId);
+    if (cacheEntry?.textureStatus?.essentialWaitComplete) {
+      console.warn("[CHARACTER MAIN TEXTURE READY]", getCharacterLoadPayload(characterConfig, requestId, {
+        source: "cache",
+        essentialTextureCount: cacheEntry.textureStatus.essentialTextureCount || 0,
+        pendingEssentialTextureCount: cacheEntry.textureStatus.pendingEssentialTextureCount || 0,
+        repairedMaterialCount: repairSummary.repairedMaterialCount
+      }));
+      return cacheEntry.textureStatus;
+    }
+
+    const textureEntries = [];
+    root?.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        if (!material) {
+          continue;
+        }
+
+        if (material.map) {
+          material.map.colorSpace = THREE.SRGBColorSpace;
+          material.map.needsUpdate = true;
+          material.needsUpdate = true;
+        }
+
+        const texture = material.map;
+        if (texture && !textureEntries.some((entry) => entry.texture === texture)) {
+          textureEntries.push({
+            texture,
+            textureKey: "map",
+            required: true,
+            materialName: material.name || "",
+            image: getTextureImage(texture)
+          });
+        }
+      }
+    });
+
+    const requiredEntries = textureEntries.filter((entry) => entry.required);
+    const pendingEntries = textureEntries.filter((entry) => {
+      const image = entry.image;
+      return image && !isTextureImageFinished(image) && typeof image.addEventListener === "function";
+    });
+
+    const requiredWaitResults = pendingEntries.length > 0
+      ? await Promise.all(pendingEntries.map((entry) => (
+        waitForTextureImage(entry.texture, requiredCharacterTextureTimeoutMs)
+      )))
+      : [];
+    const requiredTimedOutCount = requiredWaitResults.filter((result) => result.timedOut).length;
+    const pendingRequiredAfterWait = requiredEntries.filter((entry) => {
+      const image = getTextureImage(entry.texture);
+      return image && !isTextureImageReady(image);
+    });
+
+    if (pendingRequiredAfterWait.length > 0) {
+      console.warn("[CHARACTER MAIN TEXTURE_TIMEOUT_CONTINUE]", getCharacterLoadPayload(characterConfig, requestId, {
+        essentialTextureCount: requiredEntries.length,
+        pendingEssentialTextureCount: pendingRequiredAfterWait.length,
+        requiredTimedOutCount,
+        timeoutMs: requiredCharacterTextureTimeoutMs,
+        pendingEssentialTextures: pendingRequiredAfterWait.slice(0, 12).map((entry) => ({
+          textureKey: entry.textureKey,
+          materialName: entry.materialName
+        }))
+      }));
+    } else {
+      console.warn("[CHARACTER MAIN TEXTURE READY]", getCharacterLoadPayload(characterConfig, requestId, {
+        essentialTextureCount: requiredEntries.length,
+        pendingEssentialTextureCount: 0
+      }));
+    }
+
+    const textureStatus = {
+      essentialWaitComplete: true,
+      essentialReady: pendingRequiredAfterWait.length === 0,
+      essentialTextureCount: requiredEntries.length,
+      optionalTextureCount: 0,
+      pendingEssentialTextureCount: pendingRequiredAfterWait.length,
+      pendingOptionalTextureCount: 0,
+      requiredTimedOutCount
+    };
+    if (cacheEntry) {
+      cacheEntry.textureStatus = textureStatus;
+      cacheEntry.readyState.texturesReady = true;
+    }
+
+    console.warn("[CHARACTER LOAD TEXTURES SUCCESS]", getCharacterLoadPayload(characterConfig, requestId, {
+      textureCount: textureEntries.length,
+      pendingOrMissingTextureCount: pendingRequiredAfterWait.length,
+      essentialWaitComplete: true
+    }));
+    return textureStatus;
+  }
+
+  async function loadRequiredCharacterAnimations(characterConfig, requestId, { cacheEntry = null } = {}) {
+    if (characterConfig.disableRuntimeRetargetAnimations) {
+      return {
+        standAimIdle: null,
+        crouchAim: null,
+        walkAim: null,
+        jogAim: null,
+        jumpStart: null,
+        jumpAir: null
+      };
+    }
+
+    const cachedAnimations = cacheEntry?.animationClips || null;
+    if (
+      cachedAnimations?.standAimIdle &&
+      cachedAnimations?.crouchAim &&
+      cachedAnimations?.walkAim &&
+      cachedAnimations?.jogAim &&
+      cachedAnimations?.jumpStart &&
+      cachedAnimations?.jumpAir
+    ) {
+      console.warn("[SHARED MOTUS ANIMATION CACHE HIT]", getCharacterLoadPayload(characterConfig, requestId, {
+        source: "character-asset-cache"
+      }));
+      return cachedAnimations;
+    }
+
+    const sharedAnimationCacheReady = Boolean(
+      motusManIdleClip &&
+      motusManCrouchIdleClip &&
+      motusManWalkAimClip &&
+      motusManJogAimClip &&
+      motusManJumpStartClip &&
+      motusManJumpAirClip
+    );
+    console.warn(
+      sharedAnimationCacheReady
+        ? "[SHARED MOTUS ANIMATION CACHE HIT]"
+        : "[SHARED MOTUS ANIMATION CACHE MISS]",
+      getCharacterLoadPayload(characterConfig, requestId)
+    );
+
+    const [
+      standAimIdle,
+      crouchAim,
+      walkAim,
+      jogAim,
+      jumpStart,
+      jumpAir
+    ] = await Promise.all([
+      loadMotusManIdleClip(characterConfig),
+      loadMotusManCrouchIdleClip(characterConfig),
+      loadMotusManWalkAimClip(characterConfig),
+      loadMotusManJogAimClip(characterConfig),
+      loadMotusManJumpStartClip(characterConfig),
+      loadMotusManJumpAirClip(characterConfig)
+    ]);
+
+    const missing = {
+      standAimIdle,
+      crouchAim,
+      walkAim,
+      jogAim,
+      jumpStart,
+      jumpAir
+    };
+    const missingKeys = Object.entries(missing)
+      .filter(([, clip]) => !clip)
+      .map(([key]) => key);
+    if (missingKeys.length > 0) {
+      const error = new Error(`animation load failed: ${missingKeys.join(", ")}`);
+      error.fallbackReason = "animation load failed and no previous valid character";
+      console.error("[CHARACTER LOAD FAILED]", getCharacterLoadPayload(characterConfig, requestId, {
+        reason: "animation load failed",
+        missingKeys
+      }));
+      throw error;
+    }
+
+    if (cacheEntry) {
+      cacheEntry.animationClips = missing;
+      cacheEntry.readyState.animationsReady = true;
+    }
+    console.warn("[SHARED MOTUS ANIMATION READY]", getCharacterLoadPayload(characterConfig, requestId, {
+      idle: Boolean(standAimIdle),
+      crouch: Boolean(crouchAim),
+      walk: Boolean(walkAim),
+      jog: Boolean(jogAim),
+      jumpStart: Boolean(jumpStart),
+      jumpAir: Boolean(jumpAir)
+    }));
+
+    return missing;
+  }
+
+  function verifyBoundCharacterAnimationActions(characterConfig, requestId) {
+    if (playerCharacterAnimationDisabled) {
+      if (characterConfig.disableRuntimeRetargetAnimations) {
+        return;
+      }
+      const error = new Error("animation binding disabled unexpectedly");
+      error.fallbackReason = "animation load failed and no previous valid character";
+      throw error;
+    }
+
+    const actionMap = {
+      idle: playerIdleAction,
+      crouch: playerCrouchIdleAction,
+      walk: playerWalkAction,
+      jog: playerJogAction,
+      jumpStart: playerJumpStartAction,
+      jumpAir: playerJumpAirAction
+    };
+    const missingActions = Object.entries(actionMap)
+      .filter(([, action]) => !action)
+      .map(([key]) => key);
+    if (missingActions.length > 0) {
+      const error = new Error(`animation actions missing: ${missingActions.join(", ")}`);
+      error.fallbackReason = "animation load failed and no previous valid character";
+      console.error("[CHARACTER LOAD FAILED]", getCharacterLoadPayload(characterConfig, requestId, {
+        reason: "animation action binding failed",
+        missingActions
+      }));
+      throw error;
+    }
+  }
+
+  async function loadCharacterFully(characterConfig, requestId) {
+    const cacheEntry = getCharacterAssetCacheEntry(characterConfig);
+    const cacheReady = Boolean(
+      cacheEntry.modelTemplate &&
+      cacheEntry.readyState.texturesReady &&
+      cacheEntry.readyState.animationsReady
+    );
+    if (DEBUG_CHARACTER_LOADING) {
+      console.warn(cacheReady ? "[CHARACTER CACHE HIT]" : "[CHARACTER CACHE MISS]", getCharacterLoadPayload(characterConfig, requestId, {
+        cacheKey: cacheEntry.cacheKey,
+        modelReady: Boolean(cacheEntry.modelTemplate),
+        texturesReady: Boolean(cacheEntry.readyState.texturesReady),
+        animationsReady: Boolean(cacheEntry.readyState.animationsReady)
+      }));
+    }
+    console.warn("[CHARACTER APPLY SELECTED_ONLY]", getCharacterLoadPayload(characterConfig, requestId));
+    updateCharacterLoadingOverlay(`Loading ${characterConfig.name} model...`, 18);
+    console.warn("[CHARACTER LOAD MODEL START]", getCharacterLoadPayload(characterConfig, requestId));
+    const templateSource = await loadMotusManTemplate(characterConfig);
+    assertCharacterApplyRequestCurrent(characterConfig, requestId, "model loaded");
+    console.warn("[CHARACTER LOAD MODEL SUCCESS]", getCharacterLoadPayload(characterConfig, requestId, {
+      rootName: templateSource?.name || "",
+      visibleMeshCount: getVisibleCharacterMeshCount(templateSource),
+      source: cacheReady ? "cache" : "loader"
+    }));
+
+    updateCharacterLoadingOverlay("Preparing main texture", 48);
+    console.warn("[CHARACTER LOAD TEXTURES START]", getCharacterLoadPayload(characterConfig, requestId));
+    await waitForCharacterTexturesReady(templateSource, characterConfig, requestId, { cacheEntry });
+    assertCharacterApplyRequestCurrent(characterConfig, requestId, "textures loaded");
+    validateLoadedCharacterMeshes(templateSource, characterConfig, requestId);
+
+    updateCharacterLoadingOverlay("Loading shared animations", 68);
+    console.warn("[CHARACTER LOAD ANIMATIONS START]", getCharacterLoadPayload(characterConfig, requestId));
+    const animations = await loadRequiredCharacterAnimations(characterConfig, requestId, { cacheEntry });
+    assertCharacterApplyRequestCurrent(characterConfig, requestId, "animations loaded");
+    console.warn("[CHARACTER LOAD ANIMATIONS SUCCESS]", getCharacterLoadPayload(characterConfig, requestId, {
+      idle: Boolean(animations.standAimIdle),
+      crouch: Boolean(animations.crouchAim),
+      walk: Boolean(animations.walkAim),
+      jog: Boolean(animations.jogAim),
+      jumpStart: Boolean(animations.jumpStart),
+      jumpAir: Boolean(animations.jumpAir)
+    }));
+    cacheEntry.readyState.ready = true;
+
+    const template = cloneCharacterModelTemplate(templateSource, characterConfig, cacheReady ? "ready-cache" : "loaded-cache");
+
+    return {
+      characterConfig,
+      template,
+      animations
+    };
+  }
+
+  function scheduleCharacterAssetPreload(characterConfig, reason = "background") {
+    if (!BACKGROUND_CHARACTER_PRELOAD_ENABLED) {
+      return;
+    }
+
+    if (!characterConfig || (!startupReady && reason !== "startup background")) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      preloadCharacterAssets(characterConfig, reason).catch((error) => {
+        console.warn("[CHARACTER PRELOAD FAILED]", getCharacterLoadPayload(characterConfig, 0, {
+          reason,
+          error
+        }));
+      });
+    }, 0);
+  }
+
+  function startBackgroundCharacterPreloads(reason = "startup background") {
+    if (!BACKGROUND_CHARACTER_PRELOAD_ENABLED) {
+      return;
+    }
+
+    if (characterPreloadStarted && reason !== "selection changed") {
+      return;
+    }
+
+    characterPreloadStarted = true;
+    playableCharacters.forEach((characterConfig, index) => {
+      window.setTimeout(() => {
+        scheduleCharacterAssetPreload(characterConfig, reason);
+      }, index * 350);
+    });
+  }
+
+  async function preloadCharacterAssets(characterConfig, reason = "background") {
+    if (!BACKGROUND_CHARACTER_PRELOAD_ENABLED) {
+      return null;
+    }
+
+    const cacheEntry = getCharacterAssetCacheEntry(characterConfig);
+    if (cacheEntry.readyState.ready) {
+      console.warn("[CHARACTER PRELOAD READY]", getCharacterLoadPayload(characterConfig, 0, {
+        reason,
+        source: "cache"
+      }));
+      return cacheEntry;
+    }
+
+    if (cacheEntry.preloadPromise) {
+      return cacheEntry.preloadPromise;
+    }
+
+    cacheEntry.preloadPromise = (async () => {
+      console.warn("[CHARACTER PRELOAD START]", getCharacterLoadPayload(characterConfig, 0, {
+        reason,
+        cacheKey: cacheEntry.cacheKey
+      }));
+
+      const templateSource = await loadMotusManTemplate(characterConfig);
+      console.warn("[CHARACTER PRELOAD MODEL READY]", getCharacterLoadPayload(characterConfig, 0, {
+        visibleMeshCount: getVisibleCharacterMeshCount(templateSource)
+      }));
+
+      await waitForCharacterTexturesReady(templateSource, characterConfig, 0, { cacheEntry });
+      console.warn("[CHARACTER PRELOAD TEXTURES READY]", getCharacterLoadPayload(characterConfig, 0, {
+        essentialReady: Boolean(cacheEntry.textureStatus?.essentialReady),
+        pendingEssentialTextureCount: cacheEntry.textureStatus?.pendingEssentialTextureCount || 0,
+        pendingOptionalTextureCount: cacheEntry.textureStatus?.pendingOptionalTextureCount || 0
+      }));
+
+      await loadRequiredCharacterAnimations(characterConfig, 0, { cacheEntry });
+      console.warn("[CHARACTER PRELOAD ANIMS READY]", getCharacterLoadPayload(characterConfig, 0));
+
+      cacheEntry.readyState.ready = true;
+      console.warn("[CHARACTER PRELOAD READY]", getCharacterLoadPayload(characterConfig, 0, {
+        cacheKey: cacheEntry.cacheKey
+      }));
+      return cacheEntry;
+    })().catch((error) => {
+      cacheEntry.preloadPromise = null;
+      cacheEntry.readyState.ready = false;
+      console.warn("[CHARACTER PRELOAD FAILED]", getCharacterLoadPayload(characterConfig, 0, {
+        reason,
+        error
+      }));
+      throw error;
+    });
+
+    return cacheEntry.preloadPromise;
+  }
+
+  function loadMotusManTemplate(characterConfig = getActivePlayableCharacterConfig()) {
+    const characterId = characterConfig.id;
+    const cacheEntry = getCharacterAssetCacheEntry(characterConfig);
+
+    if (cacheEntry.modelTemplate) {
+      if (DEBUG_CHARACTER_LOADING) {
+        console.warn("[CHARACTER CACHE HIT]", getCharacterLoadPayload(characterConfig, 0, {
+          cacheKey: cacheEntry.cacheKey,
+          asset: "modelTemplate"
+        }));
+      }
+      motusManTemplate = cacheEntry.modelTemplate;
+      motusManTemplateCharacterId = characterId;
+      return Promise.resolve(cacheEntry.modelTemplate);
+    }
+
+    if (cacheEntry.modelPromise) {
+      if (DEBUG_CHARACTER_LOADING) {
+        console.warn("[CHARACTER CACHE HIT]", getCharacterLoadPayload(characterConfig, 0, {
+          cacheKey: cacheEntry.cacheKey,
+          asset: "modelPromise"
+        }));
+      }
+      return cacheEntry.modelPromise;
+    }
+
+    if (DEBUG_CHARACTER_LOADING) {
+      console.warn("[CHARACTER CACHE MISS]", getCharacterLoadPayload(characterConfig, 0, {
+        cacheKey: cacheEntry.cacheKey,
+        asset: "modelTemplate"
+      }));
+    }
+
+    if (isCharacter02Config(characterConfig)) {
+      console.log("[CHARACTER] Loading Character 02 Motus rig:", characterConfig.modelPath);
+      console.log("[CHARACTER] Character 02 using Motus Man shared animations:", characterConfig.animationFolder);
+      console.log("[CHARACTER] Character 02 direct Motus skeleton animation path active.");
+      console.warn("[CHARACTER02 ACTIVE MODEL PATH]", characterConfig.modelPath);
+    } else if (isVenTestCharacterConfig(characterConfig)) {
+      console.log("[CHARACTER] Loading model:", characterConfig.name, characterConfig.modelPath);
+      console.log("[CHARACTER] Ven TEST direct Motus skeleton animation path active.");
+    } else if (isVenCharacterConfig(characterConfig)) {
+      logVenCharacterLoadCheck(characterConfig);
+    } else if (isMotusManConfig(characterConfig)) {
+      console.log("[MOTUS MAN LOAD CHECK]", {
+        modelPath: characterConfig.modelPath,
+        resourcePath: characterConfig.resourcePath,
+        animationFolder: characterConfig.animationFolder
+      });
+    } else {
+      console.log("[CHARACTER] Loading model:", characterConfig.name, characterConfig.modelPath);
+    }
     const loader = new FBXLoader();
-    loader.setResourcePath(motusManResourceUrl);
-    motusManLoadPromise = new Promise((resolve, reject) => {
+    loader.setResourcePath(getSelectedCharacterResourceUrl(characterConfig));
+    motusManLoadPromiseCharacterId = characterId;
+    const loadPromise = new Promise((resolve, reject) => {
+      const modelUrl = getSelectedCharacterModelUrl(characterConfig);
+      if (isMotusManConfig(characterConfig)) {
+        if (DEBUG_CHARACTER_LOADING) {
+          checkMotusAssetUrl(motusManPreviewPath);
+          checkMotusAssetUrl(characterConfig.modelPath);
+        }
+        console.warn("[MOTUS MAN LOAD ATTEMPT]", {
+          modelPath: characterConfig.modelPath,
+          resolvedUrl: modelUrl,
+          selectedCharacterId: characterConfig.id,
+          selectedLabel: characterConfig.name
+        });
+        console.log("[MOTUS MAN LOAD CHECK] resolved URL", modelUrl);
+      } else if (isVenTestCharacterConfig(characterConfig)) {
+        logVenTestCharacterLoadStart(characterConfig, modelUrl);
+      } else if (isVenCharacterConfig(characterConfig)) {
+        if (DEBUG_CHARACTER_LOADING) {
+          checkVenAssetUrl(modelUrl);
+        }
+        console.warn("[VEN LOAD ATTEMPT]", {
+          modelPath: characterConfig.modelPath,
+          resolvedUrl: modelUrl,
+          selectedCharacterId: characterConfig.id,
+          selectedLabel: characterConfig.name
+        });
+      }
       loader.load(
-        motusManCharacterUrl,
+        modelUrl,
         (fbx) => {
+          if (isMotusManConfig(characterConfig)) {
+            const { meshNames, armatureNames } = buildCharacterRuntimeModelSummary(fbx);
+            console.warn("[MOTUS MAN LOAD SUCCESS]", {
+              rootName: fbx.name || "(unnamed root)",
+              uuid: fbx.uuid,
+              childCount: fbx.children.length,
+              meshes: meshNames,
+              armatures: armatureNames.slice(0, 80)
+            });
+          } else if (isVenTestCharacterConfig(characterConfig)) {
+            logVenTestCharacterLoadSuccess(characterConfig, fbx);
+          } else if (isVenCharacterConfig(characterConfig)) {
+            const runtimeSummary = buildCharacterRuntimeModelSummary(fbx);
+            const venBounds = new THREE.Box3().setFromObject(fbx);
+            const venSize = new THREE.Vector3();
+            venBounds.getSize(venSize);
+            console.warn("[VEN MODEL LOAD SUCCESS]", {
+              rootName: fbx.name || "(unnamed root)",
+              uuid: fbx.uuid,
+              childCount: fbx.children.length,
+              meshNames: runtimeSummary.meshNames,
+              armatureNames: runtimeSummary.armatureNames,
+              boundingBoxSize: {
+                x: Number(venSize.x.toFixed(4)),
+                y: Number(venSize.y.toFixed(4)),
+                z: Number(venSize.z.toFixed(4))
+              },
+              materialNames: runtimeSummary.materialNames,
+              textureMapSources: runtimeSummary.textureMapSources,
+              uvExists: runtimeSummary.uvExists,
+              animationClipsApplied: Object.values(sharedCharacterAnimationFiles)
+            });
+          }
           const bounds = new THREE.Box3().setFromObject(fbx);
           const size = new THREE.Vector3();
           bounds.getSize(size);
@@ -4655,23 +8491,73 @@ window.onload = () => {
             object.receiveShadow = true;
             object.userData.ignoreShotRay = true;
           });
-          motusManTemplate = fbx;
+          if (isCharacter02Config(characterConfig)) {
+            repairCharacter02Materials(fbx);
+            console.warn("[CHARACTER02 ROOT UUID]", fbx.uuid);
+          } else if (isVenTestCharacterConfig(characterConfig)) {
+            console.warn("[VEN TEST LOAD SUCCESS]", {
+              selectedCharacterId: characterConfig.id,
+              selectedLabel: characterConfig.name,
+              modelPath: characterConfig.modelPath,
+              resourcePath: characterConfig.resourcePath,
+              animationProfile: getCharacterAnimationProfile(characterConfig),
+              animationFolder: characterConfig.animationFolder
+            });
+            if (DEBUG_CHARACTER_LOADING) {
+              logVenTestFullBodyCheck(fbx, characterConfig, false);
+              logVenTestMaterialCheck(fbx);
+            }
+            cacheVenFingerNeutralPose(fbx, characterConfig);
+          }
+          cacheEntry.modelTemplate = fbx;
+          cacheEntry.modelPromise = null;
+          cacheEntry.readyState.modelReady = true;
+          motusManTemplate = cacheEntry.modelTemplate;
+          motusManTemplateCharacterId = characterId;
           console.log("MotusMan loaded successfully");
-          resolve(motusManTemplate);
+          resolve(cacheEntry.modelTemplate);
         },
         undefined,
         (error) => {
-          console.error("MotusMan load failed:", error);
+          if (isCharacter02Config(characterConfig)) {
+            console.error("[CHARACTER] Failed to load Character 02 Motus rig:", characterConfig.modelPath, error);
+          } else if (isVenTestCharacterConfig(characterConfig)) {
+            logVenTestCharacterLoadFailed(characterConfig, error);
+          } else if (isVenCharacterConfig(characterConfig)) {
+            console.error("[VEN MODEL LOAD FAILED]", {
+              modelPath: characterConfig.modelPath,
+              error
+            });
+          } else if (isMotusManConfig(characterConfig)) {
+            console.error("[MOTUS MAN LOAD FAILED]", {
+              modelPath: characterConfig.modelPath,
+              error
+            });
+            console.error("[MOTUS MAN FALLBACK ERROR]", {
+              modelPath: characterConfig.modelPath,
+              modelUrl,
+              resourcePath: characterConfig.resourcePath,
+              animationFolder: characterConfig.animationFolder,
+              error
+            });
+          } else {
+            console.error("MotusMan load failed:", error);
+          }
+          cacheEntry.modelPromise = null;
+          cacheEntry.readyState.modelReady = false;
           motusManLoadPromise = null;
+          motusManLoadPromiseCharacterId = "";
           reject(error);
         }
       );
     });
+    cacheEntry.modelPromise = loadPromise;
+    motusManLoadPromise = loadPromise;
 
-    return motusManLoadPromise;
+    return loadPromise;
   }
 
-  function loadMotusManIdleClip() {
+  function loadMotusManIdleClip(characterConfig = getActivePlayableCharacterConfig()) {
     if (motusManIdleClip) {
       return Promise.resolve(motusManIdleClip);
     }
@@ -4686,7 +8572,7 @@ window.onload = () => {
     }
     motusManIdleLoadPromise = new Promise((resolve, reject) => {
       loader.load(
-        motusManIdleAnimationUrl,
+        getSelectedCharacterAnimationUrl("standAimIdle", characterConfig),
         (fbx) => {
           const clip = fbx.animations?.[0];
           if (!clip) {
@@ -4712,7 +8598,7 @@ window.onload = () => {
     return motusManIdleLoadPromise;
   }
 
-  function loadMotusManCrouchIdleClip() {
+  function loadMotusManCrouchIdleClip(characterConfig = getActivePlayableCharacterConfig()) {
     if (motusManCrouchIdleClip) {
       return Promise.resolve(motusManCrouchIdleClip);
     }
@@ -4727,7 +8613,7 @@ window.onload = () => {
     }
     motusManCrouchIdleLoadPromise = new Promise((resolve, reject) => {
       loader.load(
-        motusManCrouchIdleAnimationUrl,
+        getSelectedCharacterAnimationUrl("crouchAim", characterConfig),
         (fbx) => {
           const clip = fbx.animations?.[0];
           if (!clip) {
@@ -4753,7 +8639,7 @@ window.onload = () => {
     return motusManCrouchIdleLoadPromise;
   }
 
-  function loadMotusManWalkAimClip() {
+  function loadMotusManWalkAimClip(characterConfig = getActivePlayableCharacterConfig()) {
     if (motusManWalkAimClip) {
       return Promise.resolve(motusManWalkAimClip);
     }
@@ -4765,7 +8651,7 @@ window.onload = () => {
     const loader = new FBXLoader();
     motusManWalkAimLoadPromise = new Promise((resolve, reject) => {
       loader.load(
-        motusManWalkAimAnimationUrl,
+        getSelectedCharacterAnimationUrl("walkAim", characterConfig),
         (fbx) => {
           const clip = fbx.animations?.[0];
           if (!clip) {
@@ -4790,7 +8676,7 @@ window.onload = () => {
     return motusManWalkAimLoadPromise;
   }
 
-  function loadMotusManJogAimClip() {
+  function loadMotusManJogAimClip(characterConfig = getActivePlayableCharacterConfig()) {
     if (motusManJogAimClip) {
       return Promise.resolve(motusManJogAimClip);
     }
@@ -4802,7 +8688,7 @@ window.onload = () => {
     const loader = new FBXLoader();
     motusManJogAimLoadPromise = new Promise((resolve, reject) => {
       loader.load(
-        motusManJogAimAnimationUrl,
+        getSelectedCharacterAnimationUrl("jogAim", characterConfig),
         (fbx) => {
           const clip = fbx.animations?.[0];
           if (!clip) {
@@ -4827,7 +8713,7 @@ window.onload = () => {
     return motusManJogAimLoadPromise;
   }
 
-  function loadMotusManJumpStartClip() {
+  function loadMotusManJumpStartClip(characterConfig = getActivePlayableCharacterConfig()) {
     if (motusManJumpStartClip) {
       return Promise.resolve(motusManJumpStartClip);
     }
@@ -4839,7 +8725,7 @@ window.onload = () => {
     const loader = new FBXLoader();
     motusManJumpStartLoadPromise = new Promise((resolve, reject) => {
       loader.load(
-        motusManJumpStartAnimationUrl,
+        getSelectedCharacterAnimationUrl("jumpStart", characterConfig),
         (fbx) => {
           const clip = fbx.animations?.[0];
           if (!clip) {
@@ -4864,7 +8750,7 @@ window.onload = () => {
     return motusManJumpStartLoadPromise;
   }
 
-  function loadMotusManJumpAirClip() {
+  function loadMotusManJumpAirClip(characterConfig = getActivePlayableCharacterConfig()) {
     if (motusManJumpAirClip) {
       return Promise.resolve(motusManJumpAirClip);
     }
@@ -4876,7 +8762,7 @@ window.onload = () => {
     const loader = new FBXLoader();
     motusManJumpAirLoadPromise = new Promise((resolve, reject) => {
       loader.load(
-        motusManJumpAirAnimationUrl,
+        getSelectedCharacterAnimationUrl("jumpAir", characterConfig),
         (fbx) => {
           const clip = fbx.animations?.[0];
           if (!clip) {
@@ -4901,6 +8787,669 @@ window.onload = () => {
     return motusManJumpAirLoadPromise;
   }
 
+  function getAnimationTrackTargetParts(trackName) {
+    const normalizedTrackName = String(trackName || "");
+    const separatorIndex = normalizedTrackName.lastIndexOf(".");
+    if (separatorIndex <= 0 || separatorIndex >= normalizedTrackName.length - 1) {
+      return null;
+    }
+
+    return {
+      targetName: normalizedTrackName.slice(0, separatorIndex),
+      propertyName: normalizedTrackName.slice(separatorIndex + 1),
+      propertyPath: normalizedTrackName.slice(separatorIndex)
+    };
+  }
+
+  function getVenFingerTrackDetails(clip) {
+    const details = [];
+    if (!clip?.tracks?.length) {
+      return details;
+    }
+
+    for (const track of clip.tracks) {
+      const targetParts = getAnimationTrackTargetParts(track.name);
+      const targetKey = getCharacterBoneMatchKey(targetParts?.targetName || "");
+      if (!isVenFingerBoneKey(targetKey)) {
+        continue;
+      }
+
+      details.push({
+        track,
+        trackName: track.name,
+        targetName: targetParts.targetName,
+        propertyName: targetParts.propertyName || ""
+      });
+    }
+
+    return details;
+  }
+
+  function logVenFingerTrackCheck(clips, characterConfig) {
+    if (!isVenTestCharacterConfig(characterConfig)) {
+      return;
+    }
+
+    for (const [clipKey, clip] of Object.entries(clips || {})) {
+      const fingerTrackDetails = getVenFingerTrackDetails(clip);
+      const fingerRotationTrackNames = fingerTrackDetails
+        .filter((detail) => /(?:quaternion|rotation)/i.test(detail.propertyName))
+        .map((detail) => detail.trackName);
+      const fingerPositionTrackNames = fingerTrackDetails
+        .filter((detail) => /position/i.test(detail.propertyName))
+        .map((detail) => detail.trackName);
+      const fingerScaleTrackNames = fingerTrackDetails
+        .filter((detail) => /scale/i.test(detail.propertyName))
+        .map((detail) => detail.trackName);
+
+      console.warn("[VEN FINGER TRACK CHECK]", {
+        clipKey,
+        clipName: clip?.name || "(missing clip)",
+        totalTracks: clip?.tracks?.length || 0,
+        fingerRotationTrackCount: fingerRotationTrackNames.length,
+        fingerPositionTrackCount: fingerPositionTrackNames.length,
+        fingerScaleTrackCount: fingerScaleTrackNames.length,
+        fingerTrackNames: fingerTrackDetails.map((detail) => detail.trackName)
+      });
+    }
+  }
+
+  function removeVenFingerTracksFromClip(clip, clipKey, characterConfig) {
+    if (!isVenTestCharacterConfig(characterConfig) || !clip?.tracks?.length) {
+      return clip || null;
+    }
+
+    const keptTracks = [];
+    const removedTrackNames = [];
+    for (const track of clip.tracks) {
+      const targetParts = getAnimationTrackTargetParts(track.name);
+      const targetKey = getCharacterBoneMatchKey(targetParts?.targetName || "");
+      if (isVenFingerBoneKey(targetKey)) {
+        removedTrackNames.push(track.name);
+        continue;
+      }
+
+      keptTracks.push(track.clone());
+    }
+
+    const filteredClip = new THREE.AnimationClip(
+      `${clip.name || clipKey}_ven_test_no_fingers`,
+      clip.duration,
+      keptTracks,
+      clip.blendMode
+    );
+
+    console.warn("[VEN FINGER TRACKS REMOVED]", {
+      clipKey,
+      clipName: clip.name || "(unnamed clip)",
+      removedTrackCount: removedTrackNames.length,
+      remainingTrackCount: keptTracks.length,
+      removedTrackNames
+    });
+
+    return filteredClip;
+  }
+
+  function removeVenFingerTracksFromClips(clips, characterConfig) {
+    if (!isVenTestCharacterConfig(characterConfig)) {
+      return clips;
+    }
+
+    logVenFingerTrackCheck(clips, characterConfig);
+    return {
+      standAimIdle: removeVenFingerTracksFromClip(clips.standAimIdle, "standAimIdle", characterConfig),
+      crouchAim: removeVenFingerTracksFromClip(clips.crouchAim, "crouchAim", characterConfig),
+      walkAim: removeVenFingerTracksFromClip(clips.walkAim, "walkAim", characterConfig),
+      jogAim: removeVenFingerTracksFromClip(clips.jogAim, "jogAim", characterConfig),
+      jumpStart: removeVenFingerTracksFromClip(clips.jumpStart, "jumpStart", characterConfig),
+      jumpAir: removeVenFingerTracksFromClip(clips.jumpAir, "jumpAir", characterConfig)
+    };
+  }
+
+  function getCharacterBoneNames(modelRoot) {
+    const boneNames = [];
+    if (!modelRoot) {
+      return boneNames;
+    }
+
+    modelRoot.traverse((node) => {
+      if (!node.isBone || !node.name) {
+        return;
+      }
+
+      boneNames.push(node.name);
+    });
+
+    return boneNames;
+  }
+
+  function getCharacterBoneMatchKey(boneName) {
+    let key = String(boneName || "")
+      .trim()
+      .split("|")
+      .pop()
+      .split(":")
+      .pop();
+    key = key.replace(/^mixamorig\d*[_:\s-]*/i, "");
+    key = key.replace(/^mixamorig\d*/i, "");
+    return key.trim().toLowerCase();
+  }
+
+  function createUniqueCharacterBoneNameMap(boneNames) {
+    const uniqueMap = new Map();
+    const ambiguousKeys = new Set();
+
+    for (const boneName of boneNames) {
+      const key = getCharacterBoneMatchKey(boneName);
+      if (!key) {
+        continue;
+      }
+
+      if (uniqueMap.has(key) && uniqueMap.get(key) !== boneName) {
+        uniqueMap.delete(key);
+        ambiguousKeys.add(key);
+        continue;
+      }
+
+      if (!ambiguousKeys.has(key)) {
+        uniqueMap.set(key, boneName);
+      }
+    }
+
+    return uniqueMap;
+  }
+
+  function getAnimationClipTrackTargetNames(clips) {
+    const trackTargetNames = [];
+    for (const clip of clips) {
+      if (!clip?.tracks?.length) {
+        continue;
+      }
+
+      for (const track of clip.tracks) {
+        const targetParts = getAnimationTrackTargetParts(track.name);
+        if (targetParts?.targetName) {
+          trackTargetNames.push(targetParts.targetName);
+        }
+      }
+    }
+
+    return trackTargetNames;
+  }
+
+  function getAnimationClipTrackTargetDetails(clips) {
+    const trackTargets = [];
+    for (const clip of clips) {
+      if (!clip?.tracks?.length) {
+        continue;
+      }
+
+      for (const track of clip.tracks) {
+        const targetParts = getAnimationTrackTargetParts(track.name);
+        if (!targetParts?.targetName) {
+          continue;
+        }
+
+        trackTargets.push({
+          trackName: track.name,
+          targetName: targetParts.targetName,
+          propertyName: targetParts.propertyName,
+          propertyPath: targetParts.propertyPath,
+          isQuaternion: targetParts.propertyName === "quaternion"
+        });
+      }
+    }
+
+    return trackTargets;
+  }
+
+  function reportCharacter02TestResult(culprit) {
+    if (!character02AnimationTest) {
+      character02AnimationTest = {};
+    }
+    if (character02AnimationTest.resultLogged) {
+      return;
+    }
+
+    character02AnimationTest.resultLogged = true;
+    if (culprit === "RETARGETED_TRACK_NAMES_WORKING") {
+      console.log("[CHAR-TEST RESULT] CULPRIT FIXED: RETARGETED_TRACK_NAMES_WORKING");
+      return;
+    }
+    console.log(`[CHAR-TEST RESULT] CULPRIT: ${culprit}`);
+  }
+
+  function preparePlayerCharacterAnimationClips(modelRoot, characterConfig, clips) {
+    if (usesMotusManDirectAnimationPath(characterConfig)) {
+      if (isCharacter02Config(characterConfig)) {
+        latestCharacter02AnimationStats = null;
+        console.log("[CHARACTER] Character 02 direct Motus skeleton animation path active.");
+      }
+      const directClips = isVenTestCharacterConfig(characterConfig)
+        ? removeVenFingerTracksFromClips(clips, characterConfig)
+        : clips;
+      return {
+        enabled: true,
+        clips: directClips,
+        directMatchingTrackCount: 0,
+        totalTrackCount: 0,
+        retargetedTracks: 0,
+        skippedUnsafeTracks: 0
+      };
+    }
+
+    const boneNames = getCharacterBoneNames(modelRoot);
+    const boneNameSet = new Set(boneNames);
+    const uniqueBoneNameMap = createUniqueCharacterBoneNameMap(boneNames);
+    const clipList = [
+      clips.standAimIdle,
+      clips.crouchAim,
+      clips.walkAim,
+      clips.jogAim,
+      clips.jumpStart,
+      clips.jumpAir
+    ];
+    const trackTargetNames = getAnimationClipTrackTargetNames(clipList);
+    const trackTargetDetails = getAnimationClipTrackTargetDetails(clipList);
+    const directMatchingTrackCount = trackTargetNames.reduce(
+      (count, targetName) => count + (boneNameSet.has(targetName) ? 1 : 0),
+      0
+    );
+    const directQuaternionDetails = trackTargetDetails.filter((trackTarget) => trackTarget.isQuaternion);
+    const directMatchingQuaternionTrackCount = directQuaternionDetails.reduce(
+      (count, trackTarget) => count + (boneNameSet.has(trackTarget.targetName) ? 1 : 0),
+      0
+    );
+    let matchedRotationTracks = 0;
+    let totalRotationTracks = 0;
+    let retargetedTracks = 0;
+    let retargetedQuaternionTracks = 0;
+    let retargetedPositionTracks = 0;
+    let totalPositionTracks = 0;
+    let safeMatchedTracks = 0;
+    let skippedScaleTracks = 0;
+    let skippedUnsafeTracks = 0;
+
+    if (characterConfig.id === "character02") {
+      const idleTrackNames = (clips.standAimIdle?.tracks || []).map((track) => track.name);
+      console.log("[CHAR-TEST] Idle clip loaded:", clips.standAimIdle?.name || "(unnamed)");
+      console.log("[CHAR-TEST] Idle clip tracks:", idleTrackNames.length);
+      console.log("[CHAR-TEST] First 50 track names:", idleTrackNames.slice(0, 50));
+      console.log("[CHAR-TEST] Direct matched tracks:", `${directMatchingTrackCount} / ${trackTargetNames.length}`);
+      console.log("[CHAR-TEST] Direct matched quaternion tracks:", `${directMatchingQuaternionTrackCount} / ${directQuaternionDetails.length}`);
+      console.log("[CHAR-TEST] Character 02 bone count:", boneNames.length);
+      console.log("[CHAR-TEST] Character 02 first 80 bone names:", boneNames.slice(0, 80));
+      console.log("[CHARACTER DEBUG] Character 02 bone names:", boneNames.slice(0, 50));
+      console.log("[CHARACTER DEBUG] Animation track targets:", trackTargetNames.slice(0, 50));
+    }
+
+    const prepareClip = (clip) => {
+      if (!clip?.tracks?.length) {
+        return clip || null;
+      }
+
+      const safeTracks = [];
+      for (const track of clip.tracks) {
+        const targetParts = getAnimationTrackTargetParts(track.name);
+        const propertyName = targetParts?.propertyName || "";
+        const isRotationTrack = propertyName === "quaternion";
+        const isPositionTrack = propertyName === "position";
+        const isScaleTrack = propertyName === "scale";
+        if (isRotationTrack) {
+          totalRotationTracks += 1;
+        }
+        if (isPositionTrack) {
+          totalPositionTracks += 1;
+        }
+
+        if (!targetParts?.targetName) {
+          skippedUnsafeTracks += 1;
+          continue;
+        }
+
+        if (isScaleTrack) {
+          skippedScaleTracks += 1;
+          continue;
+        }
+
+        const targetKey = getCharacterBoneMatchKey(targetParts.targetName);
+        const canUseProperty = isRotationTrack || (isPositionTrack && (targetKey === "hips" || targetKey === "root"));
+        if (!canUseProperty) {
+          skippedUnsafeTracks += 1;
+          continue;
+        }
+
+        const directTargetName = boneNameSet.has(targetParts.targetName) ? targetParts.targetName : null;
+        const safeTargetName = directTargetName || uniqueBoneNameMap.get(targetKey);
+        if (!safeTargetName) {
+          skippedUnsafeTracks += 1;
+          continue;
+        }
+
+        const rewrittenTrack = track.clone();
+        rewrittenTrack.name = `${safeTargetName}.${propertyName}`;
+        safeTracks.push(rewrittenTrack);
+        retargetedTracks += directTargetName ? 0 : 1;
+        safeMatchedTracks += 1;
+        if (isRotationTrack) {
+          retargetedQuaternionTracks += 1;
+          matchedRotationTracks += 1;
+        } else if (isPositionTrack) {
+          retargetedPositionTracks += 1;
+        }
+      }
+
+      return new THREE.AnimationClip(
+        `${clip.name || "shared"}_${characterConfig.id}`,
+        clip.duration,
+        safeTracks,
+        clip.blendMode
+      );
+    };
+
+    const preparedClips = {
+      standAimIdle: prepareClip(clips.standAimIdle),
+      crouchAim: prepareClip(clips.crouchAim),
+      walkAim: prepareClip(clips.walkAim),
+      jogAim: prepareClip(clips.jogAim),
+      jumpStart: prepareClip(clips.jumpStart),
+      jumpAir: prepareClip(clips.jumpAir)
+    };
+    const rotationMatchRatio = totalRotationTracks > 0 ? matchedRotationTracks / totalRotationTracks : 0;
+
+    latestCharacter02AnimationStats = {
+      directMatchingTrackCount,
+      totalTrackCount: trackTargetNames.length,
+      directMatchingQuaternionTrackCount,
+      totalQuaternionTrackCount: directQuaternionDetails.length,
+      safeMatchedTracks,
+      retargetedTracks,
+      retargetedQuaternionTracks,
+      totalRotationTracks,
+      retargetedPositionTracks,
+      totalPositionTracks,
+      skippedScaleTracks,
+      skippedUnsafeTracks
+    };
+
+    console.log("[CHAR-TEST] Retarget unique bone keys:", uniqueBoneNameMap.size);
+    console.log("[CHAR-TEST] Retargeted quaternion tracks:", `${retargetedQuaternionTracks} / ${totalRotationTracks}`);
+    console.log("[CHAR-TEST] Retargeted position tracks:", `${retargetedPositionTracks} / ${totalPositionTracks}`);
+    console.log("[CHAR-TEST] Skipped scale tracks:", skippedScaleTracks);
+    console.log("[CHAR-TEST] Skipped unsafe tracks:", skippedUnsafeTracks);
+    console.log("[CHAR-TEST] Safe retarget matched tracks:", `${safeMatchedTracks} / ${trackTargetNames.length}`);
+    console.log("[CHAR-TEST] Safe retarget skipped tracks:", skippedUnsafeTracks);
+    console.log(`[CHARACTER DEBUG] Retargeted tracks used: ${retargetedTracks} / ${trackTargetNames.length}`);
+    console.log(`[CHARACTER DEBUG] Skipped unsafe tracks: ${skippedUnsafeTracks}`);
+
+    if (totalRotationTracks > 0 && rotationMatchRatio < 0.5) {
+      console.warn("[CHARACTER] Retargeted character animation disabled: too few safe bone matches.", {
+        character: characterConfig.name,
+        matchedRotationTracks,
+        totalRotationTracks,
+        rotationMatchRatio,
+        first80BoneNames: boneNames.slice(0, 80)
+      });
+      reportCharacter02TestResult("CHARACTER_02_BONE_NAMES_NOT_MIXAMO_COMPATIBLE");
+      return {
+        enabled: false,
+        clips: preparedClips,
+        directMatchingTrackCount,
+        totalTrackCount: trackTargetNames.length,
+        retargetedTracks,
+        skippedUnsafeTracks
+      };
+    }
+
+    if (isCharacter02Config(characterConfig)) {
+      console.log("[CHARACTER] Character 02 shared animation binding active.");
+    } else if (isVenTestCharacterConfig(characterConfig)) {
+      console.log("[CHARACTER] Ven TEST retargeted Motus animation binding active.");
+    } else {
+      console.log("[CHARACTER] Retargeted shared animation binding active:", characterConfig.name);
+    }
+    if (isVenTestCharacterConfig(characterConfig)) {
+      console.warn("[VEN TEST ANIMATION CHECK]", {
+        animationProfile: getCharacterAnimationProfile(characterConfig),
+        animationFolder: characterConfig.animationFolder,
+        directMatchingTrackCount,
+        totalTrackCount: trackTargetNames.length,
+        directMatchingQuaternionTrackCount,
+        totalQuaternionTrackCount: directQuaternionDetails.length,
+        retargetedTracks,
+        retargetedQuaternionTracks,
+        totalRotationTracks,
+        retargetedPositionTracks,
+        totalPositionTracks,
+        skippedScaleTracks,
+        skippedUnsafeTracks,
+        enabled: true
+      });
+    }
+    return {
+      enabled: true,
+      clips: preparedClips,
+      directMatchingTrackCount,
+      totalTrackCount: trackTargetNames.length,
+      retargetedTracks,
+      skippedUnsafeTracks
+    };
+  }
+
+  function configureActionLoop(action, loopMode = THREE.LoopRepeat, repetitions = Infinity) {
+    if (!action) {
+      return;
+    }
+
+    action.setLoop(loopMode, repetitions);
+  }
+
+  function findCharacter02TestBone(modelRoot) {
+    const preferredBoneKeys = ["hips", "spine", "leftarm", "rightarm"];
+    const boneNames = getCharacterBoneNames(modelRoot);
+
+    for (const preferredKey of preferredBoneKeys) {
+      let foundBone = null;
+      modelRoot?.traverse((node) => {
+        if (foundBone || !node.isBone || !node.name) {
+          return;
+        }
+        if (getCharacterBoneMatchKey(node.name) === preferredKey) {
+          foundBone = node;
+        }
+      });
+      if (foundBone) {
+        return foundBone;
+      }
+    }
+
+    let fallbackBone = null;
+    modelRoot?.traverse((node) => {
+      if (!fallbackBone && node.isBone && node.name) {
+        fallbackBone = node;
+      }
+    });
+    return fallbackBone || null;
+  }
+
+  function formatCharacterTestQuaternion(quaternion) {
+    return quaternion
+      ? quaternion.toArray().map((value) => Number(value.toFixed(5)))
+      : null;
+  }
+
+  function startCharacter02ForcedIdleSelfTest(modelRoot, characterConfig, action) {
+    if (!DEBUG_CHARACTER_LOADING) {
+      return;
+    }
+
+    if (!isCharacter02Config(characterConfig) || usesMotusManDirectAnimationPath(characterConfig)) {
+      return;
+    }
+
+    character02AnimationTest = {
+      active: true,
+      resultLogged: false,
+      frames: 0,
+      modelRoot,
+      action,
+      initialActionTime: action?.time ?? 0,
+      testBone: findCharacter02TestBone(modelRoot),
+      initialBoneQuaternion: null,
+      loggedAfterBone: false
+    };
+
+    if (!action) {
+      console.log("[CHAR-TEST] Forced retargeted idle action created: no");
+      reportCharacter02TestResult("ACTION_NOT_CREATED");
+      return;
+    }
+
+    if (playerActor?.motusManVisual !== modelRoot) {
+      console.warn("[CHAR-TEST] Forced idle action root is not the visible player model root.");
+      reportCharacter02TestResult("ACTION_CREATED_ON_WRONG_ROOT");
+      return;
+    }
+
+    action.enabled = true;
+    action.setEffectiveWeight(1);
+    action.reset();
+    action.play();
+    character02AnimationTest.initialActionTime = action.time ?? 0;
+
+    console.log("[CHAR-TEST] Forced retargeted idle action created: yes");
+    console.log("[CHAR-TEST] Forced retargeted idle action running:", action.isRunning());
+    console.log("[CHAR-TEST] Forced idle action enabled:", action.enabled);
+    console.log("[CHAR-TEST] Forced idle action weight:", action.getEffectiveWeight());
+
+    if (character02AnimationTest.testBone) {
+      character02AnimationTest.initialBoneQuaternion = character02AnimationTest.testBone.quaternion.clone();
+      console.log(
+        "[CHAR-TEST] Test bone before:",
+        character02AnimationTest.testBone.name,
+        formatCharacterTestQuaternion(character02AnimationTest.initialBoneQuaternion)
+      );
+    }
+  }
+
+  function updateCharacter02AnimationTest(delta) {
+    if (!DEBUG_CHARACTER_LOADING) {
+      return;
+    }
+
+    if (!character02AnimationTest?.active || activePlayableCharacterId !== "character02") {
+      return;
+    }
+
+    const test = character02AnimationTest;
+    test.frames += 1;
+
+    if (test.frames % 60 === 0) {
+      console.log("[CHAR-TEST] mixer action time:", test.action?.time ?? null);
+    }
+
+    if (test.resultLogged || test.frames < 180) {
+      return;
+    }
+
+    const actionTimeAdvanced = Boolean(test.action && Math.abs((test.action.time ?? 0) - test.initialActionTime) > 0.001);
+    let boneChanged = false;
+    if (test.testBone && test.initialBoneQuaternion) {
+      const afterQuaternion = test.testBone.quaternion.clone();
+      boneChanged = test.initialBoneQuaternion.angleTo(afterQuaternion) > 0.001;
+      console.log(
+        "[CHAR-TEST] Test bone after:",
+        test.testBone.name,
+        formatCharacterTestQuaternion(afterQuaternion)
+      );
+    }
+
+    if (!test.action) {
+      reportCharacter02TestResult("ACTION_NOT_CREATED");
+    } else if (playerActor?.motusManVisual !== test.modelRoot) {
+      reportCharacter02TestResult("ACTION_CREATED_ON_WRONG_ROOT");
+    } else if (!actionTimeAdvanced) {
+      reportCharacter02TestResult("MIXER_NOT_UPDATED");
+    } else if (boneChanged) {
+      reportCharacter02TestResult("RETARGETED_TRACK_NAMES_WORKING");
+    } else {
+      reportCharacter02TestResult("TRACK_NAMES_DO_NOT_MATCH");
+    }
+  }
+
+  function bindPlayerCharacterAnimationActions(template, characterConfig, clips) {
+    playerCharacterAnimationDisabled = false;
+    if (characterConfig.disableRuntimeRetargetAnimations) {
+      if (isVenTestCharacterConfig(characterConfig)) {
+        stopVenTestRuntimeAnimationState("Ven TEST animation binding intentionally skipped");
+        console.warn("[VEN VISUAL ONLY TEST]", {
+          selectedCharacterId: characterConfig.id,
+          selectedLabel: characterConfig.name,
+          modelPath: characterConfig.modelPath,
+          animationProfile: getCharacterAnimationProfile(characterConfig)
+        });
+      } else {
+        playerAnimationMixer = null;
+        playerIdleAction = null;
+        playerCrouchIdleAction = null;
+        playerWalkAction = null;
+        playerJogAction = null;
+        playerJumpStartAction = null;
+        playerJumpAirAction = null;
+        playerCharacterAnimationDisabled = true;
+      }
+      return;
+    }
+
+    playerAnimationMixer = new THREE.AnimationMixer(template);
+    console.log("[CHARACTER] Created mixer for:", characterConfig.name);
+
+    const preparedAnimation = preparePlayerCharacterAnimationClips(template, characterConfig, clips);
+    const activeClips = preparedAnimation.clips;
+    if (!preparedAnimation.enabled) {
+      playerCharacterAnimationDisabled = true;
+      playerIdleAction = null;
+      playerCrouchIdleAction = null;
+      playerWalkAction = null;
+      playerJogAction = null;
+      playerJumpStartAction = null;
+      playerJumpAirAction = null;
+      return;
+    }
+
+    if (!activeClips.standAimIdle) {
+      playerCharacterAnimationDisabled = true;
+      reportCharacter02TestResult("ACTION_NOT_CREATED");
+      return;
+    }
+
+    playerAnimationMixer.addEventListener('finished', (e) => {
+      if (e.action === playerJumpStartAction && playerCurrentAimIdleMode === "jumpStart") {
+        playerJumpStartFinished = true;
+        syncPlayerAimIdleAnimation(true);
+      }
+    });
+
+    playerIdleAction = playerAnimationMixer.clipAction(activeClips.standAimIdle);
+    playerCrouchIdleAction = activeClips.crouchAim ? playerAnimationMixer.clipAction(activeClips.crouchAim) : null;
+    playerWalkAction = activeClips.walkAim ? playerAnimationMixer.clipAction(activeClips.walkAim) : null;
+    configureActionLoop(playerWalkAction);
+    playerJogAction = activeClips.jogAim ? playerAnimationMixer.clipAction(activeClips.jogAim) : null;
+    configureActionLoop(playerJogAction);
+    playerJumpStartAction = activeClips.jumpStart ? playerAnimationMixer.clipAction(activeClips.jumpStart) : null;
+    configureActionLoop(playerJumpStartAction, THREE.LoopOnce, 1);
+    if (playerJumpStartAction) {
+      playerJumpStartAction.clampWhenFinished = true;
+    }
+    playerJumpAirAction = activeClips.jumpAir ? playerAnimationMixer.clipAction(activeClips.jumpAir) : null;
+    configureActionLoop(playerJumpAirAction);
+
+    startCharacter02ForcedIdleSelfTest(template, characterConfig, playerIdleAction);
+    playerCurrentAimIdleMode = "";
+    syncPlayerAimIdleAnimation(true);
+    console.log("[CHARACTER] Playing default action for:", characterConfig.name);
+  }
+
   function syncPlayerAimIdleAnimation(forceRestart = false, triggerJumpStart = false) {
     if (!playerIdleAction) {
       return;
@@ -4910,18 +9459,18 @@ window.onload = () => {
       ensurePlayerCrouchIdleAction();
     }
 
-    // Priority: crouch > jumpStart > jumpAir > jog (sprint) > walk (move) > standing
+    // Priority: jump > crouch > jog (sprint) > walk (move) > idle
     const isSprinting = isMoving && Boolean(moveState.sprint);
-    let nextMode = "standing";
+    let nextMode = "idle";
 
-    if (isCrouching && playerCrouchIdleAction) {
-      nextMode = "crouch";
-    } else if (triggerJumpStart && playerJumpStartAction) {
+    if (triggerJumpStart && playerJumpStartAction) {
       nextMode = "jumpStart";
-    } else if (playerCurrentAimIdleMode === "jumpStart" && !isGrounded && !playerJumpStartFinished) {
+    } else if (playerCurrentAimIdleMode === "jumpStart" && !isGrounded && !playerJumpStartFinished && playerJumpStartAction) {
       nextMode = "jumpStart";
     } else if (!isGrounded && playerJumpAirAction) {
       nextMode = "jumpAir";
+    } else if (isCrouching && playerCrouchIdleAction) {
+      nextMode = "crouch";
     } else if (isMoving && !isShooting && isSprinting && playerJogAction) {
       nextMode = "jog";
     } else if (isMoving && !isShooting && playerWalkAction) {
@@ -4932,7 +9481,11 @@ window.onload = () => {
       return;
     }
 
+    const previousMode = playerCurrentAimIdleMode;
     playerCurrentAimIdleMode = nextMode;
+    if (previousMode !== nextMode) {
+      console.log(`[ANIM] State -> ${nextMode}`);
+    }
 
     if (nextMode === "crouch") {
       if (playerWalkAction) playerWalkAction.fadeOut(0.18);
@@ -4985,7 +9538,7 @@ window.onload = () => {
       return;
     }
 
-    // standing
+    // idle
     if (playerCrouchIdleAction) playerCrouchIdleAction.fadeOut(0.18);
     if (playerWalkAction) playerWalkAction.fadeOut(0.18);
     if (playerJogAction) playerJogAction.fadeOut(0.18);
@@ -4995,7 +9548,7 @@ window.onload = () => {
   }
 
   function ensurePlayerCrouchIdleAction(actor = playerActor) {
-    if (!actor?.motusManVisual || !playerAnimationMixer || playerCrouchIdleAction) {
+    if (playerCharacterAnimationDisabled || !actor?.motusManVisual || !playerAnimationMixer || playerCrouchIdleAction) {
       return;
     }
 
@@ -5013,67 +9566,193 @@ window.onload = () => {
       });
   }
 
-  function attachMotusManToPlayer(actor) {
+  function scheduleCosmeticHeldGunAttachAfterCharacterVisible(actor, characterConfig, requestId) {
+    console.warn("[HELD GUN NOT PART_OF_CHARACTER_LOAD]", getCharacterLoadPayload(characterConfig, requestId));
+    window.setTimeout(() => {
+      try {
+        ensureCosmeticHeldGunForActor(actor, characterConfig);
+      } catch (error) {
+        console.warn("[HELD GUN NOT PART_OF_CHARACTER_LOAD]", getCharacterLoadPayload(characterConfig, requestId, {
+          error
+        }));
+      }
+    }, 0);
+  }
+
+  function attachFullyLoadedCharacterToPlayer(loadResult, requestId) {
+    const { characterConfig, template, animations } = loadResult || {};
+    const actor = playerActor;
+    if (!actor?.root?.parent || !template || !characterConfig) {
+      const error = new Error("character attach failed: missing actor or template");
+      error.fallbackReason = "model fetch failed";
+      throw error;
+    }
+
+    assertCharacterApplyRequestCurrent(characterConfig, requestId, "attach start");
+    updateCharacterLoadingOverlay("Attaching character", 86);
+    console.warn("[CHARACTER LOAD ATTACH START]", getCharacterLoadPayload(characterConfig, requestId));
+
+    validateLoadedCharacterMeshes(template, characterConfig, requestId);
+    if (!characterConfig.disableRuntimeRetargetAnimations) {
+      const missingClipKeys = Object.entries({
+        idle: animations?.standAimIdle,
+        crouch: animations?.crouchAim,
+        walk: animations?.walkAim,
+        jog: animations?.jogAim,
+        jumpStart: animations?.jumpStart,
+        jumpAir: animations?.jumpAir
+      })
+        .filter(([, clip]) => !clip)
+        .map(([key]) => key);
+      if (missingClipKeys.length > 0) {
+        const error = new Error(`animation clips missing before attach: ${missingClipKeys.join(", ")}`);
+        error.fallbackReason = "animation load failed and no previous valid character";
+        throw error;
+      }
+    }
+
+    resetLocalPlayerCharacterAnimationState();
+    if (template.parent && template.parent !== actor.root) {
+      template.parent.remove(template);
+    }
+
+    if (actor.motusManVisual && actor.motusManVisual !== template) {
+      removeLocalPlayerCharacterVisual(actor);
+    }
+
+    actor.visual.visible = false;
+    template.name = "playerMotusMan";
+    template.userData.playableCharacterId = characterConfig.id;
+    template.userData.playableCharacterName = characterConfig.name;
+    template.rotation.y = 0;
+    if (template.parent !== actor.root) {
+      actor.root.add(template);
+    }
+    actor.motusManVisual = template;
+
+    if (isVenTestCharacterConfig(characterConfig)) {
+      cacheVenFingerNeutralPose(template, characterConfig);
+    }
+    bindPlayerCharacterAnimationActions(template, characterConfig, {
+      standAimIdle: animations?.standAimIdle || null,
+      crouchAim: animations?.crouchAim || null,
+      walkAim: animations?.walkAim || null,
+      jogAim: animations?.jogAim || null,
+      jumpStart: animations?.jumpStart || null,
+      jumpAir: animations?.jumpAir || null
+    });
+    verifyBoundCharacterAnimationActions(characterConfig, requestId);
+    playerJumpStartFinished = false;
+    playerCurrentAimIdleMode = playerIdleAction ? "idle" : playerCurrentAimIdleMode;
+    assertCharacterApplyRequestCurrent(characterConfig, requestId, "attach complete");
+
+    const readiness = {
+      visualReady: true,
+      standingAnimationReady: playerCharacterAnimationDisabled || Boolean(playerIdleAction),
+      crouchAnimationReady: playerCharacterAnimationDisabled || Boolean(playerCrouchIdleAction)
+    };
+    playerVisualReadyPromise = Promise.resolve(readiness);
+    console.warn("[CHARACTER LOAD ATTACH SUCCESS]", getCharacterLoadPayload(characterConfig, requestId, {
+      visibleMeshCount: getVisibleCharacterMeshCount(template),
+      idleActionReady: Boolean(playerIdleAction),
+      crouchActionReady: Boolean(playerCrouchIdleAction),
+      walkActionReady: Boolean(playerWalkAction),
+      jogActionReady: Boolean(playerJogAction),
+      jumpStartActionReady: Boolean(playerJumpStartAction),
+      jumpAirActionReady: Boolean(playerJumpAirAction)
+    }));
+    updateCharacterLoadingOverlay("Character ready", 100);
+    console.warn("[CHARACTER LOAD FULLY_READY]", getCharacterLoadPayload(characterConfig, requestId));
+    scheduleCosmeticHeldGunAttachAfterCharacterVisible(actor, characterConfig, requestId);
+    return readiness;
+  }
+
+  function attachMotusManToPlayer(actor, { allowFallback = true } = {}) {
+    const characterConfig = getActivePlayableCharacterConfig();
     // Wait for player animation readiness before reveal
     if (!startupReady) {
       setStartupPhase("Loading player", "Loading player character model.");
     }
-    const attachmentPromise = Promise.all([
-      loadMotusManTemplate(),
-      loadMotusManIdleClip(),
-      loadMotusManCrouchIdleClip(),
-      loadMotusManWalkAimClip().catch(() => null),
-      loadMotusManJogAimClip().catch(() => null),
-      loadMotusManJumpStartClip().catch(() => null),
-      loadMotusManJumpAirClip().catch(() => null)
-    ])
-      .then(([template, idleClip, crouchClip, walkClip, jogClip, jumpStartClip, jumpAirClip]) => {
+    console.log("[CHARACTER] Loading model:", characterConfig.name, characterConfig.modelPath);
+    const characterVisualOnlyTestMode = Boolean(characterConfig.disableRuntimeRetargetAnimations);
+    if (!characterVisualOnlyTestMode) {
+      console.log("[CHARACTER] Loading shared animations from:", characterConfig.animationFolder);
+    }
+    if (isVenTestCharacterConfig(characterConfig) && characterVisualOnlyTestMode) {
+      stopVenTestRuntimeAnimationState("Stopping old player actions before loading Ven TEST visual-only model");
+      console.warn("[VEN VISUAL ONLY TEST]", {
+        selectedCharacterId: characterConfig.id,
+        selectedLabel: characterConfig.name,
+        modelPath: characterConfig.modelPath,
+        resourcePath: characterConfig.resourcePath
+      });
+    }
+    const characterLoadTasks = characterVisualOnlyTestMode
+      ? [
+        loadMotusManTemplate(),
+        Promise.resolve(null),
+        Promise.resolve(null),
+        Promise.resolve(null),
+        Promise.resolve(null),
+        Promise.resolve(null),
+        Promise.resolve(null)
+      ]
+      : [
+        loadMotusManTemplate(),
+        loadMotusManIdleClip(),
+        loadMotusManCrouchIdleClip(),
+        loadMotusManWalkAimClip().catch(() => null),
+        loadMotusManJogAimClip().catch(() => null),
+        loadMotusManJumpStartClip().catch(() => null),
+        loadMotusManJumpAirClip().catch(() => null)
+      ];
+    const attachmentPromise = Promise.all(characterLoadTasks)
+      .then(([templateSource, idleClip, crouchClip, walkClip, jogClip, jumpStartClip, jumpAirClip]) => {
         if (playerActor !== actor || !actor.root.parent) {
           return null;
         }
 
-        if (template.parent) {
-          template.parent.remove(template);
+        if (activePlayableCharacterId !== characterConfig.id) {
+          console.log("[CHARACTER] Skipped stale player model load:", characterConfig.name, characterConfig.modelPath);
+          return null;
+        }
+
+        const template = cloneCharacterModelTemplate(templateSource, characterConfig, "startup-player");
+        if (!template) {
+          throw new Error("Player character clone failed");
         }
 
         console.log("Replacing blue cube visual");
+        if (actor.motusManVisual && actor.motusManVisual !== template) {
+          removeLocalPlayerCharacterVisual(actor);
+        }
         actor.visual.visible = false;
         template.name = "playerMotusMan";
+        template.userData.playableCharacterId = characterConfig.id;
+        template.userData.playableCharacterName = characterConfig.name;
         template.rotation.y = 0;
-        actor.root.add(template);
+          actor.root.add(template);
         actor.motusManVisual = template;
+        if (isVenTestCharacterConfig(characterConfig)) {
+          cacheVenFingerNeutralPose(template, characterConfig);
+        }
+        ensureCosmeticHeldGunForActor(actor, characterConfig);
+        if (isCharacter02Config(characterConfig)) {
+          console.warn("[CHARACTER02 ATTACHED TO PLAYER]", actor.motusManVisual?.uuid);
+        }
         if (!startupReady) {
           setStartupPhase("Preparing player actions", "Binding standing and crouch actions.");
         }
-        playerAnimationMixer = new THREE.AnimationMixer(template);
-        playerAnimationMixer.addEventListener('finished', (e) => {
-          if (e.action === playerJumpStartAction && playerCurrentAimIdleMode === "jumpStart") {
-            playerJumpStartFinished = true;
-            syncPlayerAimIdleAnimation(true);
-          }
+        bindPlayerCharacterAnimationActions(template, characterConfig, {
+          standAimIdle: idleClip,
+          crouchAim: crouchClip,
+          walkAim: walkClip,
+          jogAim: jogClip,
+          jumpStart: jumpStartClip,
+          jumpAir: jumpAirClip
         });
-        playerIdleAction = playerAnimationMixer.clipAction(idleClip);
-        playerCrouchIdleAction = crouchClip ? playerAnimationMixer.clipAction(crouchClip) : null;
-        playerWalkAction = walkClip ? playerAnimationMixer.clipAction(walkClip) : null;
-        if (playerWalkAction) {
-          playerWalkAction.setLoop(THREE.LoopRepeat, Infinity);
-        }
-        playerJogAction = jogClip ? playerAnimationMixer.clipAction(jogClip) : null;
-        if (playerJogAction) {
-          playerJogAction.setLoop(THREE.LoopRepeat, Infinity);
-        }
-        playerJumpStartAction = jumpStartClip ? playerAnimationMixer.clipAction(jumpStartClip) : null;
-        if (playerJumpStartAction) {
-          playerJumpStartAction.setLoop(THREE.LoopOnce, 1);
-          playerJumpStartAction.clampWhenFinished = true;
-        }
-        playerJumpAirAction = jumpAirClip ? playerAnimationMixer.clipAction(jumpAirClip) : null;
-        if (playerJumpAirAction) {
-          playerJumpAirAction.setLoop(THREE.LoopRepeat, Infinity);
-        }
         playerJumpStartFinished = false;
-        playerCurrentAimIdleMode = "standing";
-        syncPlayerAimIdleAnimation(true);
+        playerCurrentAimIdleMode = playerIdleAction ? "idle" : playerCurrentAimIdleMode;
         console.log("MotusMan attached to live player, walkAction:", Boolean(playerWalkAction), "jogAction:", Boolean(playerJogAction), "jumpStartAction:", Boolean(playerJumpStartAction), "jumpAirAction:", Boolean(playerJumpAirAction));
         if (!startupReady) {
           setStartupReadiness("playerModelReady", true, {
@@ -5100,12 +9779,63 @@ window.onload = () => {
 
         return {
           visualReady: true,
-          standingAnimationReady: Boolean(playerIdleAction),
-          crouchAnimationReady: Boolean(playerCrouchIdleAction)
+          standingAnimationReady: playerCharacterAnimationDisabled || Boolean(playerIdleAction),
+          crouchAnimationReady: playerCharacterAnimationDisabled || Boolean(playerCrouchIdleAction)
         };
       })
       .catch((error) => {
         actor.visual.visible = startupReady;
+        console.error("[BLUE BOX FALLBACK USED]", {
+          reason: "player character visual load failed",
+          selectedCharacterId: characterConfig.id,
+          selectedLabel: characterConfig.name,
+          attemptedModelPath: characterConfig.modelPath,
+          attemptedPreviewPath: characterConfig.previewPath,
+          loadError: error
+        });
+        if (isMotusManConfig(characterConfig)) {
+          console.error("[MOTUS MAN FALLBACK ERROR]", {
+            modelPath: characterConfig.modelPath,
+            previewPath: characterConfig.previewPath,
+            resourcePath: characterConfig.resourcePath,
+            animationFolder: characterConfig.animationFolder,
+            error
+          });
+        } else if (isVenCharacterConfig(characterConfig)) {
+          console.error("[VEN BLUE BOX FALLBACK USED]", {
+            selectedCharacterId: characterConfig.id,
+            selectedLabel: characterConfig.name,
+            reason: "Ven player visual load failed",
+            attemptedModelPath: characterConfig.modelPath,
+            attemptedPreviewPath: characterConfig.previewPath,
+            animationProfile: getCharacterAnimationProfile(characterConfig),
+            animationFolder: characterConfig.animationFolder,
+            loadError: error
+          });
+        } else if (isVenTestCharacterConfig(characterConfig)) {
+          console.error("[VEN TEST FALLBACK USED]", {
+            selectedCharacterId: characterConfig.id,
+            selectedLabel: characterConfig.name,
+            reason: "Ven TEST player visual load failed",
+            attemptedModelPath: characterConfig.modelPath,
+            attemptedPreviewPath: characterConfig.previewPath,
+            animationProfile: getCharacterAnimationProfile(characterConfig),
+            animationFolder: characterConfig.animationFolder,
+            loadError: error
+          });
+        }
+        if (allowFallback && characterConfig.id !== playableCharacters[0].id) {
+          console.error("[CHARACTER] Failed to load selected character, falling back to Motus Man:", {
+            name: characterConfig.name,
+            modelPath: characterConfig.modelPath,
+            animationFolder: characterConfig.animationFolder,
+            error
+          });
+          activePlayableCharacterId = playableCharacters[0].id;
+          selectedPlayableCharacterIndex = getPlayableCharacterIndexById(activePlayableCharacterId);
+          syncCharacterSelectionUi();
+          return reloadLocalPlayerCharacterVisual("selected character load failed");
+        }
         throw error;
       });
 
@@ -5118,7 +9848,9 @@ window.onload = () => {
 
   function cloneMotusManVisualSource() {
     const sourceVisual = playerActor?.motusManVisual ?? motusManTemplate;
-    return sourceVisual ? cloneSkinnedObject(sourceVisual) : null;
+    const characterId = sourceVisual?.userData?.playableCharacterId || motusManTemplateCharacterId || activePlayableCharacterId;
+    const characterConfig = getPlayableCharacterConfigById(characterId);
+    return sourceVisual ? cloneCharacterModelTemplate(sourceVisual, characterConfig, "visual-source") : null;
   }
 
   function logEnemyModelMeshes(actor) {
@@ -5345,25 +10077,48 @@ window.onload = () => {
   }
 
   function attachMotusManToRemotePlayer(actor, accentColor = remotePlayerMotusManAccentColor) {
+    const characterId = getValidPlayableCharacterId(actor?.selectedCharacterId);
+    const characterConfig = getPlayableCharacterConfigById(characterId);
+    const loadToken = (actor.remoteCharacterLoadToken || 0) + 1;
+    actor.remoteCharacterLoadToken = loadToken;
+    actor.remoteCharacterLoadingId = characterId;
+
     Promise.all([
-      loadMotusManTemplate(),
-      loadMotusManIdleClip(),
-      loadMotusManCrouchIdleClip(),
-      loadMotusManWalkAimClip().catch(() => null),
-      loadMotusManJogAimClip().catch(() => null),
-      loadMotusManJumpStartClip().catch(() => null),
-      loadMotusManJumpAirClip().catch(() => null)
+      loadMotusManTemplate(characterConfig),
+      loadMotusManIdleClip(characterConfig),
+      loadMotusManCrouchIdleClip(characterConfig),
+      loadMotusManWalkAimClip(characterConfig).catch(() => null),
+      loadMotusManJogAimClip(characterConfig).catch(() => null),
+      loadMotusManJumpStartClip(characterConfig).catch(() => null),
+      loadMotusManJumpAirClip(characterConfig).catch(() => null)
     ])
-      .then(([, idleClip, crouchClip, walkClip, jogClip, jumpStartClip, jumpAirClip]) => {
-        if (!actor?.root?.parent || remotePlayers.get(actor.playerId) !== actor) {
+      .then(([templateSource, idleClip, crouchClip, walkClip, jogClip, jumpStartClip, jumpAirClip]) => {
+        if (
+          !actor?.root?.parent ||
+          remotePlayers.get(actor.playerId) !== actor ||
+          actor.remoteCharacterLoadToken !== loadToken ||
+          actor.selectedCharacterId !== characterId
+        ) {
           return;
         }
 
-        const remoteVisual = cloneMotusManVisualSource();
+        const remoteVisual = cloneCharacterModelTemplate(templateSource, characterConfig, "remote-player");
         if (!remoteVisual) {
           console.warn("Remote player character clone creation failed");
-          actor.visual.visible = true;
+          if (!actor.motusManVisual) {
+            actor.visual.visible = true;
+          }
           return;
+        }
+
+        const oldRemoteVisual = actor.motusManVisual;
+        if (actor.characterMixer) {
+          actor.characterMixer.stopAllAction();
+          actor.characterMixer = null;
+        }
+        removeCosmeticHeldGun(actor, "remote character visual replaced");
+        if (oldRemoteVisual?.parent) {
+          oldRemoteVisual.parent.remove(oldRemoteVisual);
         }
 
         remoteVisual.name = "remotePlayerMotusMan";
@@ -5371,6 +10126,7 @@ window.onload = () => {
         remoteVisual.visible = true;
         actor.root.add(remoteVisual);
         actor.motusManVisual = remoteVisual;
+        actor.renderedCharacterId = characterId;
         actor.characterMixer = new THREE.AnimationMixer(remoteVisual);
         actor.characterMixer.addEventListener('finished', (e) => {
           if (e.action === actor.characterJumpStartAction) {
@@ -5422,8 +10178,11 @@ window.onload = () => {
         actor.characterMixer.timeScale = actor.isDead ? 0 : 1;
         setRemoteVisualTransformDefaults(remoteVisual, 0.18, 0.12);
         actor.visual.visible = false;
-        recolorMotusManAccent(actor, accentColor);
+        if (isMotusManConfig(characterConfig)) {
+          recolorMotusManAccent(actor, accentColor);
+        }
         hideEnemyHelperMeshes(actor);
+        attachRemoteCosmeticHeldGunForActor(actor, characterConfig);
 
         actor.motusManVisual.traverse((object) => {
           if (!object.isMesh) {
@@ -5436,13 +10195,13 @@ window.onload = () => {
       })
       .catch((error) => {
         console.warn("Remote player character clone creation failed", error);
-        if (remotePlayers.get(actor?.playerId) === actor) {
+        if (remotePlayers.get(actor?.playerId) === actor && !actor?.motusManVisual) {
           actor.visual.visible = true;
         }
       });
   }
 
-  function createPlayer() {
+  function resetLocalPlayerCharacterAnimationState() {
     if (playerAnimationMixer) {
       playerAnimationMixer.stopAllAction();
       playerAnimationMixer = null;
@@ -5454,8 +10213,35 @@ window.onload = () => {
     playerJumpStartAction = null;
     playerJumpAirAction = null;
     playerJumpStartFinished = false;
-    playerCurrentAimIdleMode = "standing";
+    playerCurrentAimIdleMode = "idle";
+  }
 
+  function removeLocalPlayerCharacterVisual(actor = playerActor) {
+    removeCosmeticHeldGun(actor, "local player character visual removed");
+    if (!actor?.motusManVisual) {
+      return;
+    }
+
+    if (actor.motusManVisual.parent) {
+      actor.motusManVisual.parent.remove(actor.motusManVisual);
+    }
+    actor.motusManVisual = null;
+    actor.visual.visible = startupReady;
+  }
+
+  function reloadLocalPlayerCharacterVisual(reason = "character changed") {
+    if (!playerActor) {
+      return Promise.resolve(null);
+    }
+
+    resetLocalPlayerCharacterAnimationState();
+    removeLocalPlayerCharacterVisual(playerActor);
+    console.log("[CHARACTER] Reloading local player character", reason);
+    return attachMotusManToPlayer(playerActor);
+  }
+
+  function createPlayer() {
+    resetLocalPlayerCharacterAnimationState();
     const actor = buildBoxActor({
       body: 0x2a63ff,
       head: 0x8db7ff,
@@ -5506,11 +10292,11 @@ window.onload = () => {
       throw new Error("Player visual setup did not finish.");
     }
 
-    if (!readiness.standingAnimationReady || !playerIdleAction) {
+    if (!readiness.standingAnimationReady || (!playerCharacterAnimationDisabled && !playerIdleAction)) {
       throw new Error("Standing aim animation is not ready.");
     }
 
-    if (!readiness.crouchAnimationReady || !playerCrouchIdleAction) {
+    if (!readiness.crouchAnimationReady || (!playerCharacterAnimationDisabled && !playerCrouchIdleAction)) {
       throw new Error("Crouch aim animation is not ready.");
     }
   }
@@ -5537,6 +10323,21 @@ window.onload = () => {
     setStartupPhase("Booting", "Preparing startup pipeline.");
 
     try {
+      setStartupPhase("Loading character selector", "Preparing character selection.");
+      const characterPreviewReadyTask = Promise.resolve()
+        .then(() => {
+          setStartupReadiness("characterPreviewsReady", true, {
+            statusMessage: "Loading character selector",
+            debugMessage: "Character selector ready.",
+            logPhase: "character selector ready"
+          });
+          syncCharacterSelectionUi();
+        });
+      await characterPreviewReadyTask;
+
+      setStartupPhase("Checking character cache", "Checking required character assets.");
+      await ensureStartupCharacterAssetCacheReady();
+
       setStartupPhase("Loading player", "Preparing player startup assets.");
       const playerReadyTask = ensureStartupPlayerReadiness();
       setStartupPhase("Loading map", `Loading map: ${selectedMap}`);
@@ -5578,11 +10379,6 @@ window.onload = () => {
       await showDeviceModeChooser();
       continueStartupAfterDeviceSelection();
 
-      window.setTimeout(() => {
-        preloadCityAssets().catch((error) => {
-          console.warn("City asset preload failed:", error);
-        });
-      }, 0);
     } catch (error) {
       console.error("Startup readiness failed:", error);
       startupReady = false;
@@ -5844,6 +10640,61 @@ window.onload = () => {
 
   async function preloadCityAssets() {
     await Promise.all(Object.values(cityAssetPaths).map((url) => loadCityAssetTemplate(url)));
+  }
+
+  function requestBackgroundCityAssetPreload(reason = "background") {
+    if (!BACKGROUND_CITY_PRELOAD_ENABLED) {
+      return;
+    }
+
+    if (characterLoadPriorityMode) {
+      pendingCityAssetPreloadReason = reason;
+      console.warn("[BACKGROUND ASSET PRELOAD PAUSED]", {
+        reason,
+        priority: "character-apply"
+      });
+      return;
+    }
+
+    preloadCityAssets().catch((error) => {
+      console.warn("City asset preload failed:", error);
+    });
+  }
+
+  function setCharacterLoadPriorityMode(isEnabled, reason = "") {
+    if (!BACKGROUND_CITY_PRELOAD_ENABLED) {
+      characterLoadPriorityMode = false;
+      pendingCityAssetPreloadReason = "";
+      return;
+    }
+
+    if (characterLoadPriorityMode === isEnabled) {
+      return;
+    }
+
+    characterLoadPriorityMode = isEnabled;
+    console.warn("[CHARACTER LOAD PRIORITY MODE]", {
+      enabled: characterLoadPriorityMode,
+      reason
+    });
+
+    if (isEnabled) {
+      console.warn("[BACKGROUND ASSET PRELOAD PAUSED]", {
+        reason,
+        priority: "character-apply"
+      });
+      return;
+    }
+
+    console.warn("[BACKGROUND ASSET PRELOAD_RESUMED]", {
+      reason,
+      pendingCityAssetPreloadReason
+    });
+    if (pendingCityAssetPreloadReason) {
+      const resumeReason = pendingCityAssetPreloadReason;
+      pendingCityAssetPreloadReason = "";
+      requestBackgroundCityAssetPreload(resumeReason);
+    }
   }
 
   function applyStaticTransform(object, options = {}) {
@@ -10514,6 +15365,7 @@ window.onload = () => {
     ) {
       selectedMap = normalizedMapId;
       mapSelect.value = selectedMap;
+      syncHomeSelectedMapDisplay();
       logMapPipelineStep(pipelineContext, "map load started", {
         reusedPendingLoad: true,
         activeBuildId: pendingMapLoadRequest.buildId
@@ -10524,6 +15376,7 @@ window.onload = () => {
     if (!forceReload && currentLoadedMapId === normalizedMapId && currentMapVisualVariant === visualVariant && mapGroup.children.length > 0) {
       selectedMap = normalizedMapId;
       mapSelect.value = selectedMap;
+      syncHomeSelectedMapDisplay();
       logMapPipelineStep(pipelineContext, "map ready success", {
         reusedLoadedMap: true,
         currentLoadedMapId,
@@ -10538,6 +15391,7 @@ window.onload = () => {
     const buildId = ++activeMapBuildId;
     selectedMap = normalizedMapId;
     mapSelect.value = selectedMap;
+    syncHomeSelectedMapDisplay();
     const previousLoadedMapId = currentLoadedMapId || "defaultVillage";
 
     const executeLoad = async () => {
@@ -10612,6 +15466,7 @@ window.onload = () => {
         clearCurrentMap();
         selectedMap = "defaultVillage";
         mapSelect.value = selectedMap;
+        syncHomeSelectedMapDisplay();
         currentMapVisualVariant = "";
         buildDefaultVillage();
         showStatusMessage(
@@ -10681,6 +15536,447 @@ window.onload = () => {
     }
 
     return normalizedMapId;
+  }
+
+  function syncHomeSelectedMapDisplay() {
+    if (!homeSelectedMapName || !mapSelect) {
+      return;
+    }
+
+    const selectedOption = mapSelect.options[mapSelect.selectedIndex];
+    homeSelectedMapName.textContent = selectedOption?.textContent || getMapDisplayName(selectedMap);
+  }
+
+  function getPlayableCharacterIndexById(characterId) {
+    const index = playableCharacters.findIndex((character) => character.id === characterId);
+    return index >= 0 ? index : 0;
+  }
+
+  function getCharacterPreviewCacheDebugState(character) {
+    const previewPath = character?.previewPath || "";
+    const cachedPreview = previewPath ? characterPreviewCache.get(previewPath) : null;
+    return {
+      selectedCharacterId: character?.id || "",
+      selectedLabel: character?.name || "",
+      previewPath,
+      cacheHasPath: characterPreviewCache.has(previewPath),
+      cacheLoaded: Boolean(cachedPreview?.loaded),
+      cacheLoading: Boolean(cachedPreview?.loadingPromise),
+      cacheFailed: Boolean(cachedPreview && cachedPreview.loaded === false && !cachedPreview.loadingPromise),
+      currentImgSrc: characterPreviewImage?.currentSrc || characterPreviewImage?.getAttribute("src") || "",
+      currentImgPreviewPath: characterPreviewImage?.dataset?.previewPath || "",
+      requestId: characterPreviewRequestId
+    };
+  }
+
+  function logCharacterPreviewCacheState(label, character) {
+    console.warn(label, getCharacterPreviewCacheDebugState(character));
+  }
+
+  function showCharacterPreviewPlaceholder(previewPath = "") {
+    if (characterPreviewImage) {
+      characterPreviewImage.hidden = true;
+      characterPreviewImage.alt = "";
+      characterPreviewImage.removeAttribute("src");
+      delete characterPreviewImage.dataset.previewPath;
+    }
+
+    if (characterPreviewPlaceholderText) {
+      characterPreviewPlaceholderText.hidden = false;
+    }
+
+    if (previewPath && !missingCharacterPreviewPaths.has(previewPath)) {
+      missingCharacterPreviewPaths.add(previewPath);
+      console.warn("[CHARACTER PREVIEW] missing preview image", previewPath);
+    }
+  }
+
+  function syncCharacterPreviewImage(selectedCharacter) {
+    if (!characterPreviewImage || !characterPreviewPlaceholderText) {
+      return;
+    }
+
+    const requestId = ++characterPreviewRequestId;
+    const previewPath = selectedCharacter?.previewPath || "";
+    const logPayload = {
+      selectedCharacterId: selectedCharacter?.id || "",
+      label: selectedCharacter?.name || "",
+      previewPath,
+      requestId
+    };
+    console.warn("[CHARACTER PREVIEW SWITCH]", logPayload);
+    if (isMotusManConfig(selectedCharacter)) {
+      console.log("[MOTUS MAN PREVIEW CHECK]", previewPath);
+    }
+    if (!previewPath) {
+      showCharacterPreviewPlaceholder();
+      return;
+    }
+
+    characterPreviewImage.dataset.previewPath = previewPath;
+    characterPreviewImage.dataset.previewRequestId = String(requestId);
+    characterPreviewImage.alt = `${selectedCharacter.name} preview`;
+
+    const applyLoadedPreview = (cachedPreview, source = "cache") => {
+      if (requestId !== characterPreviewRequestId || characterPreviewImage.dataset.previewPath !== previewPath) {
+        console.warn("[CHARACTER PREVIEW STALE IGNORED]", {
+          ...logPayload,
+          currentRequestId: characterPreviewRequestId,
+          source
+        });
+        return;
+      }
+
+      const resolvedPreviewSrc = cachedPreview?.image?.currentSrc || cachedPreview?.image?.src || previewPath;
+      characterPreviewImage.onload = null;
+      characterPreviewImage.onerror = null;
+      characterPreviewImage.hidden = true;
+      if (characterPreviewImage.getAttribute("src") !== resolvedPreviewSrc) {
+        characterPreviewImage.removeAttribute("src");
+      }
+      characterPreviewPlaceholderText.hidden = true;
+      if (characterPreviewImage.getAttribute("src") !== resolvedPreviewSrc) {
+        characterPreviewImage.src = resolvedPreviewSrc;
+      }
+      characterPreviewImage.hidden = false;
+      console.warn("[CHARACTER PREVIEW APPLY]", {
+        ...logPayload,
+        source,
+        resolvedPreviewSrc
+      });
+      console.warn("[PREVIEW APPLY IMMEDIATE]", getCharacterPreviewCacheDebugState(selectedCharacter));
+    };
+
+    const cachedPreview = characterPreviewCache.get(previewPath);
+    if (cachedPreview?.loaded) {
+      console.warn("[CHARACTER PREVIEW CACHE HIT]", logPayload);
+      console.warn("[PREVIEW CACHE HIT AFTER APPLY]", getCharacterPreviewCacheDebugState(selectedCharacter));
+      applyLoadedPreview(cachedPreview, "cache-hit");
+      return;
+    }
+
+    if (cachedPreview && cachedPreview.loaded === false && !cachedPreview.loadingPromise) {
+      console.warn("[CHARACTER PREVIEW CACHE MISS]", {
+        ...logPayload,
+        failed: true
+      });
+      console.warn("[PREVIEW CACHE MISS AFTER APPLY]", getCharacterPreviewCacheDebugState(selectedCharacter));
+      showCharacterPreviewPlaceholder(previewPath);
+      return;
+    }
+
+    console.warn("[CHARACTER PREVIEW CACHE MISS]", {
+      ...logPayload,
+      loading: Boolean(cachedPreview?.loadingPromise)
+    });
+    console.warn("[PREVIEW CACHE MISS AFTER APPLY]", getCharacterPreviewCacheDebugState(selectedCharacter));
+    characterPreviewImage.hidden = true;
+    characterPreviewImage.removeAttribute("src");
+    characterPreviewPlaceholderText.hidden = true;
+    loadCharacterPreviewImage(previewPath).then((result) => {
+      if (requestId !== characterPreviewRequestId || characterPreviewImage.dataset.previewPath !== previewPath) {
+        console.warn("[CHARACTER PREVIEW STALE IGNORED]", {
+          ...logPayload,
+          currentRequestId: characterPreviewRequestId,
+          loaded: result.loaded
+        });
+        return;
+      }
+      if (result.loaded) {
+        applyLoadedPreview(result, "async-load");
+        return;
+      }
+      showCharacterPreviewPlaceholder(previewPath);
+    });
+  }
+
+  function syncCharacterSelectionUi() {
+    selectedPlayableCharacterIndex = THREE.MathUtils.euclideanModulo(
+      selectedPlayableCharacterIndex,
+      playableCharacters.length
+    );
+    const selectedCharacter = playableCharacters[selectedPlayableCharacterIndex] || playableCharacters[0];
+    selectedPlayableCharacterId = selectedCharacter.id;
+    if (characterSelectedName) {
+      characterSelectedName.textContent = selectedCharacter.name;
+    }
+    syncCharacterPreviewImage(selectedCharacter);
+    console.warn("[CHARACTER SELECT CHANGE]", getCharacterSelectionDiagnosticPayload(selectedCharacter));
+  }
+
+  function setSelectedPlayableCharacter(characterId, { persist = false, showStatus = false } = {}) {
+    selectedPlayableCharacterIndex = getPlayableCharacterIndexById(characterId);
+    syncCharacterSelectionUi();
+    if (persist) {
+      activePlayableCharacterId = selectedPlayableCharacterId;
+      saveBasicUserSettings();
+      if (showStatus) {
+        showStatusMessage(`${playableCharacters[selectedPlayableCharacterIndex].name} selected.`, 1400);
+      }
+    }
+  }
+
+  function getCharacterLoadFailureReason(error, previousValidCharacterExists = true) {
+    if (error?.fallbackReason) {
+      return error.fallbackReason;
+    }
+
+    const message = String(error?.message || error || "").toLowerCase();
+    if (message.includes("parse")) {
+      return "FBX parse failed";
+    }
+    if (message.includes("animation")) {
+      return previousValidCharacterExists
+        ? "animation load failed"
+        : "animation load failed and no previous valid character";
+    }
+    if (message.includes("texture")) {
+      return "texture fatal failure";
+    }
+    if (message.includes("visible mesh")) {
+      return "no visible meshes";
+    }
+    return "model fetch failed";
+  }
+
+  function withCharacterApplyHardTimeout(promise, characterConfig, requestId) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const timeoutId = window.setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        const error = new Error(`Character Apply timed out after ${CHARACTER_APPLY_HARD_TIMEOUT_MS}ms`);
+        error.isCharacterApplyHardTimeout = true;
+        error.fallbackReason = "model fetch failed";
+        console.warn("[CHARACTER APPLY HARD_TIMEOUT]", getCharacterLoadPayload(characterConfig, requestId, {
+          timeoutMs: CHARACTER_APPLY_HARD_TIMEOUT_MS
+        }));
+        reject(error);
+      }, CHARACTER_APPLY_HARD_TIMEOUT_MS);
+
+      promise
+        .then((result) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          window.clearTimeout(timeoutId);
+          resolve(result);
+        })
+        .catch((error) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          window.clearTimeout(timeoutId);
+          reject(error);
+        });
+    });
+  }
+
+  async function applySelectedPlayableCharacter({ showStatus = true } = {}) {
+    if (characterApplyLoading) {
+      return;
+    }
+
+    const selectedCharacter = getSelectedPlayableCharacterConfig();
+    const previousActiveCharacterId = activePlayableCharacterId;
+    const previousValidCharacterExists = Boolean(playerActor?.motusManVisual?.parent);
+    const requestId = ++characterApplyRequestId;
+    if (!CHARACTER_APPLY_LOADING_OVERLAY_ENABLED) {
+      characterApplyLoading = false;
+      console.warn("[CHARACTER APPLY NON_BLOCKING_TEST_MODE]", getCharacterLoadPayload(selectedCharacter, requestId, {
+        previousActiveCharacterId,
+        previousValidCharacterExists
+      }));
+    }
+    if (!characterApplySimpleModeLogged) {
+      console.warn("[CHARACTER APPLY SIMPLE MODE ACTIVE]", {
+        debugCharacterLoading: DEBUG_CHARACTER_LOADING,
+        debugHeldGun: DEBUG_HELD_GUN,
+        backgroundCharacterPreloadEnabled: BACKGROUND_CHARACTER_PRELOAD_ENABLED,
+        backgroundCityPreloadEnabled: BACKGROUND_CITY_PRELOAD_ENABLED
+      });
+      characterApplySimpleModeLogged = true;
+    }
+    if (DEBUG_CHARACTER_LOADING) {
+      logCharacterPreviewCacheState("[PREVIEW CACHE STATE BEFORE APPLY]", selectedCharacter);
+    }
+    showCharacterLoadingOverlay(selectedCharacter.name || "selected character");
+    setCharacterLoadPriorityMode(true, `Apply Character: ${selectedCharacter.name}`);
+    console.warn("[CHARACTER APPLY LOAD GATE START]", getCharacterLoadPayload(selectedCharacter, requestId, {
+      previousActiveCharacterId,
+      previousValidCharacterExists
+    }));
+    console.log("[CHARACTER] Applying character with loading gate:", selectedCharacter.name, selectedCharacter.modelPath, selectedCharacter.animationFolder);
+    logCharacter02ActiveConfig(selectedCharacter);
+
+    try {
+      if (!CHARACTER_APPLY_LOADING_OVERLAY_ENABLED) {
+        console.warn("[CHARACTER APPLY BACKGROUND_LOAD_START]", getCharacterLoadPayload(selectedCharacter, requestId, {
+          previousActiveCharacterId,
+          previousValidCharacterExists
+        }));
+      }
+      const loadedCharacter = await withCharacterApplyHardTimeout(
+        loadCharacterFully(selectedCharacter, requestId),
+        selectedCharacter,
+        requestId
+      );
+      if (requestId !== characterApplyRequestId) {
+        console.warn("[CHARACTER LOAD STALE IGNORED]", getCharacterLoadPayload(selectedCharacter, requestId, {
+          phase: "before attach",
+          currentRequestId: characterApplyRequestId
+        }));
+        return;
+      }
+
+      if (!CHARACTER_APPLY_LOADING_OVERLAY_ENABLED) {
+        console.warn("[CHARACTER APPLY BACKGROUND_LOAD_SUCCESS]", getCharacterLoadPayload(selectedCharacter, requestId, {
+          previousActiveCharacterId,
+          previousValidCharacterExists
+        }));
+        console.warn("[CHARACTER APPLY SWAP_WHEN_READY]", getCharacterLoadPayload(selectedCharacter, requestId, {
+          previousActiveCharacterId
+        }));
+      }
+      activePlayableCharacterId = selectedCharacter.id;
+      attachFullyLoadedCharacterToPlayer(loadedCharacter, requestId);
+      saveBasicUserSettings();
+      if (DEBUG_CHARACTER_LOADING) {
+        logCharacterPreviewCacheState("[PREVIEW CACHE STATE AFTER APPLY]", selectedCharacter);
+      }
+      if (showStatus) {
+        showStatusMessage(`${selectedCharacter.name} selected.`, 1400);
+      }
+      hideCharacterLoadingOverlay();
+      console.warn("[CHARACTER APPLY COMPLETE]", getCharacterLoadPayload(selectedCharacter, requestId));
+      console.warn("[CHARACTER APPLY DONE]", getCharacterLoadPayload(selectedCharacter, requestId));
+      setCharacterLoadPriorityMode(false, `Apply Character ready: ${selectedCharacter.name}`);
+    } catch (error) {
+      if (error?.isStaleCharacterLoad) {
+        setCharacterLoadPriorityMode(false, `Apply Character stale: ${selectedCharacter.name}`);
+        return;
+      }
+      if (error?.isCharacterApplyHardTimeout && requestId === characterApplyRequestId) {
+        characterApplyRequestId += 1;
+      }
+
+      const fallbackReason = getCharacterLoadFailureReason(error, previousValidCharacterExists);
+      if (!CHARACTER_APPLY_LOADING_OVERLAY_ENABLED) {
+        console.error("[CHARACTER APPLY BACKGROUND_LOAD_FAILED]", getCharacterLoadPayload(selectedCharacter, requestId, {
+          reason: fallbackReason,
+          previousActiveCharacterId,
+          previousValidCharacterExists,
+          error
+        }));
+      }
+      console.error("[CHARACTER LOAD FAILED]", getCharacterLoadPayload(selectedCharacter, requestId, {
+        reason: fallbackReason,
+        error
+      }));
+      activePlayableCharacterId = previousActiveCharacterId;
+      if (previousValidCharacterExists) {
+        setHeldGunTransformForCharacter(previousActiveCharacterId, {
+          settings: lastHeldGunSettingsSnapshot,
+          log: true
+        });
+        showStatusMessage(`${selectedCharacter.name} failed to load. Keeping current character.`, 2200);
+      } else {
+        console.error("[BLUE BOX FALLBACK USED]", {
+          reason: fallbackReason,
+          selectedCharacterId: selectedCharacter.id,
+          selectedLabel: selectedCharacter.name,
+          attemptedModelPath: selectedCharacter.modelPath,
+          attemptedPreviewPath: selectedCharacter.previewPath
+        });
+        showStatusMessage(`${selectedCharacter.name} failed to load. Using fallback.`, 2200);
+        reloadLocalPlayerCharacterVisual("selected character load failed with no previous valid character")
+          .catch((reloadError) => {
+            console.error("[CHARACTER LOAD FAILED]", {
+              reason: "model fetch failed",
+              error: reloadError
+            });
+          });
+      }
+      hideCharacterLoadingOverlay();
+      setCharacterLoadPriorityMode(false, `Apply Character failed: ${selectedCharacter.name}`);
+    }
+  }
+
+  function stepPlayableCharacter(direction) {
+    selectedPlayableCharacterIndex = THREE.MathUtils.euclideanModulo(
+      selectedPlayableCharacterIndex + direction,
+      playableCharacters.length
+    );
+    syncCharacterSelectionUi();
+  }
+
+  function hideCharacterSelectionViewOnly() {
+    if (!characterSelectionView) {
+      return;
+    }
+
+    characterSelectionView.setAttribute("hidden", "true");
+    characterSelectionView.setAttribute("aria-hidden", "true");
+    characterSelectionView.hidden = true;
+  }
+
+  function setCharacterSelectionViewOpen(isOpen) {
+    if (!characterSelectionView || !homePanel) {
+      return;
+    }
+
+    if (isOpen) {
+      setHomeGunViewOpen(false);
+      setHomeSettingsViewOpen(false);
+      resetAimTrainingCardLoadingStates();
+      homePanel.setAttribute("hidden", "true");
+      homePanel.setAttribute("aria-hidden", "true");
+      homePanel.hidden = true;
+      aimTrainingView?.setAttribute("hidden", "true");
+      aimTrainingView?.setAttribute("aria-hidden", "true");
+      if (aimTrainingView) aimTrainingView.hidden = true;
+      characterSelectionView.removeAttribute("hidden");
+      characterSelectionView.setAttribute("aria-hidden", "false");
+      characterSelectionView.hidden = false;
+      setHomeRedesignActiveTab(homeNavCharacterButton);
+      logCharacterPreviewCacheState("[PREVIEW CACHE STATE ON CHARACTER MENU OPEN]", getSelectedPlayableCharacterConfig());
+      syncCharacterSelectionUi();
+      return;
+    }
+
+    hideCharacterSelectionViewOnly();
+    homePanel.removeAttribute("hidden");
+    homePanel.setAttribute("aria-hidden", "false");
+    homePanel.hidden = false;
+    setHomeRedesignActiveTab(homeNavHomeButton);
+  }
+
+  function setHomeRedesignActiveTab(activeButton) {
+    const tabs = instructions.querySelectorAll(".home-nav-tab");
+    tabs.forEach((button) => {
+      button.classList.toggle("is-active", button === activeButton);
+    });
+  }
+
+  function focusHomeRedesignSection(sectionName) {
+    const target = homePanel?.querySelector(`[data-home-section="${sectionName}"]`);
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest"
+    });
+    target.classList.add("home-section-focus");
+    window.setTimeout(() => {
+      target.classList.remove("home-section-focus");
+    }, 900);
   }
 
   function getActiveSessionMapId() {
@@ -13417,11 +18713,13 @@ window.onload = () => {
     clearActiveMobileGameplayInputs();
     setHomeGunViewOpen(false);
     setHomeSettingsViewOpen(false);
+    setCharacterSelectionViewOpen(false);
     setCameraPreviewCursorHintVisible(false);
     resetRecoilOffsets();
     createMainMenu();
     document.body.classList.add("main-menu-open");
     instructions.setAttribute("aria-hidden", "false");
+    setHomeRedesignActiveTab(homeNavHomeButton);
     setPlayingUi(false);
     syncHomeOnlineModePanelPlacement();
   }
@@ -13429,6 +18727,7 @@ window.onload = () => {
   function hideMainMenu() {
     setHomeGunViewOpen(false);
     setHomeSettingsViewOpen(false);
+    hideCharacterSelectionViewOnly();
     document.body.classList.remove("main-menu-open");
     instructions.setAttribute("aria-hidden", "true");
     setPlayingUi(true);
@@ -13440,6 +18739,17 @@ window.onload = () => {
     if (!startupReady) {
       return;
     }
+
+    const selectedCharacterForStart = getSelectedPlayableCharacterConfig();
+    const activeCharacterForStart = getActivePlayableCharacterConfig();
+    console.warn("[CHARACTER START GAME]", {
+      ...getCharacterSelectionDiagnosticPayload(selectedCharacterForStart),
+      activeCharacterId: activeCharacterForStart.id,
+      activeLabel: activeCharacterForStart.name,
+      activeModelPath: activeCharacterForStart.modelPath,
+      activePreviewPath: activeCharacterForStart.previewPath,
+      activeAnimationProfile: getCharacterAnimationProfile(activeCharacterForStart)
+    });
 
     commitPlayerIdentitySettings();
     logMapPipelineStep(
@@ -13505,6 +18815,7 @@ window.onload = () => {
     syncUiTransparencyInput();
     syncMobileCameraSensitivityInput();
     syncPlayerIdentityInputs();
+    syncGunPositionSlidersFromSettings();
     syncSettingsDebugReadout();
     syncMobileLayoutSettingsAvailability();
     syncSettingsTabAvailability();
@@ -15644,6 +20955,7 @@ window.onload = () => {
 
     return {
       name: playerName,
+      selectedCharacterId: getValidPlayableCharacterId(activePlayableCharacterId),
       mapId: getActiveSessionMapId(),
       position: {
         x: Number(player.position.x.toFixed(3)),
@@ -15726,6 +21038,10 @@ window.onload = () => {
     remotePlayer.visual.visible = false;
     remotePlayer.playerId = id;
     remotePlayer.playerName = typeof state?.name === "string" ? state.name : "";
+    remotePlayer.selectedCharacterId = getValidPlayableCharacterId(state?.selectedCharacterId);
+    remotePlayer.renderedCharacterId = "";
+    remotePlayer.remoteCharacterLoadingId = "";
+    remotePlayer.remoteCharacterLoadToken = 0;
     remotePlayer.targetPosition = new THREE.Vector3();
     remotePlayer.targetRotation = new THREE.Euler();
     remotePlayer.targetYaw = 0;
@@ -15800,6 +21116,14 @@ window.onload = () => {
     const weaponState = state.weapon ?? {};
     const now = performance.now();
     const hasExistingPacket = lastPacketTimestamps.has(id);
+    const nextSelectedCharacterId = typeof state.selectedCharacterId === "string"
+      ? getValidPlayableCharacterId(state.selectedCharacterId)
+      : remotePlayer.selectedCharacterId || playableCharacters[0].id;
+
+    if (nextSelectedCharacterId !== remotePlayer.selectedCharacterId) {
+      remotePlayer.selectedCharacterId = nextSelectedCharacterId;
+      attachMotusManToRemotePlayer(remotePlayer);
+    }
 
     remotePlayer.isGrounded = state.isGrounded;
     remotePlayer.jumpSequenceId = state.jumpSequenceId;
@@ -15897,6 +21221,7 @@ window.onload = () => {
       remotePlayer.remoteJumpActiveMode = "idle";
     }
     clearActorPvpHitboxes(remotePlayer);
+    removeCosmeticHeldGun(remotePlayer, "remote player removed");
     removePlayerNameplate(remotePlayer.nameplate);
     remotePlayer.nameplate = null;
     cleanupActorEffects(remotePlayer);
@@ -15945,6 +21270,10 @@ window.onload = () => {
       );
       if (remotePlayer.characterMixer) {
         remotePlayer.characterMixer.update(delta);
+      }
+      const remoteHeldGunState = getActiveCosmeticHeldGunState(remotePlayer);
+      if (remoteHeldGunState?.gun?.parent) {
+        updateCosmeticHeldGunTransform(remoteHeldGunState, animationFrameId);
       }
 
       // --- Remote movement animation (walk/jog/jump based on network state) ---
@@ -18833,14 +24162,24 @@ window.onload = () => {
     return true;
   }
 
+  function setCameraCrosshairShotRay(targetRaycaster = raycaster) {
+    camera.updateMatrixWorld();
+    camera.getWorldPosition(shotAimOrigin);
+    camera.getWorldDirection(shotAimDirection).normalize();
+    targetRaycaster.near = 0;
+    targetRaycaster.far = Infinity;
+    targetRaycaster.set(shotAimOrigin, shotAimDirection);
+    return targetRaycaster.ray;
+  }
+
   function buildLocalShotPayload() {
-    raycaster.setFromCamera(screenCenterNdc, camera);
+    const shotRay = setCameraCrosshairShotRay(raycaster);
 
     return {
       shotId: `${localPlayerId || "local"}-${Date.now()}-${nextLanShotSequence += 1}`,
       timestamp: Date.now(),
-      origin: buildNetworkVector3Payload(raycaster.ray.origin, 4),
-      direction: buildNetworkVector3Payload(raycaster.ray.direction, 5),
+      origin: buildNetworkVector3Payload(shotRay.origin, 4),
+      direction: buildNetworkVector3Payload(shotRay.direction, 5),
       cameraYaw: Number(getEffectiveCameraYaw().toFixed(4)),
       cameraPitch: Number(getEffectiveCameraPitch().toFixed(4)),
       weapon: buildNetworkWeaponState(currentGun)
@@ -21951,10 +27290,62 @@ window.onload = () => {
     return hits.length > 0 ? hits[0] : null;
   }
 
+  function getShotDebugVectorPayload(vector, precision = 4) {
+    if (!vector) {
+      return null;
+    }
+
+    return {
+      x: Number(vector.x.toFixed(precision)),
+      y: Number(vector.y.toFixed(precision)),
+      z: Number(vector.z.toFixed(precision))
+    };
+  }
+
+  function getShotHitObjectName(shotImpact) {
+    if (!shotImpact) {
+      return "";
+    }
+
+    if (shotImpact.type === "enemy") {
+      return shotImpact.hit?.object?.name || shotImpact.enemyActor?.root?.name || "enemy";
+    }
+
+    return shotImpact.object?.name || shotImpact.hit?.object?.name || "";
+  }
+
+  function logLocalShootAimSource(shotRay) {
+    const cosmeticGunExists = Boolean(getActiveCosmeticHeldGunState());
+    console.warn("[SHOOT AIM SOURCE]", {
+      aimSource: "camera-crosshair",
+      characterId: activePlayableCharacterId,
+      cameraOrigin: getShotDebugVectorPayload(shotRay?.origin),
+      cameraDirection: getShotDebugVectorPayload(shotRay?.direction, 5),
+      cosmeticGunExists,
+      cosmeticGunMuzzleIgnoredForHitDetection: cosmeticGunExists
+    });
+
+    if (cosmeticGunExists) {
+      console.warn("[SHOOT BUG PREVENTED] cosmetic gun muzzle ignored for hit detection", {
+        aimSource: "camera-crosshair",
+        characterId: activePlayableCharacterId
+      });
+    }
+  }
+
+  function logLocalShootHitResult(shotImpact) {
+    console.warn("[SHOOT HIT RESULT]", {
+      hitObjectName: getShotHitObjectName(shotImpact),
+      hitPoint: getShotDebugVectorPayload(shotImpact?.hit?.point),
+      hitDistance: Number.isFinite(shotImpact?.hit?.distance)
+        ? Number(shotImpact.hit.distance.toFixed(4))
+        : null,
+      wasEnemyHit: shotImpact?.type === "enemy"
+    });
+  }
+
   function resolveLocalShotImpact() {
-    raycaster.near = 0;
-    raycaster.far = Infinity;
-    raycaster.setFromCamera(screenCenterNdc, camera);
+    setCameraCrosshairShotRay(raycaster);
 
     const nearestTrackingBallHit = getFirstTrackingBallHit();
     const nearestGridShotHit = getFirstGridShotHit();
@@ -22017,6 +27408,8 @@ window.onload = () => {
     triggerActorMuzzleFlash(playerActor);
 
     const shotImpact = resolveLocalShotImpact();
+    logLocalShootAimSource(raycaster.ray);
+    logLocalShootHitResult(shotImpact);
 
     if (isGridShotActive && gridShotTimer > 0) {
       if (shotImpact?.type === "gridshot" && shotImpact.object) {
@@ -22208,6 +27601,50 @@ window.onload = () => {
 
     listenersBound = true;
 
+    console.log("[HOME REDESIGN] initialized");
+    console.log("[HOME REDESIGN] preserved existing action", "ready/map/aim-training/settings/loadout/camera/fullscreen/multiplayer");
+
+    homeNavHomeButton?.addEventListener("click", () => {
+      setHomeRedesignActiveTab(homeNavHomeButton);
+      homePanel?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    homeNavPlayButton?.addEventListener("click", () => {
+      setHomeRedesignActiveTab(homeNavPlayButton);
+      focusHomeRedesignSection("play");
+    });
+
+    homeNavCharacterButton?.addEventListener("click", () => {
+      setCharacterSelectionViewOpen(true);
+    });
+
+    homeNavMultiplayerButton?.addEventListener("click", () => {
+      setHomeRedesignActiveTab(homeNavMultiplayerButton);
+      focusHomeRedesignSection("multiplayer");
+    });
+
+    homeNavExitButton?.addEventListener("click", () => {
+      setHomeRedesignActiveTab(homeNavExitButton);
+      showStatusMessage("Exit is not available in browser.", 1600);
+    });
+
+    characterSelectionHomeButton?.addEventListener("click", () => {
+      setCharacterSelectionViewOpen(false);
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    });
+
+    characterPreviousButton?.addEventListener("click", () => {
+      stepPlayableCharacter(-1);
+    });
+
+    characterNextButton?.addEventListener("click", () => {
+      stepPlayableCharacter(1);
+    });
+
+    characterApplyButton?.addEventListener("click", () => {
+      applySelectedPlayableCharacter({ showStatus: true });
+    });
+
     homeCameraEntryButton.addEventListener("click", async () => {
       await openCameraCustomizationForCurrentContext();
     });
@@ -22218,6 +27655,7 @@ window.onload = () => {
 
     // Home page settings entry button
     homeSettingsEntryButton.addEventListener("click", () => {
+      setHomeRedesignActiveTab(homeSettingsEntryButton);
       setHomeSettingsViewOpen(true);
     });
 
@@ -22231,10 +27669,12 @@ window.onload = () => {
 
     homeGunBackButton.addEventListener("click", () => {
       setHomeGunViewOpen(false);
+      setHomeRedesignActiveTab(homeNavHomeButton);
     });
 
     if (trainAimButton && aimTrainingView && homePanel) {
       trainAimButton.addEventListener("click", (e) => {
+        setHomeRedesignActiveTab(trainAimButton);
         e.preventDefault();
         e.stopPropagation();
         console.log("[AIM TRAINING] Train Aim clicked");
@@ -22256,6 +27696,19 @@ window.onload = () => {
       console.warn("[AIM TRAINING] Scaffolding elements missing", { trainAimButton, aimTrainingView, homePanel });
     }
 
+    aimPracticeSection?.addEventListener("click", (event) => {
+      event.preventDefault();
+      trainAimButton?.click();
+    });
+
+    aimPracticeSection?.addEventListener("keydown", (event) => {
+      if (event.code !== "Enter" && event.code !== "Space") {
+        return;
+      }
+      event.preventDefault();
+      trainAimButton?.click();
+    });
+
     if (aimTrainingHomeButton && aimTrainingView && homePanel) {
       aimTrainingHomeButton.addEventListener("click", (e) => {
         e.preventDefault();
@@ -22275,6 +27728,7 @@ window.onload = () => {
         homePanel.removeAttribute("hidden");
         homePanel.setAttribute("aria-hidden", "false");
         homePanel.hidden = false;
+        setHomeRedesignActiveTab(homeNavHomeButton);
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       });
     }
@@ -22447,6 +27901,7 @@ window.onload = () => {
 
     homeSettingsBackButton.addEventListener("click", () => {
       setHomeSettingsViewOpen(false);
+      setHomeRedesignActiveTab(homeNavHomeButton);
     });
 
     if (cameraCustomizationPreviewButton) {
@@ -22502,6 +27957,7 @@ window.onload = () => {
 
     mapSelect.addEventListener("change", async () => {
       selectedMap = mapSelect.value;
+      syncHomeSelectedMapDisplay();
       logMapPipelineStep(
         createMapPipelineContext(selectedMap, "menu selection"),
         "new map selected",
@@ -22824,6 +28280,43 @@ window.onload = () => {
       }
 
       resetSettingsCategoryToDefault();
+    });
+
+    for (const config of venTestGunTransformControlConfigs) {
+      const controls = getVenTestGunTransformControlElements(config.key);
+      if (!controls.input) {
+        continue;
+      }
+
+      controls.input.addEventListener("input", () => {
+        if (controls.input.value === "") {
+          return;
+        }
+
+        updateGunPositionFromSlider(config.key, controls.input.value, {
+          persist: true
+        });
+      });
+
+      controls.input.addEventListener("change", () => {
+        if (controls.input.value === "") {
+          syncSettingsInputs();
+          return;
+        }
+
+        updateGunPositionFromSlider(config.key, controls.input.value, {
+          persist: true
+        });
+      });
+    }
+
+    gunPositionResetButton.addEventListener("click", () => {
+      resetVenTestGunTransformSettings();
+    });
+
+    gunPositionSaveButton.addEventListener("click", () => {
+      saveVenTestGunTransformSettings("save");
+      showStatusMessage("Gun position saved.", 1400);
     });
 
     settingsFovInput.addEventListener("input", () => {
@@ -23877,6 +29370,7 @@ window.onload = () => {
   function animate() {
     animationLoopStarted = true;
     requestAnimationFrame(animate);
+    const frameId = ++animationFrameId;
     const delta = Math.min(clock.getDelta(), 0.033);
     const frameTime = performance.now();
     updateRecoil(delta);
@@ -23899,6 +29393,10 @@ window.onload = () => {
     if (playerAnimationMixer) {
       playerAnimationMixer.update(delta);
     }
+    applyVenFingerNeutralPoseOncePerFrame(frameId);
+    updateCosmeticHeldGun(frameId);
+    applyVenAimPoseCorrectionOncePerFrame(frameId);
+    updateCharacter02AnimationTest(delta);
     updateRemotePlayers(delta);
     updateCamera(delta);
     updatePlayerNameplates();
@@ -23926,10 +29424,12 @@ window.onload = () => {
   bindDeviceModeChooserEvents();
   closeMenus();
   ensureMapOption(ironworksYardMapId, ironworksYardDisplayName);
+  syncHomeSelectedMapDisplay();
   setCrosshairCustomizationPanelOpen(false);
   updateStartupLoadingProgress();
   loadGunConfigs();
   loadSavedSettings();
+  syncCharacterSelectionUi();
   handleResize({
     reason: "startup-initial-layout",
     emitLog: false

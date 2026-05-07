@@ -149,61 +149,85 @@
   </div>
   <div id="hud">
     <div id="instructions" aria-hidden="false">
-      <!-- Home page settings entry button -->
-      <div class="home-entry-actions">
-        <button id="home-camera-entry-button" type="button">Camera Customisation</button>
-        <button id="home-gun-entry-button" type="button" aria-expanded="false">Gun Modification</button>
-        <button id="home-settings-entry-button" type="button" aria-expanded="false">Settings</button>
-        <button id="home-music-toggle-button" class="home-music-toggle" type="button" aria-pressed="true">Music: ON</button>
-        <button id="home-fullscreen-button" type="button">Fullscreen</button>
-      </div>
       <div class="home-panel home-surface-panel">
-        <p class="home-eyebrow">Browser Third-Person Shooter</p>
-        <h1>Cube Village Stand-Off</h1>
-        <p class="home-intro">Suit up before deployment, review the controls, choose your map, and launch into the arena
-          only when you are ready to start the fight.</p>
-        <div class="home-grid">
-          <section class="home-section">
-            <h2>Controls</h2>
-            <ul class="controls-list">
-              <li>`WASD` move</li>
-              <li>`Shift` sprint</li>
-              <li>`Space` jump</li>
-              <li>Mouse aim</li>
-              <li>`Left Click` fire</li>
-              <li>`R` reload</li>
-              <li>`M` interaction menu</li>
-              <li>`K` settings</li>
-            </ul>
+        <header class="home-top-nav" aria-label="Home navigation">
+          <div class="home-brand-area">
+            <span class="home-player-badge" aria-hidden="true">AB</span>
+            <div>
+              <span class="home-player-label">PLAYER_01</span>
+              <strong>Aim Built</strong>
+            </div>
+          </div>
+          <nav class="home-nav-tabs" aria-label="Main Home actions">
+            <button id="home-nav-home-button" class="home-nav-tab is-active" type="button">HOME</button>
+            <button id="train-aim-button" class="home-nav-tab" type="button">AIM TRAINING</button>
+            <button id="home-nav-character-button" class="home-nav-tab" type="button">CHARACTER</button>
+            <button id="home-settings-entry-button" class="home-nav-tab" type="button" aria-expanded="false">SETTINGS</button>
+            <button id="home-nav-multiplayer-button" class="home-nav-tab" type="button">MULTIPLAYER</button>
+            <button id="home-nav-exit-button" class="home-nav-tab" type="button">EXIT</button>
+          </nav>
+          <div class="home-nav-utilities">
+            <button id="home-music-toggle-button" class="home-music-toggle" type="button" aria-pressed="true">Music: ON</button>
+            <button id="home-fullscreen-button" type="button">Fullscreen</button>
+          </div>
+        </header>
+
+        <div class="home-main-layout">
+          <section id="aim-practice-section" class="home-section home-training-panel home-clickable-section"
+            role="button" tabindex="0" aria-label="Open Aim Training" aria-labelledby="home-training-title">
+            <p class="home-eyebrow">Training</p>
+            <h2 id="home-training-title">Aim Training</h2>
+            <p>Open the existing mode chooser for Grid Shot, Tracking Ball, Jiggle Training, and Medium Range.</p>
+            <span class="home-training-cta">Open Aim Training</span>
           </section>
-          <section class="home-section">
-            <h2>Mission Brief</h2>
-            <p>Press Ready, then click into the game to lock the mouse and start fighting.</p>
-            <label class="menu-field" for="map-select">
-              <span>Map</span>
-              <select id="map-select">
-                <option value="defaultVillage">Default Village</option>
-                <option value="industrialDome">Industrial Dome</option>
-                <option value="blossomGarden">Blossom Garden</option>
-                <option value="ironworksYard">Iron Workshop Yard</option>
-              </select>
-            </label>
+
+          <section class="home-section home-quick-section">
+            <p class="home-eyebrow">Loadout</p>
+            <h2>Preparation</h2>
+            <div class="home-utility-actions">
+              <button id="home-gun-entry-button" type="button" aria-expanded="false">Gun Modification</button>
+              <button id="home-camera-entry-button" type="button">Camera Customisation</button>
+            </div>
           </section>
-          <section id="aim-practice-section" class="home-section">
-            <h2>Aim Practice</h2>
-            <p>Train your reflexes and tracking in specialized practice modes.</p>
-            <button id="train-aim-button" type="button" class="action-button">TRAIN AIM</button>
-          </section>
-          <section class="home-section home-online-mode-section" aria-labelledby="home-online-mode-title">
+
+          <aside class="home-actions-panel" aria-label="Quick actions">
+            <section class="home-section home-play-panel" data-home-section="play" aria-labelledby="home-play-title">
+              <p class="home-eyebrow">Primary Mode</p>
+              <h2 id="home-play-title">Play</h2>
+              <p>Choose a combat map and deploy into the arena.</p>
+              <label class="menu-field" for="map-select">
+                <span>Map</span>
+                <select id="map-select">
+                  <option value="defaultVillage">Default Village</option>
+                  <option value="industrialDome">Industrial Dome</option>
+                  <option value="blossomGarden">Blossom Garden</option>
+                  <option value="ironworksYard">Iron Workshop Yard</option>
+                </select>
+              </label>
+              <div class="home-map-readout" aria-live="polite">
+                <span>Selected Map</span>
+                <strong id="home-selected-map-name">Default Village</strong>
+              </div>
+              <button id="ready-button" type="button">Play</button>
+            </section>
+            <section class="home-section home-online-mode-section" aria-labelledby="home-online-mode-title" data-home-section="multiplayer">
             <p class="home-eyebrow">Shared Multiplayer</p>
             <h2 id="home-online-mode-title">ONLINE MODE</h2>
-            <p>Use the same server address for both buttons below. Leave it blank to use the default multiplayer
-              endpoint for the current environment, or enter a LAN/server address manually.</p>
+              <p>Host or join from the shared multiplayer panel.</p>
             <div id="home-online-mode-mount" class="home-shared-panel-slot" aria-label="Online multiplayer panel"></div>
           </section>
+          </aside>
         </div>
-        <button id="ready-button" type="button">Ready</button>
-      </div>
+
+        <footer class="home-bottom-help">
+          <span>WASD Move</span>
+          <span>Shift Sprint</span>
+          <span>Mouse Aim</span>
+          <span>Left Click Fire</span>
+          <span>R Reload</span>
+          <span>K Settings</span>
+        </footer>
+        </div>
       <div id="home-settings-view" class="home-settings-view" aria-hidden="true" hidden>
         <div class="home-settings-shell home-surface-panel">
           <div class="home-settings-toolbar">
@@ -238,6 +262,33 @@
                 gun modification controls.</p>
               <div id="home-gun-customization-mount" class="home-shared-panel-slot"></div>
             </section>
+          </div>
+        </div>
+      </div>
+      <div id="character-selection-view" class="home-settings-view home-character-view" aria-hidden="true" hidden>
+        <div class="home-settings-shell home-surface-panel">
+          <div class="home-settings-toolbar">
+            <div>
+              <p class="home-eyebrow">Character</p>
+              <h2>Character</h2>
+              <p class="home-settings-copy">Choose your player character.</p>
+            </div>
+            <button id="character-selection-home-button" type="button">Back to Home</button>
+          </div>
+          <div class="character-selection-shell" aria-label="Character selection">
+            <p class="home-eyebrow">Character Preview</p>
+            <div class="character-preview-placeholder" aria-label="Character preview placeholder">
+              <div class="character-preview-content">
+                <img id="character-preview-image" class="character-preview-image" alt="" hidden>
+                <span id="character-preview-placeholder-text" class="character-preview-placeholder-text">Character preview coming soon</span>
+              </div>
+            </div>
+            <div class="character-selector-row">
+              <button id="character-previous-button" class="character-arrow-button" type="button" aria-label="Previous character">&lt;</button>
+              <strong id="character-selected-name" class="character-selected-name">Default Soldier</strong>
+              <button id="character-next-button" class="character-arrow-button" type="button" aria-label="Next character">&gt;</button>
+            </div>
+            <button id="character-apply-button" class="character-apply-button" type="button">Apply Character</button>
           </div>
         </div>
       </div>
@@ -845,6 +896,78 @@
                       <span class="menu-slider-value" id="movement-sprint-speed-value">158%</span>
                     </div>
                   </label>
+                </div>
+              </section>
+            </div>
+            <div class="settings-accordion-section" data-settings-section="gunPosition">
+              <button id="settings-tab-gun-position" class="settings-tab-button settings-accordion-button"
+                type="button" data-settings-tab="gunPosition" aria-selected="false" aria-expanded="false">
+                Gun Position
+              </button>
+              <section id="settings-panel-gun-position" class="settings-tab-panel"
+                data-settings-tab-panel="gunPosition" aria-labelledby="settings-tab-gun-position" hidden>
+                <div class="settings-panel-copy">
+                  <h3>Gun Position</h3>
+                  <p>Change Position of Gun for the Ven TEST held Uzi.</p>
+                </div>
+                <div class="settings-card">
+                  <h4>Change Position of Gun</h4>
+                  <div id="gun-position-active-note" class="menu-help-text">
+                    Start or preview Ven TEST to tune held gun position.
+                  </div>
+                  <label class="menu-field" for="gun-position-x-input">
+                    <span class="menu-field-split">
+                      <span>Gun Position X</span>
+                      <strong id="gun-position-x-value" class="menu-field-value">0.02</strong>
+                    </span>
+                    <input type="range" id="gun-position-x-input" min="-2" max="2" step="0.01" value="0.015">
+                  </label>
+                  <label class="menu-field" for="gun-position-y-input">
+                    <span class="menu-field-split">
+                      <span>Gun Position Y</span>
+                      <strong id="gun-position-y-value" class="menu-field-value">-0.03</strong>
+                    </span>
+                    <input type="range" id="gun-position-y-input" min="-2" max="2" step="0.01" value="-0.025">
+                  </label>
+                  <label class="menu-field" for="gun-position-z-input">
+                    <span class="menu-field-split">
+                      <span>Gun Position Z</span>
+                      <strong id="gun-position-z-value" class="menu-field-value">0.10</strong>
+                    </span>
+                    <input type="range" id="gun-position-z-input" min="-2" max="2" step="0.01" value="0.095">
+                  </label>
+                  <label class="menu-field" for="gun-rotation-x-input">
+                    <span class="menu-field-split">
+                      <span>Gun Rotation X</span>
+                      <strong id="gun-rotation-x-value" class="menu-field-value">0 deg</strong>
+                    </span>
+                    <input type="range" id="gun-rotation-x-input" min="-180" max="180" step="1" value="0">
+                  </label>
+                  <label class="menu-field" for="gun-rotation-y-input">
+                    <span class="menu-field-split">
+                      <span>Gun Rotation Y</span>
+                      <strong id="gun-rotation-y-value" class="menu-field-value">0 deg</strong>
+                    </span>
+                    <input type="range" id="gun-rotation-y-input" min="-180" max="180" step="1" value="0">
+                  </label>
+                  <label class="menu-field" for="gun-rotation-z-input">
+                    <span class="menu-field-split">
+                      <span>Gun Rotation Z</span>
+                      <strong id="gun-rotation-z-value" class="menu-field-value">0 deg</strong>
+                    </span>
+                    <input type="range" id="gun-rotation-z-input" min="-180" max="180" step="1" value="0">
+                  </label>
+                  <label class="menu-field" for="gun-scale-input">
+                    <span class="menu-field-split">
+                      <span>Gun Scale</span>
+                      <strong id="gun-scale-value" class="menu-field-value">1.00x</strong>
+                    </span>
+                    <input type="range" id="gun-scale-input" min="0.1" max="3" step="0.01" value="1">
+                  </label>
+                  <div class="lan-menu-actions">
+                    <button id="gun-position-reset-button" class="action-button" type="button">Reset Gun Position</button>
+                    <button id="gun-position-save-button" class="action-button" type="button">Save Gun Position</button>
+                  </div>
                 </div>
               </section>
             </div>
