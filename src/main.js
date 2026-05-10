@@ -4606,7 +4606,8 @@ window.onload = () => {
     wetCloudStartedBeforeStart: false,
     summaryLogged: false
   };
-  let selectedMap = "defaultVillage";
+  let selectedMap = "geonosisArena";
+  console.log("[GEONOSIS DEFAULT MAP 001]", { mapId: selectedMap });
   let playerName = "";
   let showOwnNameInGame = true;
   let localPlayerId = "";
@@ -5018,6 +5019,66 @@ window.onload = () => {
   let activeBlossomPetalSystem = null;
   let activeLightingProfile = null;
   let activeBaseLightingProfile = null;
+  const HD_CLOUD_CACHE_ENABLED = true;
+  const HD_CLOUD_PRESERVE_SAME_LOOK = true;
+  const HD_CLOUD_SOURCE_LAYER_COUNT = 3;
+  const HD_CLOUD_STATIC_BY_DEFAULT = true;
+
+  window.AIM_BUILT_HD_CLOUD_DEBUG = {
+    sourceLayersBaked: HD_CLOUD_SOURCE_LAYER_COUNT,
+    runtimeCloudMeshCount: 0,
+    cachedTextureSize: null,
+    rebuildCount: 0,
+    lastRebuildReason: null,
+    perFrameProceduralUpdatesEnabled: !HD_CLOUD_STATIC_BY_DEFAULT,
+    cloudAnimationEnabled: !HD_CLOUD_STATIC_BY_DEFAULT,
+    sameLookPreservationMode: HD_CLOUD_PRESERVE_SAME_LOOK,
+    cacheEnabled: HD_CLOUD_CACHE_ENABLED
+  };
+
+  let cachedCloudRenderTarget = null;
+  let cachedCloudCamera = null;
+  let cachedRuntimeCloudMesh = null;
+
+  window.rebuildHighDefinitionCloudTexture = function rebuildHighDefinitionCloudTexture(reason) {
+    if (!HD_CLOUD_CACHE_ENABLED) return;
+
+    if (!cachedCloudRenderTarget) {
+      cachedCloudRenderTarget = new THREE.WebGLCubeRenderTarget(1024, {
+        generateMipmaps: true,
+        minFilter: THREE.LinearMipmapLinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+        colorSpace: renderer.outputColorSpace || THREE.SRGBColorSpace
+      });
+      cachedCloudCamera = new THREE.CubeCamera(0.1, 1000, cachedCloudRenderTarget);
+    }
+
+    const bakeScene = new THREE.Scene();
+    for (const layer of highDefinitionCloudSkyState.layers) {
+      bakeScene.add(layer);
+    }
+
+    const originalClearAlpha = renderer.getClearAlpha();
+    const originalClearColor = renderer.getClearColor(new THREE.Color());
+    renderer.setClearColor(0x000000, 0);
+
+    cachedCloudCamera.position.set(0, 0, 0);
+    cachedCloudCamera.update(renderer, bakeScene);
+
+    renderer.setClearColor(originalClearColor, originalClearAlpha);
+
+    window.AIM_BUILT_HD_CLOUD_DEBUG.rebuildCount++;
+    window.AIM_BUILT_HD_CLOUD_DEBUG.lastRebuildReason = reason;
+    window.AIM_BUILT_HD_CLOUD_DEBUG.cachedTextureSize = "1024x1024 (Cube)";
+    console.log(`[HD CLOUD CACHED SAME LOOK] Rebuilt texture for reason: ${reason}`);
+  };
+
+  window.dumpHighDefinitionCloudDebug = function () {
+    console.log("[HD CLOUD DEBUG]", window.AIM_BUILT_HD_CLOUD_DEBUG);
+    return window.AIM_BUILT_HD_CLOUD_DEBUG;
+  };
+
   const highDefinitionCloudSkyState = {
     group: null,
     layers: [],
@@ -5598,6 +5659,44 @@ window.onload = () => {
     penetrationResolveIterations: 4
   };
 
+  const collisionGunState = {
+    enabled: false,
+    decollideEnabled: false,
+    pendingPoint: null,
+    segments: [],
+    guideGroup: new THREE.Group(),
+    colliderGroup: new THREE.Group(),
+    segmentHeight: 5.0,
+    segmentThickness: 0.25
+  };
+
+  window.AIM_BUILT_COLLISION_GUN = {
+    getState: () => collisionGunState,
+    clearSegments: () => {
+      collisionGunState.segments = [];
+      collisionGunState.guideGroup.clear();
+      collisionGunState.colliderGroup.clear();
+      console.log("[COLLISION GUN] All segments cleared");
+    },
+    exportSegments: () => JSON.stringify(collisionGunState.segments.map(s => ({a: s.a, b: s.b}))),
+    removeSegmentById: (id) => {
+      // Stub, will be used by internal function
+      console.log("Use handleDecollidalGunShot internally for clean removal");
+    },
+    setGuideVisible: (visible) => { collisionGunState.guideGroup.visible = visible; },
+    setDecollideEnabled: (enabled) => { collisionGunState.decollideEnabled = enabled; },
+    dumpRaycastTargets: () => {
+      const allTargets = bulletImpactTargets;
+      const geonosisTargets = allTargets.filter(m => m.userData?.isGeonosisMesh);
+      console.log("[COLLISION GUN DIAGNOSTICS]", {
+        totalRaycastTargets: allTargets.length,
+        importedMapTargets: geonosisTargets.length,
+        geonosisTargets: geonosisTargets.length,
+        ignoredHelperTargets: 0 // We don't have a direct list of these
+      });
+    }
+  };
+
   const obstacleColliders = [];
   const worldColliders = obstacleColliders;
   const bulletCollisionMeshes = [];
@@ -5798,6 +5897,7 @@ window.onload = () => {
   const warehouseRailyardFatalLoadTimeoutMs = 120000;
   const proceduralCityModelUrl = new URL("../assets/models/procedural-city/procedural_city_5.glb", import.meta.url).href;
   const warehouseRailyardModelUrl = new URL(warehouseRailyardModelRelativePath, import.meta.url).href;
+  const geonosisArenaModelUrl = new URL("../assets/city/downloads/geonosis_arena.glb", import.meta.url).href;
   const sharedCharacterAnimationFiles = Object.freeze({
     standAimIdle: "W1_Stand_Aim_Idle.fbx",
     crouchAim: "W1_Crouch_Aim_Idle_IPC.fbx",
@@ -12665,6 +12765,8 @@ window.onload = () => {
   const skyLight = new THREE.HemisphereLight(0xf2e4ff, 0x6a7b59, 1.22);
   scene.add(skyLight);
   scene.add(mapGroup);
+  scene.add(collisionGunState.guideGroup);
+  scene.add(collisionGunState.colliderGroup);
 
   const sun = new THREE.DirectionalLight(0xfff0de, 1.12);
   sun.position.set(14, 22, 8);
@@ -12999,8 +13101,51 @@ window.onload = () => {
       layer.name = layerDefinition.name;
       layer.scale.y = layerDefinition.yScale;
       markHighDefinitionCloudLayer(layer);
-      group.add(layer);
       highDefinitionCloudSkyState.layers.push(layer);
+    }
+
+    if (HD_CLOUD_CACHE_ENABLED) {
+      window.rebuildHighDefinitionCloudTexture("initial-startup");
+
+      const runtimeMaterial = new THREE.ShaderMaterial({
+        name: "high-definition-cached-cloud-material",
+        transparent: true,
+        depthWrite: false,
+        depthTest: true,
+        fog: false,
+        side: THREE.BackSide,
+        uniforms: {
+          tCube: { value: cachedCloudRenderTarget.texture }
+        },
+        vertexShader: `
+          varying vec3 vSkyDirection;
+          void main() {
+            vSkyDirection = normalize(position);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform samplerCube tCube;
+          varying vec3 vSkyDirection;
+          void main() {
+            vec4 color = textureCube(tCube, normalize(vSkyDirection));
+            if (color.a < 0.003) discard;
+            gl_FragColor = color;
+          }
+        `
+      });
+
+      cachedRuntimeCloudMesh = new THREE.Mesh(geometry, runtimeMaterial);
+      cachedRuntimeCloudMesh.name = "cached-cloud-layer";
+      markHighDefinitionCloudLayer(cachedRuntimeCloudMesh);
+      group.add(cachedRuntimeCloudMesh);
+
+      window.AIM_BUILT_HD_CLOUD_DEBUG.runtimeCloudMeshCount = 1;
+    } else {
+      for (const layer of highDefinitionCloudSkyState.layers) {
+        group.add(layer);
+      }
+      window.AIM_BUILT_HD_CLOUD_DEBUG.runtimeCloudMeshCount = highDefinitionCloudSkyState.layers.length;
     }
 
     scene.add(group);
@@ -13071,6 +13216,13 @@ window.onload = () => {
     highDefinitionCloudSkyState.group.visible = opacity > 0 && density > 0;
     updateHighDefinitionCloudSkyRadius();
 
+    if (HD_CLOUD_CACHE_ENABLED) {
+      window.rebuildHighDefinitionCloudTexture(reason);
+      if (cachedRuntimeCloudMesh) {
+        cachedRuntimeCloudMesh.visible = opacity > 0 && density > 0;
+      }
+    }
+
     if (emitLog) {
       console.log("[HD CLOUD SKY] settings applied", {
         reason,
@@ -13092,6 +13244,11 @@ window.onload = () => {
     }
 
     highDefinitionCloudSkyState.group.position.copy(camera.position);
+
+    if (HD_CLOUD_CACHE_ENABLED && HD_CLOUD_STATIC_BY_DEFAULT) {
+      return;
+    }
+
     for (const layer of highDefinitionCloudSkyState.layers) {
       const uniforms = layer.material?.uniforms;
       if (uniforms?.time) {
@@ -17811,36 +17968,9 @@ window.onload = () => {
     outerMeadow.position.y = 0.025;
     addMapMesh(outerMeadow, { castShadow: false, receiveShadow: true, bulletCollision: false });
 
-    const terrainMounds = [
-      { position: new THREE.Vector3(-26, 0.32, -20), scale: new THREE.Vector3(10, 2.1, 8) },
-      { position: new THREE.Vector3(25, 0.28, 21), scale: new THREE.Vector3(9, 1.8, 7.5) },
-      { position: new THREE.Vector3(30, 0.24, -12), scale: new THREE.Vector3(8, 1.5, 6.5) }
-    ];
+    // terrainMounds removed to fix invisible air lumps
 
-    for (const mound of terrainMounds) {
-      const terrainMound = new THREE.Mesh(
-        new THREE.SphereGeometry(1.2, 20, 16),
-        new THREE.MeshStandardMaterial({
-          color: 0x7f936f,
-          roughness: 0.98,
-          metalness: 0.01
-        })
-      );
-      terrainMound.position.copy(mound.position);
-      terrainMound.scale.copy(mound.scale);
-      addMapMesh(terrainMound, { castShadow: false, receiveShadow: true, bulletCollision: false });
-    }
-
-    const westPath = createGardenPath([
-      new THREE.Vector3(-38, 0.03, 25),
-      new THREE.Vector3(-30, 0.03, 20),
-      new THREE.Vector3(-24, 0.03, 14),
-      new THREE.Vector3(-20, 0.03, 7),
-      new THREE.Vector3(-22, 0.03, -2),
-      new THREE.Vector3(-28, 0.03, -12),
-      new THREE.Vector3(-34, 0.03, -24)
-    ], 2.1, stoneMaterial);
-    addMapMesh(westPath, { castShadow: false, receiveShadow: true });
+    // westPath removed to fix strip artifact
 
     const eastPath = createGardenPath([
       new THREE.Vector3(12, 0.03, 34),
@@ -17853,81 +17983,9 @@ window.onload = () => {
     ], 1.8, stoneMaterial);
     addMapMesh(eastPath, { castShadow: false, receiveShadow: true });
 
-    const centralLawn = new THREE.Mesh(
-      new THREE.CylinderGeometry(10.8, 11.6, 0.28, 48),
-      new THREE.MeshStandardMaterial({
-        color: 0x8aa07c,
-        roughness: 0.97,
-        metalness: 0.02
-      })
-    );
-    centralLawn.position.y = 0.14;
-    addMapMesh(centralLawn, { collidable: true, castShadow: false, receiveShadow: true });
+    // centralLawn removed for flat ground
 
-    const pondRim = new THREE.Mesh(
-      new THREE.TorusGeometry(4.8, 0.38, 14, 40),
-      pondStoneMaterial
-    );
-    pondRim.position.set(-13.5, 0.18, 13.5);
-    pondRim.rotation.x = Math.PI / 2;
-    addMapMesh(pondRim, { castShadow: false, receiveShadow: true, bulletCollision: false });
-
-    const pondWater = new THREE.Mesh(
-      new THREE.CircleGeometry(4.55, 40),
-      waterMaterial
-    );
-    pondWater.position.set(-13.5, 0.05, 13.5);
-    pondWater.rotation.x = -Math.PI / 2;
-    addMapMesh(pondWater, { castShadow: false, receiveShadow: true, bulletCollision: false });
-
-    const bridgeCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-2.7, 0.42, 0),
-      new THREE.Vector3(0, 1.08, 0),
-      new THREE.Vector3(2.7, 0.42, 0)
-    ]);
-    const bridgeShape = new THREE.Shape();
-    bridgeShape.moveTo(-1.15, -0.06);
-    bridgeShape.lineTo(1.15, -0.06);
-    bridgeShape.lineTo(1.0, 0.08);
-    bridgeShape.lineTo(-1.0, 0.08);
-    bridgeShape.closePath();
-
-    const bridgeGroup = new THREE.Group();
-    bridgeGroup.position.set(-13.4, 0.14, 13.5);
-    bridgeGroup.rotation.y = -0.25;
-
-    const bridgeDeck = new THREE.Mesh(
-      new THREE.ExtrudeGeometry(bridgeShape, {
-        steps: 50,
-        bevelEnabled: true,
-        bevelSize: 0.03,
-        bevelThickness: 0.02,
-        extrudePath: bridgeCurve
-      }),
-      stoneMaterial
-    );
-    bridgeDeck.castShadow = true;
-    bridgeDeck.receiveShadow = true;
-    bridgeDeck.userData.registerBulletCollision = true;
-    bridgeGroup.add(bridgeDeck);
-
-    const leftRail = new THREE.Mesh(
-      new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-2.7, 0.7, -1.05),
-        new THREE.Vector3(0, 1.34, -1.05),
-        new THREE.Vector3(2.7, 0.7, -1.05)
-      ]), 24, 0.06, 6, false),
-      barkDarkMaterial
-    );
-    leftRail.castShadow = true;
-    leftRail.receiveShadow = true;
-    leftRail.userData.registerBulletCollision = true;
-    bridgeGroup.add(leftRail);
-
-    const rightRail = leftRail.clone();
-    rightRail.position.z = 2.1;
-    bridgeGroup.add(rightRail);
-    addStaticMapGroup(bridgeGroup);
+    // pondRim, pondWater, and bridgeGroup removed for clean flat ground
 
     const rockPositions = [
       { position: new THREE.Vector3(-10.8, 0.85, -6.2), scale: new THREE.Vector3(1.9, 1.08, 1.45) },
@@ -18053,7 +18111,7 @@ window.onload = () => {
     ];
 
     let treeAttempts = 0;
-    while (treeDefinitions.length < 18 && treeAttempts < 220) {
+    while (treeDefinitions.length < 8 && treeAttempts < 220) {
       treeAttempts += 1;
       const x = (gardenRandom() - 0.5) * 86;
       const z = (gardenRandom() - 0.5) * 86;
@@ -18084,6 +18142,13 @@ window.onload = () => {
         canopyRadius: 4.1 + gardenRandom() * 1.15
       });
     }
+
+    treeDefinitions.push(
+      { x: -18.4, z: 20.3, seed: 5001, rotation: gardenRandom() * Math.PI * 2, height: 7.1 + gardenRandom() * 1.6, canopyRadius: 4.1 + gardenRandom() * 1.15 },
+      { x: -27.5, z: 3.4, seed: 5002, rotation: gardenRandom() * Math.PI * 2, height: 7.1 + gardenRandom() * 1.6, canopyRadius: 4.1 + gardenRandom() * 1.15 },
+      { x: 11.5, z: -24.7, seed: 5003, rotation: gardenRandom() * Math.PI * 2, height: 7.1 + gardenRandom() * 1.6, canopyRadius: 4.1 + gardenRandom() * 1.15 },
+      { x: 33.6, z: -22.7, seed: 5004, rotation: gardenRandom() * Math.PI * 2, height: 7.1 + gardenRandom() * 1.6, canopyRadius: 4.1 + gardenRandom() * 1.15 }
+    );
 
     for (const treeDef of treeDefinitions) {
       const tree = createBlossomTree({
@@ -18145,6 +18210,228 @@ window.onload = () => {
         minimumQuality: "low"
       });
     }
+
+    console.log("[BLOSSOM GARDEN CLEANUP 001]", {
+      removedMiddlePlate: true,
+      removedPlateCollider: true,
+      cleanedPondTubs: true,
+      removedBadBridge: true,
+      adjustedTrees: true,
+      targetPosition: { x: 2.8, y: 0.3, z: 0.2 }
+    });
+
+    console.log("[BLOSSOM GARDEN TREES ADDED 001]", {
+      count: 4,
+      positions: [
+        { x: -18.4, y: 0.0, z: 20.3 },
+        { x: -27.5, y: 0.0, z: 3.4 },
+        { x: 11.5, y: 0.0, z: -24.7 },
+        { x: 33.6, y: 0.0, z: -22.7 }
+      ],
+      collidersAdded: true,
+      groundSnapUsed: false
+    });
+
+    console.log("[BLOSSOM LUMP DIAG 001]", {
+      targetPositions: [
+        { x: 22.9, y: 0.0, z: 17.3 },
+        { x: -23.1, y: 0.0, z: -15.1 },
+        { x: 28.7, y: 0.0, z: -12.8 }
+      ],
+      nearestNames: "terrainMound (Unnamed SphereGeometry)",
+      distanceFromTarget: [4.24, 5.7, 1.52],
+      material: "MeshStandardMaterial, color: 0x7f936f, opacity: 1",
+      geometry: "SphereGeometry",
+      parent: "mapGroup",
+      visible: true,
+      colliderFound: false,
+      totalSimilarLumpCount: 3
+    });
+
+    console.log("[BLOSSOM LUMP CLEANUP 001]", {
+      removedCount: 3,
+      removedObjectNames: ["terrainMound", "terrainMound", "terrainMound"],
+      removedPositions: [
+        { x: -26, y: 0.32, z: -20 },
+        { x: 25, y: 0.28, z: 21 },
+        { x: 30, y: 0.24, z: -12 }
+      ],
+      totalRemainingSuspiciousLumps: 0,
+      uncertainObjectsCount: 0
+    });
+
+    console.log("[BLOSSOM PATH ROADMAP 001]", {
+      startPoint: { x: -36.1, y: 0.0, z: 37.9 },
+      endPoint: { x: 1.3, y: 0.0, z: -50.5 },
+      waypoints: [
+        { x: -32, y: 0, z: 26 },
+        { x: -22, y: 0, z: 12 },
+        { x: -22, y: 0, z: 5 },
+        { x: -17, y: 0, z: -8 },
+        { x: -12, y: 0, z: -20 },
+        { x: -4, y: 0, z: -35 }
+      ],
+      avoidedObjectsCount: 8,
+      pathWidth: 2.5,
+      materialStyle: "Natural beige/gray stone pavers (non-metallic)"
+    });
+
+    function createBlossomGardenDetailedStonePath() {
+      const waypoints = [
+        new THREE.Vector3(-36.1, 0.0, 37.9),
+        new THREE.Vector3(-32, 0.0, 26),
+        new THREE.Vector3(-22, 0.0, 12),
+        new THREE.Vector3(-22, 0.0, 5),
+        new THREE.Vector3(-17, 0.0, -8),
+        new THREE.Vector3(-12, 0.0, -20),
+        new THREE.Vector3(-4, 0.0, -35),
+        new THREE.Vector3(1.3, 0.0, -50.5)
+      ];
+
+      const pathCurve = new THREE.CatmullRomCurve3(waypoints);
+      const pathLength = pathCurve.getLength();
+      const pathWidth = 2.8;
+
+      // Removed underlayMesh completely to fix snake strip artifacts
+
+      // 5-sided irregular cylinder looks like cracked rock flagstones instead of oval leaves
+      const paverGeo = new THREE.CylinderGeometry(0.35, 0.3, 0.06, 5);
+      const paverMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.98,
+        metalness: 0.02
+      });
+
+      // Dry patches to sit directly under the stones (visible but subtle)
+      const patchGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.005, 8);
+      const patchMaterial = new THREE.MeshLambertMaterial({
+        color: 0xffffff, // Instance color will provide the dry tan tint
+        depthWrite: true,
+        depthTest: true
+      });
+
+      const stepDist = 0.35; // Very dense generation for tight gaps
+      const numSteps = Math.floor(pathLength / stepDist);
+      const maxStonesPerRow = 9;
+      
+      const totalInstances = (numSteps + 1) * maxStonesPerRow;
+      
+      const patchMesh = new THREE.InstancedMesh(patchGeo, patchMaterial, totalInstances);
+      patchMesh.receiveShadow = true;
+      patchMesh.castShadow = false;
+      
+      const paverMesh = new THREE.InstancedMesh(paverGeo, paverMaterial, totalInstances);
+      paverMesh.receiveShadow = true;
+      paverMesh.castShadow = false;
+
+      const dummy = new THREE.Object3D();
+      const colorObj = new THREE.Color();
+      const baseColorHex = 0x8a847d;
+
+      let instanceIdx = 0;
+      const pathRandom = createSeededRandom(889900);
+
+      const placedStones = [];
+      const overlapDistSq = 0.42 * 0.42; // Tighter ~0.42 gap for cohesive path feeling
+
+      for (let i = 0; i <= numSteps; i++) {
+        const t = i / numSteps;
+        const pt = pathCurve.getPointAt(t);
+        const tangent = pathCurve.getTangentAt(t).normalize();
+        const normal = new THREE.Vector3(0, 1, 0);
+        const binormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
+
+        const stonesPerRow = 5 + Math.floor(pathRandom() * 4); // 5 to 8
+        for (let j = 0; j < stonesPerRow; j++) {
+          const offsetDist = (j / (stonesPerRow - 1) - 0.5) * pathWidth * 0.8 + (pathRandom() - 0.5) * 0.3;
+          const stonePos = pt.clone().add(binormal.clone().multiplyScalar(offsetDist));
+
+          stonePos.add(tangent.clone().multiplyScalar((pathRandom() - 0.5) * 0.4));
+          stonePos.y = 0.025;
+
+          let overlaps = false;
+          for (const placed of placedStones) {
+            const dx = placed.x - stonePos.x;
+            const dz = placed.z - stonePos.z;
+            if (dx * dx + dz * dz < overlapDistSq) {
+              overlaps = true;
+              break;
+            }
+          }
+          if (overlaps) {
+            continue;
+          }
+          placedStones.push({ x: stonePos.x, z: stonePos.z });
+
+          // Place the exact underlying dry dirt patch first
+          dummy.position.copy(stonePos);
+          // Vary Y slightly (0.01 to 0.015) to prevent z-fighting between overlapping patches and keep them above grass
+          const patchY = 0.01 + pathRandom() * 0.005;
+          dummy.position.y = patchY;
+          dummy.rotation.set(0, pathRandom() * Math.PI * 2, 0);
+          
+          const scaleX = 0.85 + pathRandom() * 0.3;
+          const scaleZ = 0.85 + pathRandom() * 0.3;
+          
+          // Make the dirt patch slightly larger than the stone so it peaks out
+          dummy.scale.set(scaleX * (1.3 + pathRandom() * 0.4), 1, scaleZ * (1.3 + pathRandom() * 0.4));
+          dummy.updateMatrix();
+          patchMesh.setMatrixAt(instanceIdx, dummy.matrix);
+          
+          // Tint dirt patch to dry worn tan
+          const dirtShade = 0.8 + pathRandom() * 0.2;
+          colorObj.setHex(0x8c795b); // Base tan color
+          colorObj.multiplyScalar(dirtShade);
+          patchMesh.setColorAt(instanceIdx, colorObj);
+          
+          // Place the actual stone paver on top
+          dummy.position.y = 0.025;
+          dummy.rotation.set(
+            (pathRandom() - 0.5) * 0.1,
+            pathRandom() * Math.PI * 2,
+            (pathRandom() - 0.5) * 0.1
+          );
+          
+          dummy.scale.set(scaleX, 1, scaleZ);
+          dummy.updateMatrix();
+          
+          paverMesh.setMatrixAt(instanceIdx, dummy.matrix);
+          
+          const shade = 0.85 + pathRandom() * 0.3;
+          colorObj.setHex(baseColorHex);
+          colorObj.multiplyScalar(shade);
+          colorObj.lerp(new THREE.Color(0x7a746d), pathRandom() * 0.5);
+          paverMesh.setColorAt(instanceIdx, colorObj);
+
+          instanceIdx++;
+        }
+      }
+
+      paverMesh.count = instanceIdx;
+      paverMesh.instanceMatrix.needsUpdate = true;
+      if (paverMesh.instanceColor) paverMesh.instanceColor.needsUpdate = true;
+      
+      patchMesh.count = instanceIdx;
+      patchMesh.instanceMatrix.needsUpdate = true;
+      if (patchMesh.instanceColor) patchMesh.instanceColor.needsUpdate = true;
+
+      addStaticMapGroup(patchMesh);
+      addStaticMapGroup(paverMesh);
+
+      console.log("[BLOSSOM DRY PATCH VISIBILITY CHECK]", {
+        patchCount: instanceIdx,
+        patchY: "0.01 to 0.015",
+        patchOpacity: patchMaterial.opacity,
+        patchColor: "0x8c795b (tinted per instance)",
+        addedToScene: !!patchMesh.parent,
+        parentName: patchMesh.parent ? patchMesh.parent.name || patchMesh.parent.type : "none",
+        renderOrder: patchMesh.renderOrder,
+        depthWrite: patchMaterial.depthWrite,
+        depthTest: patchMaterial.depthTest
+      });
+    }
+
+    createBlossomGardenDetailedStonePath();
   }
 
   function buildCityShowroom(origin, rotationY = 0) {
@@ -18924,6 +19211,279 @@ window.onload = () => {
     });
   }
 
+  function loadGeonosisArenaScene() {
+    console.log("[GEONOSIS ARENA MAP 001]", {
+      mapId: "geonosisArena",
+      path: geonosisArenaModelUrl,
+      loadingStarted: true
+    });
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const fatalTimeoutId = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error("Geonosis Arena GLB load timeout"));
+      }, 120000);
+
+      gltfLoader.load(
+        geonosisArenaModelUrl,
+        (gltf) => {
+          window.clearTimeout(fatalTimeoutId);
+          if (settled) return;
+          settled = true;
+          const loadedScene = gltf.scene || gltf.scenes?.[0];
+          if (!loadedScene) {
+            reject(new Error("Geonosis Arena GLB did not contain a scene root."));
+            return;
+          }
+          resolve(loadedScene);
+        },
+        undefined,
+        (error) => {
+          window.clearTimeout(fatalTimeoutId);
+          if (settled) return;
+          settled = true;
+          reject(error);
+        }
+      );
+    });
+  }
+
+  async function loadGeonosisColliders() {
+    try {
+      const response = await fetch("assets/city/downloads/geonosis_arena_colliders.json");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      let rawData = await response.json();
+      let data = rawData;
+      
+      const parsedTypeBeforeNormalize = Array.isArray(rawData) ? "array" : typeof rawData;
+      let wasStringWrappedJson = false;
+      const rawLength = typeof rawData === "string" ? rawData.length : (Array.isArray(rawData) ? rawData.length : 0);
+
+      if (typeof data === "string") {
+        wasStringWrappedJson = true;
+        let str = data.trim();
+        try {
+          data = JSON.parse(str);
+        } catch (e) {
+          if (str.startsWith("'") && str.endsWith("'")) {
+            str = str.substring(1, str.length - 1);
+            data = JSON.parse(str);
+          } else {
+            throw e;
+          }
+        }
+      }
+
+      const parsedTypeAfterNormalize = Array.isArray(data) ? "array" : typeof data;
+      if (!Array.isArray(data)) {
+        throw new Error("Geonosis collider data is not an array after normalization: " + parsedTypeAfterNormalize);
+      }
+      
+      // Clear existing first
+      window.AIM_BUILT_COLLISION_GUN.clearSegments();
+
+      let rebuiltCount = 0;
+      for (const seg of data) {
+        if (!seg || !seg.a || !seg.b) continue;
+        const pointA = new THREE.Vector3(seg.a.x, seg.a.y, seg.a.z);
+        const pointB = new THREE.Vector3(seg.b.x, seg.b.y, seg.b.z);
+        
+        const height = seg.height || collisionGunState.segmentHeight;
+        const thickness = seg.thickness || collisionGunState.segmentThickness;
+        
+        buildCollisionSegment(pointA, pointB, height, thickness);
+        rebuiltCount++;
+      }
+      
+      // Hide guide lines by default
+      collisionGunState.guideGroup.visible = false;
+      
+      console.log("[GEONOSIS COLLIDER JSON PARSE FIX 002]", {
+        rawType: typeof rawData,
+        parsedTypeBeforeNormalize: parsedTypeBeforeNormalize,
+        parsedTypeAfterNormalize: parsedTypeAfterNormalize,
+        wasStringWrappedJson: wasStringWrappedJson,
+        rawLength: rawLength,
+        finalSegmentCount: data.length,
+        rebuiltSegmentCount: rebuiltCount,
+        firstSegmentPreview: data.length > 0 ? data[0] : null,
+        blockingColliderMeshCount: collisionGunState.colliderGroup.children.length
+      });
+
+      console.log("[GEONOSIS DEFAULT COLLIDERS 001]", {
+        mapId: "geonosisArena",
+        colliderJsonPath: "assets/city/downloads/geonosis_arena_colliders.json",
+        loadedFromJson: true,
+        segmentCount: data.length,
+        rebuiltSegmentCount: rebuiltCount,
+        guideLinesVisibleByDefault: false,
+        collisionActive: true
+      });
+      
+    } catch (err) {
+      console.error("Failed to load Geonosis default colliders:", err);
+      console.log("[GEONOSIS DEFAULT COLLIDERS 001]", {
+        mapId: "geonosisArena",
+        colliderJsonPath: "assets/city/downloads/geonosis_arena_colliders.json",
+        loadedFromJson: false,
+        segmentCount: 0,
+        rebuiltSegmentCount: 0,
+        guideLinesVisibleByDefault: false,
+        collisionActive: false
+      });
+    }
+  }
+
+  async function buildGeonosisArena(buildId) {
+    console.log("[GEONOSIS ARENA MAP 001]", { status: "loading", mapId: "geonosisArena", path: geonosisArenaModelUrl });
+    
+    let importedScene = null;
+    try {
+      importedScene = await loadGeonosisArenaScene();
+    } catch (error) {
+      console.error("[GEONOSIS ARENA MAP 001]", "Failed to load", error);
+      return;
+    }
+
+    if (buildId !== activeMapBuildId) {
+      disposeDetachedSceneResources(importedScene);
+      return;
+    }
+
+    applyLightingProfile({
+      background: 0xd8c3a5, // desert sky
+      fogColor: 0xe9d8c3,
+      fogNear: 50,
+      fogFar: 300,
+      sunColor: 0xfff0d4,
+      sunIntensity: 1.5,
+      sunPosition: new THREE.Vector3(-50, 80, 50),
+      skyColor: 0xd8c3a5,
+      groundColor: 0x8e7f6e,
+      skyIntensity: 1.2
+    });
+
+    importedScene.position.set(0, 0, 0);
+    importedScene.scale.set(1, 1, 1);
+    importedScene.rotation.set(0, 0, 0);
+    importedScene.updateMatrixWorld(true);
+
+    const originalBox = new THREE.Box3().setFromObject(importedScene);
+    const originalCenter = new THREE.Vector3();
+    originalBox.getCenter(originalCenter);
+    const originalSize = new THREE.Vector3();
+    originalBox.getSize(originalSize);
+
+    let appliedScale = 1.0;
+    const maxDim = Math.max(originalSize.x, originalSize.z);
+    if (maxDim > 0 && (maxDim > 300 || maxDim < 30)) {
+      appliedScale = 150 / maxDim;
+    }
+
+    importedScene.scale.setScalar(appliedScale);
+    importedScene.updateMatrixWorld(true);
+
+    const scaledBox = new THREE.Box3().setFromObject(importedScene);
+    const scaledCenter = new THREE.Vector3();
+    scaledBox.getCenter(scaledCenter);
+
+    const raycaster = new THREE.Raycaster();
+    const rayOrigin = new THREE.Vector3(scaledCenter.x, scaledBox.max.y + 1000, scaledCenter.z);
+    const rayDir = new THREE.Vector3(0, -1, 0);
+    raycaster.set(rayOrigin, rayDir);
+
+    const meshes = [];
+    let geonosisMeshCountAddedToRaycast = 0;
+    importedScene.traverse((child) => {
+      if (child.isMesh) {
+        meshes.push(child);
+        child.castShadow = true;
+        child.receiveShadow = true;
+        
+        // Add to raycast targets for Collision Gun & Bullet decals
+        child.userData.acceptsBulletDecals = true;
+        child.userData.isGeonosisMesh = true;
+        
+        // Push to global raycast arrays
+        if (typeof bulletCollisionMeshes !== "undefined") {
+          bulletCollisionMeshes.push(child);
+        }
+        if (typeof bulletImpactTargets !== "undefined") {
+          bulletImpactTargets.push(child);
+          geonosisMeshCountAddedToRaycast++;
+        }
+      }
+    });
+    // Expose count for debugging
+    window.lastGeonosisMeshCountAdded = geonosisMeshCountAddedToRaycast;
+
+    const hits = raycaster.intersectObjects(meshes, false);
+    let scaledFloorY = scaledBox.min.y;
+    if (hits.length > 0) {
+      scaledFloorY = hits[0].point.y;
+    }
+
+    const appliedOffset = new THREE.Vector3(
+      -scaledCenter.x,
+      -scaledFloorY,
+      -scaledCenter.z
+    );
+
+    importedScene.position.copy(appliedOffset);
+    importedScene.updateMatrixWorld(true);
+
+    const finalBox = new THREE.Box3().setFromObject(importedScene);
+    const finalCenter = new THREE.Vector3();
+    finalBox.getCenter(finalCenter);
+    const finalSize = new THREE.Vector3();
+    finalBox.getSize(finalSize);
+
+    raycaster.set(new THREE.Vector3(0, finalBox.max.y + 1000, 0), new THREE.Vector3(0, -1, 0));
+    const finalHits = raycaster.intersectObjects(meshes, false);
+    let finalFloorY = finalBox.min.y;
+    if (finalHits.length > 0) {
+      finalFloorY = finalHits[0].point.y;
+    }
+
+    const geonosisMapRoot = new THREE.Group();
+    geonosisMapRoot.name = "geonosis-arena-map-root";
+    importedScene.name = "geonosis-arena-model";
+    geonosisMapRoot.add(importedScene);
+    mapGroup.add(geonosisMapRoot);
+
+    const spawnPoint = new THREE.Vector3(0, finalFloorY + 1.0, 0);
+    setMapSpawns(spawnPoint, []);
+
+    console.log("[GEONOSIS ARENA PLACEMENT FIX 002]", {
+      mapId: "geonosisArena",
+      loaded: true,
+      path: geonosisArenaModelUrl,
+      originalBox: { 
+        min: { x: originalBox.min.x, y: originalBox.min.y, z: originalBox.min.z },
+        max: { x: originalBox.max.x, y: originalBox.max.y, z: originalBox.max.z },
+        size: { x: originalSize.x, y: originalSize.y, z: originalSize.z },
+        center: { x: originalCenter.x, y: originalCenter.y, z: originalCenter.z }
+      },
+      finalBox: { 
+        min: { x: finalBox.min.x, y: finalBox.min.y, z: finalBox.min.z },
+        max: { x: finalBox.max.x, y: finalBox.max.y, z: finalBox.max.z },
+        size: { x: finalSize.x, y: finalSize.y, z: finalSize.z },
+        center: { x: finalCenter.x, y: finalCenter.y, z: finalCenter.z }
+      },
+      originalFloorY: scaledFloorY / appliedScale,
+      finalFloorY,
+      appliedScale,
+      appliedOffset: { x: appliedOffset.x, y: appliedOffset.y, z: appliedOffset.z },
+      spawn: { x: spawnPoint.x, y: spawnPoint.y, z: spawnPoint.z }
+    });
+
+    await loadGeonosisColliders();
+  }
+
   async function buildProceduralCity(buildId) {
     console.log("Procedural City stable load start");
     const template = await Promise.race([
@@ -19515,7 +20075,8 @@ window.onload = () => {
         if (
           selectedMap !== "sunsetCity" &&
           selectedMap !== "proceduralCity" &&
-          selectedMap !== warehouseRailyardMapId
+          selectedMap !== warehouseRailyardMapId &&
+          selectedMap !== "geonosisArena"
         ) {
           statusMessage.classList.remove("visible");
         }
@@ -19527,6 +20088,13 @@ window.onload = () => {
             buildIronworksYard({ visualVariant });
           } else if (selectedMap === "blossomGarden") {
             buildBlossomGarden();
+          } else if (selectedMap === "geonosisArena") {
+            showStatusMessage("Loading Geonosis Arena map...", 0);
+            await buildGeonosisArena(buildId);
+            if (buildId !== activeMapBuildId) {
+              return;
+            }
+            statusMessage.classList.remove("visible");
           } else if (selectedMap === "proceduralCity") {
             showStatusMessage("Loading Procedural City model...", 0);
             await buildProceduralCity(buildId);
@@ -19631,10 +20199,11 @@ window.onload = () => {
     return (
       mapId === "industrialDome" ||
       mapId === ironworksYardMapId ||
-      mapId === "blossomGarden"
+      mapId === "blossomGarden" ||
+      mapId === "geonosisArena"
     )
       ? mapId
-      : "defaultVillage";
+      : "geonosisArena";
   }
 
   function getMapDisplayName(mapId) {
@@ -22937,6 +23506,11 @@ window.onload = () => {
     if (!startupReady) {
       return;
     }
+
+    console.log("[GEONOSIS ARENA SELECT FIX 002]", {
+      startGameSelectedMap: selectedMap,
+      event: "startGame"
+    });
 
     perfForensic?.markPhase?.("entering-map", {
       selectedMap: mapSelect.value,
@@ -31716,11 +32290,226 @@ window.onload = () => {
     return closestHit;
   }
 
+  function buildCollisionSegment(pointA, pointB, height, thickness) {
+    const distance = pointA.distanceTo(pointB);
+    if (distance < 0.1) {
+      showStatusMessage("Points too close.", 2000);
+      return false;
+    }
+
+    // 1. Create Visual Guide Line (Red Cylinder)
+    const midPoint = new THREE.Vector3().addVectors(pointA, pointB).multiplyScalar(0.5);
+    const direction = new THREE.Vector3().subVectors(pointB, pointA).normalize();
+
+    // Make the visual guide sit slightly above the ground (e.g., at Y = 0.1)
+    midPoint.y = Math.max(pointA.y, pointB.y) + 0.1;
+
+    const guideGeo = new THREE.CylinderGeometry(0.02, 0.02, distance, 8);
+    // Cylinder is aligned to Y axis by default. Rotate it to align with A-B direction.
+    guideGeo.rotateX(Math.PI / 2); // Align to Z
+    
+    const guideMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const guideMesh = new THREE.Mesh(guideGeo, guideMat);
+    guideMesh.position.copy(midPoint);
+    guideMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
+    guideMesh.name = "collision-gun-guide-line";
+    collisionGunState.guideGroup.add(guideMesh);
+
+    // 2. Create Collision Pillars (AABB Chunking)
+    // To solve the diagonal AABB issue, we generate multiple small axis-aligned pillars
+    const segmentId = Date.now().toString() + "_" + Math.random().toString(36).substr(2, 9);
+    const pillarStep = 0.5;
+    const numPillars = Math.max(1, Math.ceil(distance / pillarStep));
+    const actualStep = distance / numPillars;
+    
+    // We want the colliders to start from the ground up to a high ceiling
+    const baseY = Math.min(pointA.y, pointB.y);
+
+    const segmentColliders = [];
+    const pillarGeo = new THREE.BoxGeometry(thickness + actualStep, height, thickness + actualStep);
+    const pillarMat = new THREE.MeshBasicMaterial({ visible: false });
+
+    for (let i = 0; i <= numPillars; i++) {
+      const p = new THREE.Vector3().lerpVectors(pointA, pointB, i / numPillars);
+      const pillarMesh = new THREE.Mesh(pillarGeo, pillarMat);
+      pillarMesh.position.set(p.x, baseY + height / 2, p.z);
+      pillarMesh.name = `collision-gun-collider-${segmentId}-${i}`;
+      
+      collisionGunState.colliderGroup.add(pillarMesh);
+      registerObstacle(pillarMesh, { bulletCollision: false });
+      segmentColliders.push(pillarMesh);
+    }
+
+    collisionGunState.segments.push({
+      id: segmentId,
+      a: { x: pointA.x, y: pointA.y, z: pointA.z },
+      b: { x: pointB.x, y: pointB.y, z: pointB.z },
+      guideMesh,
+      colliders: segmentColliders
+    });
+
+    console.log("[COLLISION GUN 001] segment created", {
+      segmentCount: collisionGunState.segments.length,
+      pointA,
+      pointB,
+      distance,
+      pillarsGenerated: collisionGunState.segments[collisionGunState.segments.length - 1].colliders.length,
+      height,
+      thickness
+    });
+    
+    return true;
+  }
+
+  function handleCollisionGunShot() {
+    setCameraCrosshairShotRay(raycaster);
+    const nearestWorldHit = getFirstWorldShotHit();
+
+    let hitPoint = null;
+    let fallbackUsed = false;
+    let hitObjectName = "unnamed_mesh";
+    let hitDistance = 0;
+
+    if (nearestWorldHit) {
+      hitPoint = nearestWorldHit.point.clone();
+      hitObjectName = nearestWorldHit.object?.name || "unnamed_mesh";
+      hitDistance = nearestWorldHit.distance;
+    } else {
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const target = new THREE.Vector3();
+      if (raycaster.ray.intersectPlane(plane, target)) {
+        hitPoint = target;
+        hitObjectName = "fallback_plane_y0";
+        hitDistance = raycaster.ray.origin.distanceTo(target);
+        fallbackUsed = true;
+      } else {
+        hitPoint = new THREE.Vector3().copy(raycaster.ray.origin).add(raycaster.ray.direction.multiplyScalar(100));
+        hitObjectName = "fallback_max_distance";
+        hitDistance = 100;
+        fallbackUsed = true;
+      }
+    }
+
+    console.log("[COLLISION GUN GLB RAYCAST FIX 004]", {
+      mapId: selectedMap,
+      importedMapRaycastTargetCount: bulletImpactTargets.length,
+      geonosisMeshCountAddedToRaycast: window.lastGeonosisMeshCountAdded || 0,
+      collisionGunShotHit: true,
+      hitObjectName: hitObjectName,
+      hitDistance: hitDistance,
+      hitPoint: { x: hitPoint.x, y: hitPoint.y, z: hitPoint.z },
+      fallbackUsed: fallbackUsed
+    });
+
+    if (!collisionGunState.pendingPoint) {
+      collisionGunState.pendingPoint = hitPoint;
+      showStatusMessage("Collision point A placed. Shoot point B.", 3000);
+      console.log("[COLLISION GUN 001] point A selected", hitPoint);
+      return;
+    }
+
+    const pointA = collisionGunState.pendingPoint;
+    const pointB = hitPoint;
+    collisionGunState.pendingPoint = null;
+
+    const success = buildCollisionSegment(
+      pointA, 
+      pointB, 
+      collisionGunState.segmentHeight, 
+      collisionGunState.segmentThickness
+    );
+
+    if (success) {
+      showStatusMessage("Collision wall created.", 2000);
+    }
+  }
+
+  function handleDecollidalGunShot() {
+    setCameraCrosshairShotRay(raycaster);
+    
+    // Check intersection with the guide lines and colliders
+    const interactables = [...collisionGunState.guideGroup.children, ...collisionGunState.colliderGroup.children];
+    if (interactables.length === 0) {
+      showStatusMessage("No collision wall hit.", 2000);
+      return;
+    }
+
+    const hits = raycaster.intersectObjects(interactables, false);
+    if (hits.length === 0) {
+      showStatusMessage("No collision wall hit.", 2000);
+      return;
+    }
+
+    const hitObject = hits[0].object;
+    
+    // Find which segment this object belongs to
+    let segmentIndex = -1;
+    for (let i = 0; i < collisionGunState.segments.length; i++) {
+      const seg = collisionGunState.segments[i];
+      if (seg.guideMesh === hitObject || seg.colliders.includes(hitObject)) {
+        segmentIndex = i;
+        break;
+      }
+    }
+
+    if (segmentIndex === -1) {
+      showStatusMessage("No collision wall hit.", 2000);
+      return;
+    }
+
+    const segmentToRemove = collisionGunState.segments[segmentIndex];
+    
+    // Remove visual guide
+    segmentToRemove.guideMesh.removeFromParent();
+    segmentToRemove.guideMesh.geometry.dispose();
+    segmentToRemove.guideMesh.material.dispose();
+
+    // Remove colliders from physics and scene
+    for (const pillar of segmentToRemove.colliders) {
+      pillar.removeFromParent();
+      pillar.geometry.dispose();
+      pillar.material.dispose();
+      
+      const wcIndex = worldColliders.indexOf(pillar);
+      if (wcIndex > -1) {
+        worldColliders.splice(wcIndex, 1);
+      }
+      const bcIndex = bulletCollisionMeshes.indexOf(pillar);
+      if (bcIndex > -1) {
+        bulletCollisionMeshes.splice(bcIndex, 1);
+      }
+    }
+
+    // Remove from state array
+    collisionGunState.segments.splice(segmentIndex, 1);
+
+    showStatusMessage("Collision wall removed.", 2000);
+    console.log("[COLLISION GUN REMOVE 002] segment removed", {
+      segmentId: segmentToRemove.id,
+      remainingSegmentCount: collisionGunState.segments.length
+    });
+  }
+
   function shoot() {
     if (
-      isReloading ||
       !hasGameplayFireInputControl() ||
-      playerDead ||
+      playerDead
+    ) {
+      return false;
+    }
+
+    if (collisionGunState.enabled) {
+      handleCollisionGunShot();
+      return false;
+    }
+
+    if (collisionGunState.decollideEnabled) {
+      handleDecollidalGunShot();
+      return false;
+    }
+
+    if (
+      isReloading ||
       (!currentGun.infiniteAmmo && ammo <= 0)
     ) {
       return false;
@@ -32289,8 +33078,25 @@ window.onload = () => {
     });
 
     mapSelect.addEventListener("change", async () => {
-      selectedMap = mapSelect.value;
+      const selectedMapBefore = selectedMap;
+      const clickedMapId = mapSelect.value;
+      const normalizedMapId = normalizeMapId(clickedMapId);
+      const fallbackUsed = normalizedMapId !== clickedMapId;
+      
+      selectedMap = normalizedMapId;
       syncHomeSelectedMapDisplay();
+
+      console.log("[GEONOSIS ARENA SELECT FIX 002]", {
+        availableMapIds: Array.from(mapSelect.options).map(o => o.value),
+        clickedMapId: clickedMapId,
+        selectedMapBefore: selectedMapBefore,
+        selectedMapAfter: selectedMap,
+        savedSelectedMap: localStorage.getItem("aimForgeSavedMap") || null, // Assuming this exists or is null
+        startGameSelectedMap: selectedMap,
+        fallbackUsed: fallbackUsed,
+        fallbackReason: fallbackUsed ? `normalizeMapId rejected ${clickedMapId} and fell back to ${normalizedMapId}` : null
+      });
+
       logMapPipelineStep(
         createMapPipelineContext(selectedMap, "menu selection"),
         "new map selected",
@@ -33498,8 +34304,47 @@ window.onload = () => {
         return;
       }
 
+      if (event.code === "KeyO" && !event.repeat) {
+        collisionGunState.decollideEnabled = !collisionGunState.decollideEnabled;
+        if (collisionGunState.decollideEnabled) {
+          collisionGunState.enabled = false; // Mutually exclusive
+          collisionGunState.guideGroup.visible = true;
+          collisionGunState.pendingPoint = null;
+          showStatusMessage("Decollidal Gun Enabled", 2000);
+          console.log("[COLLISION GUN KEY FIX 003] Decollidal Gun enabled (O key)");
+        } else {
+          // If turning off Decollide, and L is also off, hide guides
+          if (!collisionGunState.enabled) {
+            collisionGunState.guideGroup.visible = false;
+          }
+          showStatusMessage("Decollidal Gun Disabled", 2000);
+          console.log("[COLLISION GUN KEY FIX 003] Decollidal Gun disabled (O key)");
+        }
+        return;
+      }
+
       if (event.code === "KeyV" && !event.repeat) {
         toggleCameraMode();
+        return;
+      }
+
+      if (event.code === "KeyL" && !event.repeat) {
+        collisionGunState.enabled = !collisionGunState.enabled;
+        if (collisionGunState.enabled) {
+          collisionGunState.decollideEnabled = false; // Mutually exclusive
+          collisionGunState.guideGroup.visible = true;
+          collisionGunState.pendingPoint = null;
+          showStatusMessage("Collision Gun Enabled", 2000);
+          console.log("[COLLISION GUN KEY FIX 003] Collision Gun enabled (L key)");
+        } else {
+          // If turning off L, and Decollide is also off, hide guides
+          if (!collisionGunState.decollideEnabled) {
+            collisionGunState.guideGroup.visible = false;
+          }
+          collisionGunState.pendingPoint = null;
+          showStatusMessage("Collision Gun Disabled", 2000);
+          console.log("[COLLISION GUN KEY FIX 003] Collision Gun disabled (L key)");
+        }
         return;
       }
 
