@@ -504,12 +504,12 @@
         <div class="settings-main settings-shell-body">
           <div class="settings-content settings-tabs-content settings-accordion" aria-label="Settings categories">
             <div class="settings-accordion-section" data-settings-section="controls">
-              <button id="settings-tab-controls" class="settings-tab-button settings-accordion-button is-active"
-                type="button" data-settings-tab="controls" aria-selected="true" aria-expanded="true">
+              <button id="settings-tab-controls" class="settings-tab-button settings-accordion-button"
+                type="button" data-settings-tab="controls" aria-selected="false" aria-expanded="false">
                 Camera
               </button>
-              <section id="settings-panel-controls" class="settings-tab-panel is-active"
-                data-settings-tab-panel="controls" aria-labelledby="settings-tab-controls">
+              <section id="settings-panel-controls" class="settings-tab-panel"
+                data-settings-tab-panel="controls" aria-labelledby="settings-tab-controls" hidden>
                 <div class="settings-panel-copy">
                   <h3>Camera</h3>
                   <p>Camera view settings and related sensitivity options live here.</p>
@@ -539,12 +539,12 @@
               </section>
             </div>
             <div class="settings-accordion-section" data-settings-section="graphics">
-              <button id="settings-tab-graphics" class="settings-tab-button settings-accordion-button" type="button"
-                data-settings-tab="graphics" aria-selected="false" aria-expanded="false">
+              <button id="settings-tab-graphics" class="settings-tab-button settings-accordion-button is-active" type="button"
+                data-settings-tab="graphics" aria-selected="true" aria-expanded="true">
                 Graphics
               </button>
-              <section id="settings-panel-graphics" class="settings-tab-panel" data-settings-tab-panel="graphics"
-                aria-labelledby="settings-tab-graphics" hidden>
+              <section id="settings-panel-graphics" class="settings-tab-panel is-active" data-settings-tab-panel="graphics"
+                aria-labelledby="settings-tab-graphics">
                 <div class="settings-panel-copy">
                   <h3>Graphics</h3>
                   <p>Manual graphics controls apply live to the active scene and stay synced in both menus.</p>
@@ -599,6 +599,37 @@
                     <div class="menu-help-text">
                       Applies live in both Home Settings and the in-game Settings menu without reloading.
                     </div>
+                  </div>
+                  <div class="settings-card graphics-settings-card" aria-labelledby="cloud-sky-subtitle">
+                    <h4 id="cloud-sky-subtitle">Cloud Sky</h4>
+                    <label class="menu-field" for="cloud-density-input">
+                      <span class="menu-field-split">
+                        <span>Cloud Density</span>
+                        <strong id="cloud-density-value" class="menu-field-value">58</strong>
+                      </span>
+                      <input type="range" id="cloud-density-input" min="0" max="100" step="1" value="58">
+                    </label>
+                    <label class="menu-field" for="cloud-opacity-input">
+                      <span class="menu-field-split">
+                        <span>Cloud Opacity</span>
+                        <strong id="cloud-opacity-value" class="menu-field-value">68</strong>
+                      </span>
+                      <input type="range" id="cloud-opacity-input" min="0" max="100" step="1" value="68">
+                    </label>
+                    <label class="menu-field" for="cloud-detail-input">
+                      <span class="menu-field-split">
+                        <span>Cloud Detail</span>
+                        <strong id="cloud-detail-value" class="menu-field-value">74</strong>
+                      </span>
+                      <input type="range" id="cloud-detail-input" min="0" max="100" step="1" value="74">
+                    </label>
+                    <label class="menu-field" for="cloud-speed-input">
+                      <span class="menu-field-split">
+                        <span>Cloud Speed</span>
+                        <strong id="cloud-speed-value" class="menu-field-value">18</strong>
+                      </span>
+                      <input type="range" id="cloud-speed-input" min="0" max="100" step="1" value="18">
+                    </label>
                   </div>
                   <div class="settings-card graphics-settings-card" aria-labelledby="advanced-visuals-subtitle">
                     <h4 id="advanced-visuals-subtitle">Advanced Visuals</h4>
@@ -714,6 +745,72 @@
                     </label>
                     <div class="menu-help-text">
                       Lightweight visual polish applies live when supported. Heavier post effects save safely if unavailable.
+                    </div>
+                  </div>
+                  <div class="settings-card graphics-settings-card" aria-labelledby="wet-environment-subtitle">
+                    <h4 id="wet-environment-subtitle">Wet Environment</h4>
+                    <label class="menu-check" for="wet-environment-enabled-toggle">
+                      <input type="checkbox" id="wet-environment-enabled-toggle" checked>
+                      <span>Wet Environment Enabled</span>
+                    </label>
+                    <label class="menu-field" for="wet-ground-strength-input">
+                      <span class="menu-field-split">
+                        <span>Wet Ground Strength</span>
+                        <strong id="wet-ground-strength-value" class="menu-field-value">35</strong>
+                      </span>
+                      <input type="range" id="wet-ground-strength-input" min="0" max="100" step="1" value="35">
+                    </label>
+                    <label class="menu-field" for="wet-puddle-amount-input">
+                      <span class="menu-field-split">
+                        <span>Puddle Amount</span>
+                        <strong id="wet-puddle-amount-value" class="menu-field-value">30</strong>
+                      </span>
+                      <input type="range" id="wet-puddle-amount-input" min="0" max="100" step="1" value="30">
+                    </label>
+                    <label class="menu-field" for="wet-reflection-strength-input">
+                      <span class="menu-field-split">
+                        <span>Reflection Strength</span>
+                        <strong id="wet-reflection-strength-value" class="menu-field-value">35</strong>
+                      </span>
+                      <input type="range" id="wet-reflection-strength-input" min="0" max="100" step="1" value="35">
+                    </label>
+                    <label class="menu-field" for="wet-water-darkness-input">
+                      <span class="menu-field-split">
+                        <span>Water Darkness</span>
+                        <strong id="wet-water-darkness-value" class="menu-field-value">50</strong>
+                      </span>
+                      <input type="range" id="wet-water-darkness-input" min="0" max="100" step="1" value="50">
+                    </label>
+                    <label class="menu-field" for="wet-floor-darkness-input">
+                      <span class="menu-field-split">
+                        <span>Wet Floor Darkness</span>
+                        <strong id="wet-floor-darkness-value" class="menu-field-value">20</strong>
+                      </span>
+                      <input type="range" id="wet-floor-darkness-input" min="0" max="100" step="1" value="20">
+                    </label>
+                    <label class="menu-field" for="wet-puddle-smoothness-input">
+                      <span class="menu-field-split">
+                        <span>Puddle Sharpness / Smoothness</span>
+                        <strong id="wet-puddle-smoothness-value" class="menu-field-value">45</strong>
+                      </span>
+                      <input type="range" id="wet-puddle-smoothness-input" min="0" max="100" step="1" value="45">
+                    </label>
+                    <label class="menu-field" for="wet-fog-amount-input">
+                      <span class="menu-field-split">
+                        <span>Fog / Mist Amount</span>
+                        <strong id="wet-fog-amount-value" class="menu-field-value">20</strong>
+                      </span>
+                      <input type="range" id="wet-fog-amount-input" min="0" max="100" step="1" value="20">
+                    </label>
+                    <label class="menu-field" for="wet-reflection-quality-input">
+                      <span class="menu-field-split">
+                        <span>Reflection Quality</span>
+                        <strong id="wet-reflection-quality-value" class="menu-field-value">60</strong>
+                      </span>
+                      <input type="range" id="wet-reflection-quality-input" min="25" max="100" step="1" value="60">
+                    </label>
+                    <div class="menu-help-text">
+                      Wet visuals are ground-only and reapply to the current map when adjusted.
                     </div>
                   </div>
                 </section>
@@ -1306,7 +1403,7 @@
     </div>
   </div>
 
-  <script type="module" src="./src/main.js?diag=build-test-002"></script>
+  <script type="module" src="./src/main.js?diag=home-lite-test-002"></script>
 </body>
 
 </html>

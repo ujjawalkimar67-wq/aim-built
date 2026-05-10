@@ -1,0 +1,2122 @@
+{
+  "sourceCopied": {
+    "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\Animation\\source\\mixamo_crouch_source.fbx",
+    "exists": true,
+    "size": 825840,
+    "sha256": "42122E65F8B28540ED149454EC6DB25769882C79742C6AACE8F21C89F6F93345"
+  },
+  "sourceAttachedPath": "C:/Users/ujjaw/Downloads/mixamo_crouch_source.fbx",
+  "targetSocrates": {
+    "armatureName": "Socrates_MotusArmature_STAGE2_TEST",
+    "boneCount": 80,
+    "first30BoneNames": [
+      "Root",
+      "ik_foot_root",
+      "ik_foot_l",
+      "ik_foot_r",
+      "ik_hand_root",
+      "ik_hand_gun",
+      "ik_hand_l",
+      "ik_hand_r",
+      "Hips",
+      "Spine",
+      "Spine1",
+      "Spine2",
+      "LeftShoulder",
+      "LeftArm",
+      "LeftForeArm",
+      "LeftHand",
+      "LeftHandIndex1",
+      "LeftHandIndex2",
+      "LeftHandIndex3",
+      "LeftHandIndex4",
+      "LeftHandMiddle1",
+      "LeftHandMiddle2",
+      "LeftHandMiddle3",
+      "LeftHandMiddle4",
+      "LeftHandPinky1",
+      "LeftHandPinky2",
+      "LeftHandPinky3",
+      "LeftHandPinky4",
+      "LeftHandRing1",
+      "LeftHandRing2"
+    ],
+    "prefixes": []
+  },
+  "mixamoSource": {
+    "armatureName": "Armature",
+    "boneCount": 65,
+    "first30BoneNames": [
+      "mixamorig9:Hips",
+      "mixamorig9:Spine",
+      "mixamorig9:Spine1",
+      "mixamorig9:Spine2",
+      "mixamorig9:Neck",
+      "mixamorig9:Head",
+      "mixamorig9:HeadTop_End",
+      "mixamorig9:LeftShoulder",
+      "mixamorig9:LeftArm",
+      "mixamorig9:LeftForeArm",
+      "mixamorig9:LeftHand",
+      "mixamorig9:LeftHandThumb1",
+      "mixamorig9:LeftHandThumb2",
+      "mixamorig9:LeftHandThumb3",
+      "mixamorig9:LeftHandThumb4",
+      "mixamorig9:LeftHandIndex1",
+      "mixamorig9:LeftHandIndex2",
+      "mixamorig9:LeftHandIndex3",
+      "mixamorig9:LeftHandIndex4",
+      "mixamorig9:LeftHandMiddle1",
+      "mixamorig9:LeftHandMiddle2",
+      "mixamorig9:LeftHandMiddle3",
+      "mixamorig9:LeftHandMiddle4",
+      "mixamorig9:LeftHandRing1",
+      "mixamorig9:LeftHandRing2",
+      "mixamorig9:LeftHandRing3",
+      "mixamorig9:LeftHandRing4",
+      "mixamorig9:LeftHandPinky1",
+      "mixamorig9:LeftHandPinky2",
+      "mixamorig9:LeftHandPinky3"
+    ],
+    "prefixes": [
+      "mixamorig9:"
+    ],
+    "animationCount": 1,
+    "action": {
+      "name": "Armature|mixamo.com|Layer0",
+      "frameRange": [
+        1.0,
+        202.0
+      ],
+      "durationFrames": 201.0,
+      "trackCount": 520,
+      "first30TrackNames": [
+        "pose.bones[\"mixamorig9:Hips\"].location[0]",
+        "pose.bones[\"mixamorig9:Hips\"].location[1]",
+        "pose.bones[\"mixamorig9:Hips\"].location[2]",
+        "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[0]",
+        "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[1]",
+        "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[2]",
+        "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[3]",
+        "pose.bones[\"mixamorig9:Hips\"].scale[0]",
+        "pose.bones[\"mixamorig9:Hips\"].scale[1]",
+        "pose.bones[\"mixamorig9:Hips\"].scale[2]",
+        "pose.bones[\"mixamorig9:Spine\"].location[0]",
+        "pose.bones[\"mixamorig9:Spine\"].location[1]",
+        "pose.bones[\"mixamorig9:Spine\"].location[2]",
+        "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[0]",
+        "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[1]",
+        "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[2]",
+        "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[3]",
+        "pose.bones[\"mixamorig9:Spine\"].scale[0]",
+        "pose.bones[\"mixamorig9:Spine\"].scale[1]",
+        "pose.bones[\"mixamorig9:Spine\"].scale[2]",
+        "pose.bones[\"mixamorig9:Spine1\"].location[0]",
+        "pose.bones[\"mixamorig9:Spine1\"].location[1]",
+        "pose.bones[\"mixamorig9:Spine1\"].location[2]",
+        "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[0]",
+        "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[1]",
+        "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[2]",
+        "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[3]",
+        "pose.bones[\"mixamorig9:Spine1\"].scale[0]",
+        "pose.bones[\"mixamorig9:Spine1\"].scale[1]",
+        "pose.bones[\"mixamorig9:Spine1\"].scale[2]"
+      ],
+      "animatedBoneCount": 52
+    }
+  },
+  "motusUpperBodySource": {
+    "sourceActionName": "Armature|W1_Stand_Aim_Idle|W1_Stand_Aim_Idle:BaseAnimation",
+    "sourceFrameRange": [
+      1.0,
+      61.0
+    ],
+    "importedMeshesDeleted": [
+      "MotusMan_v55"
+    ],
+    "importedArmaturesDeleted": [
+      {
+        "name": "Armature",
+        "boneCount": 73
+      }
+    ]
+  },
+  "bindingAnalysis": {
+    "directSourceBoneMatches": 0,
+    "normalizedSourceBoneMatches": 52,
+    "needsRetargetingOrRenaming": true,
+    "sourcePrefix": "mixamorig9:"
+  },
+  "chosenCandidate": {
+    "hipLocationScale": null,
+    "retarget": {
+      "method": "mixamo_lower_body_with_motus_aim_idle_upper_body",
+      "manualArmEulerDegrees": {
+        "LeftArm": [
+          0.0,
+          90.0,
+          0.0
+        ],
+        "RightArm": [
+          0.0,
+          90.0,
+          0.0
+        ]
+      },
+      "mixamoLowerBodyBones": [
+        "Hips",
+        "LeftFoot",
+        "LeftLeg",
+        "LeftToeBase",
+        "LeftUpLeg",
+        "RightFoot",
+        "RightLeg",
+        "RightToeBase",
+        "RightUpLeg"
+      ],
+      "motusUpperBodyBones": [
+        "Head",
+        "HeadTop_End",
+        "LeftArm",
+        "LeftForeArm",
+        "LeftHand",
+        "LeftHandIndex1",
+        "LeftHandIndex2",
+        "LeftHandIndex3",
+        "LeftHandIndex4",
+        "LeftHandMiddle1",
+        "LeftHandMiddle2",
+        "LeftHandMiddle3",
+        "LeftHandMiddle4",
+        "LeftHandPinky1",
+        "LeftHandPinky2",
+        "LeftHandPinky3",
+        "LeftHandPinky4",
+        "LeftHandRing1",
+        "LeftHandRing2",
+        "LeftHandRing3",
+        "LeftHandRing4",
+        "LeftHandThumb1",
+        "LeftHandThumb2",
+        "LeftHandThumb3",
+        "LeftHandThumb4",
+        "LeftShoulder",
+        "Neck",
+        "RightArm",
+        "RightForeArm",
+        "RightHand",
+        "RightHandIndex1",
+        "RightHandIndex2",
+        "RightHandIndex3",
+        "RightHandIndex4",
+        "RightHandMiddle1",
+        "RightHandMiddle2",
+        "RightHandMiddle3",
+        "RightHandMiddle4",
+        "RightHandPinky1",
+        "RightHandPinky2",
+        "RightHandPinky3",
+        "RightHandPinky4",
+        "RightHandRing1",
+        "RightHandRing2",
+        "RightHandRing3",
+        "RightHandRing4",
+        "RightHandThumb1",
+        "RightHandThumb2",
+        "RightHandThumb3",
+        "RightHandThumb4",
+        "RightShoulder",
+        "Spine",
+        "Spine1",
+        "Spine2"
+      ],
+      "copiedTrackCount": 251,
+      "skippedTrackCount": 1007,
+      "first30CopiedTracks": [
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].location[0]",
+          "targetTrack": "pose.bones[\"Hips\"].location[1]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].location[1]",
+          "targetTrack": "pose.bones[\"Hips\"].location[0]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].location[2]",
+          "targetTrack": "pose.bones[\"Hips\"].location[2]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[0]",
+          "targetTrack": "pose.bones[\"Hips\"].rotation_quaternion[0]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[1]",
+          "targetTrack": "pose.bones[\"Hips\"].rotation_quaternion[1]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[2]",
+          "targetTrack": "pose.bones[\"Hips\"].rotation_quaternion[2]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[3]",
+          "targetTrack": "pose.bones[\"Hips\"].rotation_quaternion[3]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftUpLeg\"].rotation_quaternion[0]",
+          "targetTrack": "pose.bones[\"LeftUpLeg\"].rotation_quaternion[0]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftUpLeg\"].rotation_quaternion[1]",
+          "targetTrack": "pose.bones[\"LeftUpLeg\"].rotation_quaternion[1]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftUpLeg\"].rotation_quaternion[2]",
+          "targetTrack": "pose.bones[\"LeftUpLeg\"].rotation_quaternion[2]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftUpLeg\"].rotation_quaternion[3]",
+          "targetTrack": "pose.bones[\"LeftUpLeg\"].rotation_quaternion[3]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftLeg\"].rotation_quaternion[0]",
+          "targetTrack": "pose.bones[\"LeftLeg\"].rotation_quaternion[0]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftLeg\"].rotation_quaternion[1]",
+          "targetTrack": "pose.bones[\"LeftLeg\"].rotation_quaternion[1]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftLeg\"].rotation_quaternion[2]",
+          "targetTrack": "pose.bones[\"LeftLeg\"].rotation_quaternion[2]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftLeg\"].rotation_quaternion[3]",
+          "targetTrack": "pose.bones[\"LeftLeg\"].rotation_quaternion[3]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftFoot\"].rotation_quaternion[0]",
+          "targetTrack": "pose.bones[\"LeftFoot\"].rotation_quaternion[0]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftFoot\"].rotation_quaternion[1]",
+          "targetTrack": "pose.bones[\"LeftFoot\"].rotation_quaternion[1]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftFoot\"].rotation_quaternion[2]",
+          "targetTrack": "pose.bones[\"LeftFoot\"].rotation_quaternion[2]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftFoot\"].rotation_quaternion[3]",
+          "targetTrack": "pose.bones[\"LeftFoot\"].rotation_quaternion[3]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftToeBase\"].rotation_quaternion[0]",
+          "targetTrack": "pose.bones[\"LeftToeBase\"].rotation_quaternion[0]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftToeBase\"].rotation_quaternion[1]",
+          "targetTrack": "pose.bones[\"LeftToeBase\"].rotation_quaternion[1]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftToeBase\"].rotation_quaternion[2]",
+          "targetTrack": "pose.bones[\"LeftToeBase\"].rotation_quaternion[2]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:LeftToeBase\"].rotation_quaternion[3]",
+          "targetTrack": "pose.bones[\"LeftToeBase\"].rotation_quaternion[3]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:RightUpLeg\"].rotation_quaternion[0]",
+          "targetTrack": "pose.bones[\"RightUpLeg\"].rotation_quaternion[0]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:RightUpLeg\"].rotation_quaternion[1]",
+          "targetTrack": "pose.bones[\"RightUpLeg\"].rotation_quaternion[1]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:RightUpLeg\"].rotation_quaternion[2]",
+          "targetTrack": "pose.bones[\"RightUpLeg\"].rotation_quaternion[2]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:RightUpLeg\"].rotation_quaternion[3]",
+          "targetTrack": "pose.bones[\"RightUpLeg\"].rotation_quaternion[3]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:RightLeg\"].rotation_quaternion[0]",
+          "targetTrack": "pose.bones[\"RightLeg\"].rotation_quaternion[0]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:RightLeg\"].rotation_quaternion[1]",
+          "targetTrack": "pose.bones[\"RightLeg\"].rotation_quaternion[1]",
+          "source": "mixamo_lower"
+        },
+        {
+          "sourceTrack": "pose.bones[\"mixamorig9:RightLeg\"].rotation_quaternion[2]",
+          "targetTrack": "pose.bones[\"RightLeg\"].rotation_quaternion[2]",
+          "source": "mixamo_lower"
+        }
+      ],
+      "first30SkippedTracks": [
+        {
+          "track": "pose.bones[\"mixamorig9:Hips\"].scale[0]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Hips\"].scale[1]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Hips\"].scale[2]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].location[0]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].location[1]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].location[2]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[0]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[1]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[2]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[3]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].scale[0]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].scale[1]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine\"].scale[2]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].location[0]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].location[1]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].location[2]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[0]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[1]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[2]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[3]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].scale[0]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].scale[1]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine1\"].scale[2]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine2\"].location[0]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine2\"].location[1]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine2\"].location[2]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine2\"].rotation_quaternion[0]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine2\"].rotation_quaternion[1]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine2\"].rotation_quaternion[2]",
+          "reason": "not_mixamo_lower_body_channel"
+        },
+        {
+          "track": "pose.bones[\"mixamorig9:Spine2\"].rotation_quaternion[3]",
+          "reason": "not_mixamo_lower_body_channel"
+        }
+      ],
+      "sourceFrameRangeUsed": [
+        1,
+        61
+      ],
+      "outputFrameRange": [
+        1,
+        76
+      ],
+      "restEntryFrame": 1,
+      "crouchStartFrame": 16
+    },
+    "groundCorrection": {
+      "targetMinZ": 0.02,
+      "axisName": "y",
+      "axisIndex": 1,
+      "worldMinZDeltaPerLocalUnit": 0.01000002,
+      "originalSamplesSummary": {
+        "minZ": -0.27787,
+        "minZFrame": 13,
+        "maxOfMinZ": -0.00282,
+        "maxOfMinZFrame": 1
+      },
+      "correctedSamplesSummary": {
+        "minZ": 0.01969,
+        "minZFrame": 76,
+        "maxOfMinZ": 0.02,
+        "maxOfMinZFrame": 1
+      },
+      "maxAbsWorldOffset": 0.29787,
+      "first10Offsets": [
+        {
+          "frame": 1,
+          "sourceMinZ": -0.00282,
+          "worldOffset": 0.02282,
+          "localOffset": 2.282
+        },
+        {
+          "frame": 2,
+          "sourceMinZ": -0.04337,
+          "worldOffset": 0.06337,
+          "localOffset": 6.33699
+        },
+        {
+          "frame": 3,
+          "sourceMinZ": -0.08239,
+          "worldOffset": 0.10239,
+          "localOffset": 10.23898
+        },
+        {
+          "frame": 4,
+          "sourceMinZ": -0.11921,
+          "worldOffset": 0.13921,
+          "localOffset": 13.92097
+        },
+        {
+          "frame": 5,
+          "sourceMinZ": -0.15322,
+          "worldOffset": 0.17322,
+          "localOffset": 17.32197
+        },
+        {
+          "frame": 6,
+          "sourceMinZ": -0.18379,
+          "worldOffset": 0.20379,
+          "localOffset": 20.37896
+        },
+        {
+          "frame": 7,
+          "sourceMinZ": -0.21027,
+          "worldOffset": 0.23027,
+          "localOffset": 23.02695
+        },
+        {
+          "frame": 8,
+          "sourceMinZ": -0.23244,
+          "worldOffset": 0.25244,
+          "localOffset": 25.24395
+        },
+        {
+          "frame": 9,
+          "sourceMinZ": -0.24994,
+          "worldOffset": 0.26994,
+          "localOffset": 26.99395
+        },
+        {
+          "frame": 10,
+          "sourceMinZ": -0.26279,
+          "worldOffset": 0.28279,
+          "localOffset": 28.27894
+        }
+      ]
+    },
+    "validation": {
+      "clip": "mixamo_e_crouch_blended_bake",
+      "minZ": 0.01969,
+      "minZFrame": 76,
+      "maxOfMinZ": 0.02,
+      "maxOfMinZFrame": 1,
+      "minZOk": true,
+      "maxOfMinZOk": true,
+      "noFloating": true,
+      "noSinking": true,
+      "deformationReportAtWorstMinZ": {
+        "bounds": {
+          "min": [
+            -0.55389,
+            -0.39642,
+            0.01969
+          ],
+          "max": [
+            0.82152,
+            0.45199,
+            1.47964
+          ],
+          "size": [
+            1.37541,
+            0.84841,
+            1.45995
+          ],
+          "center": [
+            0.13381,
+            0.02779,
+            0.74966
+          ]
+        },
+        "meshExploded": false,
+        "robeStretchedAcrossScene": false,
+        "bodyParts": [
+          {
+            "name": "head",
+            "vertexCount": 8762,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.55389,
+                -0.08709,
+                1.12844
+              ],
+              "max": [
+                -0.14765,
+                0.24743,
+                1.47964
+              ],
+              "size": [
+                0.40624,
+                0.33452,
+                0.3512
+              ],
+              "center": [
+                -0.35077,
+                0.08017,
+                1.30404
+              ]
+            },
+            "distanceFromBodyCenter": 0.73817,
+            "reasonable": true
+          },
+          {
+            "name": "leftArm",
+            "vertexCount": 12343,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.32125,
+                -0.36776,
+                0.81115
+              ],
+              "max": [
+                0.09249,
+                0.26694,
+                1.42746
+              ],
+              "size": [
+                0.41373,
+                0.63469,
+                0.61631
+              ],
+              "center": [
+                -0.11438,
+                -0.05041,
+                1.11931
+              ]
+            },
+            "distanceFromBodyCenter": 0.45205,
+            "reasonable": true
+          },
+          {
+            "name": "rightArm",
+            "vertexCount": 8191,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.4815,
+                -0.08656,
+                0.57848
+              ],
+              "max": [
+                -0.13292,
+                0.33295,
+                1.30269
+              ],
+              "size": [
+                0.34858,
+                0.41951,
+                0.72421
+              ],
+              "center": [
+                -0.30721,
+                0.12319,
+                0.94058
+              ]
+            },
+            "distanceFromBodyCenter": 0.48995,
+            "reasonable": true
+          },
+          {
+            "name": "leftLeg",
+            "vertexCount": 19378,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.19569,
+                -0.39642,
+                0.14351
+              ],
+              "max": [
+                0.82152,
+                0.34093,
+                1.26808
+              ],
+              "size": [
+                1.01721,
+                0.73735,
+                1.12457
+              ],
+              "center": [
+                0.31291,
+                -0.02774,
+                0.70579
+              ]
+            },
+            "distanceFromBodyCenter": 0.19257,
+            "reasonable": true
+          },
+          {
+            "name": "rightLeg",
+            "vertexCount": 16637,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.30638,
+                -0.1274,
+                0.01969
+              ],
+              "max": [
+                0.64001,
+                0.45199,
+                1.15427
+              ],
+              "size": [
+                0.9464,
+                0.57939,
+                1.13458
+              ],
+              "center": [
+                0.16681,
+                0.1623,
+                0.58698
+              ]
+            },
+            "distanceFromBodyCenter": 0.21365,
+            "reasonable": true
+          },
+          {
+            "name": "torso",
+            "vertexCount": 25066,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.4699,
+                -0.09857,
+                0.44075
+              ],
+              "max": [
+                0.24702,
+                0.33295,
+                1.42746
+              ],
+              "size": [
+                0.71692,
+                0.43152,
+                0.98671
+              ],
+              "center": [
+                -0.11144,
+                0.11719,
+                0.93411
+              ]
+            },
+            "distanceFromBodyCenter": 0.31962,
+            "reasonable": true
+          }
+        ],
+        "bodyPartsReasonable": true
+      },
+      "passed": true
+    },
+    "depth": {
+      "restTorsoCenterZ": 1.09469,
+      "maxTorsoLowerDelta": 0.18803,
+      "maxTorsoLowerFrame": 73,
+      "startTorsoLowerDelta": -0.02282,
+      "endTorsoLowerDelta": 0.1879,
+      "samples": [
+        {
+          "frame": 1,
+          "torsoCenterZ": 1.11751,
+          "torsoLowerDelta": -0.02282
+        },
+        {
+          "frame": 7,
+          "torsoCenterZ": 1.14147,
+          "torsoLowerDelta": -0.04678
+        },
+        {
+          "frame": 13,
+          "torsoCenterZ": 1.01818,
+          "torsoLowerDelta": 0.07651
+        },
+        {
+          "frame": 19,
+          "torsoCenterZ": 0.91442,
+          "torsoLowerDelta": 0.18027
+        },
+        {
+          "frame": 25,
+          "torsoCenterZ": 0.91503,
+          "torsoLowerDelta": 0.17966
+        },
+        {
+          "frame": 31,
+          "torsoCenterZ": 0.91378,
+          "torsoLowerDelta": 0.18091
+        },
+        {
+          "frame": 37,
+          "torsoCenterZ": 0.9126,
+          "torsoLowerDelta": 0.18209
+        },
+        {
+          "frame": 43,
+          "torsoCenterZ": 0.91169,
+          "torsoLowerDelta": 0.183
+        },
+        {
+          "frame": 49,
+          "torsoCenterZ": 0.91029,
+          "torsoLowerDelta": 0.1844
+        },
+        {
+          "frame": 55,
+          "torsoCenterZ": 0.90885,
+          "torsoLowerDelta": 0.18584
+        },
+        {
+          "frame": 61,
+          "torsoCenterZ": 0.90793,
+          "torsoLowerDelta": 0.18676
+        },
+        {
+          "frame": 67,
+          "torsoCenterZ": 0.9067,
+          "torsoLowerDelta": 0.18799
+        },
+        {
+          "frame": 73,
+          "torsoCenterZ": 0.90666,
+          "torsoLowerDelta": 0.18803
+        }
+      ]
+    },
+    "travel": {
+      "xRange": 0.01463,
+      "yRange": 0.00629,
+      "zRange": 0.25674,
+      "horizontalRange": 0.01593
+    },
+    "trackCount": 252,
+    "first30TrackNames": [
+      "pose.bones[\"Hips\"].location[1]",
+      "pose.bones[\"Hips\"].location[0]",
+      "pose.bones[\"Hips\"].location[2]",
+      "pose.bones[\"Hips\"].rotation_quaternion[0]",
+      "pose.bones[\"Hips\"].rotation_quaternion[1]",
+      "pose.bones[\"Hips\"].rotation_quaternion[2]",
+      "pose.bones[\"Hips\"].rotation_quaternion[3]",
+      "pose.bones[\"LeftUpLeg\"].rotation_quaternion[0]",
+      "pose.bones[\"LeftUpLeg\"].rotation_quaternion[1]",
+      "pose.bones[\"LeftUpLeg\"].rotation_quaternion[2]",
+      "pose.bones[\"LeftUpLeg\"].rotation_quaternion[3]",
+      "pose.bones[\"LeftLeg\"].rotation_quaternion[0]",
+      "pose.bones[\"LeftLeg\"].rotation_quaternion[1]",
+      "pose.bones[\"LeftLeg\"].rotation_quaternion[2]",
+      "pose.bones[\"LeftLeg\"].rotation_quaternion[3]",
+      "pose.bones[\"LeftFoot\"].rotation_quaternion[0]",
+      "pose.bones[\"LeftFoot\"].rotation_quaternion[1]",
+      "pose.bones[\"LeftFoot\"].rotation_quaternion[2]",
+      "pose.bones[\"LeftFoot\"].rotation_quaternion[3]",
+      "pose.bones[\"LeftToeBase\"].rotation_quaternion[0]",
+      "pose.bones[\"LeftToeBase\"].rotation_quaternion[1]",
+      "pose.bones[\"LeftToeBase\"].rotation_quaternion[2]",
+      "pose.bones[\"LeftToeBase\"].rotation_quaternion[3]",
+      "pose.bones[\"RightUpLeg\"].rotation_quaternion[0]",
+      "pose.bones[\"RightUpLeg\"].rotation_quaternion[1]",
+      "pose.bones[\"RightUpLeg\"].rotation_quaternion[2]",
+      "pose.bones[\"RightUpLeg\"].rotation_quaternion[3]",
+      "pose.bones[\"RightLeg\"].rotation_quaternion[0]",
+      "pose.bones[\"RightLeg\"].rotation_quaternion[1]",
+      "pose.bones[\"RightLeg\"].rotation_quaternion[2]"
+    ],
+    "hasBadMixamoTracks": false,
+    "score": 0.16517,
+    "passes": true
+  },
+  "candidateReports": [
+    {
+      "hipLocationScale": null,
+      "retarget": {
+        "method": "mixamo_lower_body_with_motus_aim_idle_upper_body",
+        "manualArmEulerDegrees": {
+          "LeftArm": [
+            0.0,
+            90.0,
+            0.0
+          ],
+          "RightArm": [
+            0.0,
+            90.0,
+            0.0
+          ]
+        },
+        "mixamoLowerBodyBones": [
+          "Hips",
+          "LeftFoot",
+          "LeftLeg",
+          "LeftToeBase",
+          "LeftUpLeg",
+          "RightFoot",
+          "RightLeg",
+          "RightToeBase",
+          "RightUpLeg"
+        ],
+        "motusUpperBodyBones": [
+          "Head",
+          "HeadTop_End",
+          "LeftArm",
+          "LeftForeArm",
+          "LeftHand",
+          "LeftHandIndex1",
+          "LeftHandIndex2",
+          "LeftHandIndex3",
+          "LeftHandIndex4",
+          "LeftHandMiddle1",
+          "LeftHandMiddle2",
+          "LeftHandMiddle3",
+          "LeftHandMiddle4",
+          "LeftHandPinky1",
+          "LeftHandPinky2",
+          "LeftHandPinky3",
+          "LeftHandPinky4",
+          "LeftHandRing1",
+          "LeftHandRing2",
+          "LeftHandRing3",
+          "LeftHandRing4",
+          "LeftHandThumb1",
+          "LeftHandThumb2",
+          "LeftHandThumb3",
+          "LeftHandThumb4",
+          "LeftShoulder",
+          "Neck",
+          "RightArm",
+          "RightForeArm",
+          "RightHand",
+          "RightHandIndex1",
+          "RightHandIndex2",
+          "RightHandIndex3",
+          "RightHandIndex4",
+          "RightHandMiddle1",
+          "RightHandMiddle2",
+          "RightHandMiddle3",
+          "RightHandMiddle4",
+          "RightHandPinky1",
+          "RightHandPinky2",
+          "RightHandPinky3",
+          "RightHandPinky4",
+          "RightHandRing1",
+          "RightHandRing2",
+          "RightHandRing3",
+          "RightHandRing4",
+          "RightHandThumb1",
+          "RightHandThumb2",
+          "RightHandThumb3",
+          "RightHandThumb4",
+          "RightShoulder",
+          "Spine",
+          "Spine1",
+          "Spine2"
+        ],
+        "copiedTrackCount": 251,
+        "skippedTrackCount": 1007,
+        "first30CopiedTracks": [
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].location[0]",
+            "targetTrack": "pose.bones[\"Hips\"].location[1]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].location[1]",
+            "targetTrack": "pose.bones[\"Hips\"].location[0]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].location[2]",
+            "targetTrack": "pose.bones[\"Hips\"].location[2]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[0]",
+            "targetTrack": "pose.bones[\"Hips\"].rotation_quaternion[0]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[1]",
+            "targetTrack": "pose.bones[\"Hips\"].rotation_quaternion[1]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[2]",
+            "targetTrack": "pose.bones[\"Hips\"].rotation_quaternion[2]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:Hips\"].rotation_quaternion[3]",
+            "targetTrack": "pose.bones[\"Hips\"].rotation_quaternion[3]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftUpLeg\"].rotation_quaternion[0]",
+            "targetTrack": "pose.bones[\"LeftUpLeg\"].rotation_quaternion[0]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftUpLeg\"].rotation_quaternion[1]",
+            "targetTrack": "pose.bones[\"LeftUpLeg\"].rotation_quaternion[1]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftUpLeg\"].rotation_quaternion[2]",
+            "targetTrack": "pose.bones[\"LeftUpLeg\"].rotation_quaternion[2]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftUpLeg\"].rotation_quaternion[3]",
+            "targetTrack": "pose.bones[\"LeftUpLeg\"].rotation_quaternion[3]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftLeg\"].rotation_quaternion[0]",
+            "targetTrack": "pose.bones[\"LeftLeg\"].rotation_quaternion[0]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftLeg\"].rotation_quaternion[1]",
+            "targetTrack": "pose.bones[\"LeftLeg\"].rotation_quaternion[1]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftLeg\"].rotation_quaternion[2]",
+            "targetTrack": "pose.bones[\"LeftLeg\"].rotation_quaternion[2]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftLeg\"].rotation_quaternion[3]",
+            "targetTrack": "pose.bones[\"LeftLeg\"].rotation_quaternion[3]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftFoot\"].rotation_quaternion[0]",
+            "targetTrack": "pose.bones[\"LeftFoot\"].rotation_quaternion[0]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftFoot\"].rotation_quaternion[1]",
+            "targetTrack": "pose.bones[\"LeftFoot\"].rotation_quaternion[1]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftFoot\"].rotation_quaternion[2]",
+            "targetTrack": "pose.bones[\"LeftFoot\"].rotation_quaternion[2]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftFoot\"].rotation_quaternion[3]",
+            "targetTrack": "pose.bones[\"LeftFoot\"].rotation_quaternion[3]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftToeBase\"].rotation_quaternion[0]",
+            "targetTrack": "pose.bones[\"LeftToeBase\"].rotation_quaternion[0]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftToeBase\"].rotation_quaternion[1]",
+            "targetTrack": "pose.bones[\"LeftToeBase\"].rotation_quaternion[1]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftToeBase\"].rotation_quaternion[2]",
+            "targetTrack": "pose.bones[\"LeftToeBase\"].rotation_quaternion[2]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:LeftToeBase\"].rotation_quaternion[3]",
+            "targetTrack": "pose.bones[\"LeftToeBase\"].rotation_quaternion[3]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:RightUpLeg\"].rotation_quaternion[0]",
+            "targetTrack": "pose.bones[\"RightUpLeg\"].rotation_quaternion[0]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:RightUpLeg\"].rotation_quaternion[1]",
+            "targetTrack": "pose.bones[\"RightUpLeg\"].rotation_quaternion[1]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:RightUpLeg\"].rotation_quaternion[2]",
+            "targetTrack": "pose.bones[\"RightUpLeg\"].rotation_quaternion[2]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:RightUpLeg\"].rotation_quaternion[3]",
+            "targetTrack": "pose.bones[\"RightUpLeg\"].rotation_quaternion[3]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:RightLeg\"].rotation_quaternion[0]",
+            "targetTrack": "pose.bones[\"RightLeg\"].rotation_quaternion[0]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:RightLeg\"].rotation_quaternion[1]",
+            "targetTrack": "pose.bones[\"RightLeg\"].rotation_quaternion[1]",
+            "source": "mixamo_lower"
+          },
+          {
+            "sourceTrack": "pose.bones[\"mixamorig9:RightLeg\"].rotation_quaternion[2]",
+            "targetTrack": "pose.bones[\"RightLeg\"].rotation_quaternion[2]",
+            "source": "mixamo_lower"
+          }
+        ],
+        "first30SkippedTracks": [
+          {
+            "track": "pose.bones[\"mixamorig9:Hips\"].scale[0]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Hips\"].scale[1]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Hips\"].scale[2]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].location[0]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].location[1]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].location[2]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[0]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[1]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[2]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].rotation_quaternion[3]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].scale[0]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].scale[1]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine\"].scale[2]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].location[0]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].location[1]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].location[2]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[0]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[1]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[2]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].rotation_quaternion[3]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].scale[0]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].scale[1]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine1\"].scale[2]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine2\"].location[0]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine2\"].location[1]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine2\"].location[2]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine2\"].rotation_quaternion[0]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine2\"].rotation_quaternion[1]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine2\"].rotation_quaternion[2]",
+            "reason": "not_mixamo_lower_body_channel"
+          },
+          {
+            "track": "pose.bones[\"mixamorig9:Spine2\"].rotation_quaternion[3]",
+            "reason": "not_mixamo_lower_body_channel"
+          }
+        ],
+        "sourceFrameRangeUsed": [
+          1,
+          61
+        ],
+        "outputFrameRange": [
+          1,
+          76
+        ],
+        "restEntryFrame": 1,
+        "crouchStartFrame": 16
+      },
+      "groundCorrection": {
+        "targetMinZ": 0.02,
+        "axisName": "y",
+        "axisIndex": 1,
+        "worldMinZDeltaPerLocalUnit": 0.01000002,
+        "originalSamplesSummary": {
+          "minZ": -0.27787,
+          "minZFrame": 13,
+          "maxOfMinZ": -0.00282,
+          "maxOfMinZFrame": 1
+        },
+        "correctedSamplesSummary": {
+          "minZ": 0.01969,
+          "minZFrame": 76,
+          "maxOfMinZ": 0.02,
+          "maxOfMinZFrame": 1
+        },
+        "maxAbsWorldOffset": 0.29787,
+        "first10Offsets": [
+          {
+            "frame": 1,
+            "sourceMinZ": -0.00282,
+            "worldOffset": 0.02282,
+            "localOffset": 2.282
+          },
+          {
+            "frame": 2,
+            "sourceMinZ": -0.04337,
+            "worldOffset": 0.06337,
+            "localOffset": 6.33699
+          },
+          {
+            "frame": 3,
+            "sourceMinZ": -0.08239,
+            "worldOffset": 0.10239,
+            "localOffset": 10.23898
+          },
+          {
+            "frame": 4,
+            "sourceMinZ": -0.11921,
+            "worldOffset": 0.13921,
+            "localOffset": 13.92097
+          },
+          {
+            "frame": 5,
+            "sourceMinZ": -0.15322,
+            "worldOffset": 0.17322,
+            "localOffset": 17.32197
+          },
+          {
+            "frame": 6,
+            "sourceMinZ": -0.18379,
+            "worldOffset": 0.20379,
+            "localOffset": 20.37896
+          },
+          {
+            "frame": 7,
+            "sourceMinZ": -0.21027,
+            "worldOffset": 0.23027,
+            "localOffset": 23.02695
+          },
+          {
+            "frame": 8,
+            "sourceMinZ": -0.23244,
+            "worldOffset": 0.25244,
+            "localOffset": 25.24395
+          },
+          {
+            "frame": 9,
+            "sourceMinZ": -0.24994,
+            "worldOffset": 0.26994,
+            "localOffset": 26.99395
+          },
+          {
+            "frame": 10,
+            "sourceMinZ": -0.26279,
+            "worldOffset": 0.28279,
+            "localOffset": 28.27894
+          }
+        ]
+      },
+      "validation": {
+        "clip": "mixamo_e_crouch_blended_bake",
+        "minZ": 0.01969,
+        "minZFrame": 76,
+        "maxOfMinZ": 0.02,
+        "maxOfMinZFrame": 1,
+        "minZOk": true,
+        "maxOfMinZOk": true,
+        "noFloating": true,
+        "noSinking": true,
+        "deformationReportAtWorstMinZ": {
+          "bounds": {
+            "min": [
+              -0.55389,
+              -0.39642,
+              0.01969
+            ],
+            "max": [
+              0.82152,
+              0.45199,
+              1.47964
+            ],
+            "size": [
+              1.37541,
+              0.84841,
+              1.45995
+            ],
+            "center": [
+              0.13381,
+              0.02779,
+              0.74966
+            ]
+          },
+          "meshExploded": false,
+          "robeStretchedAcrossScene": false,
+          "bodyParts": [
+            {
+              "name": "head",
+              "vertexCount": 8762,
+              "present": true,
+              "bounds": {
+                "min": [
+                  -0.55389,
+                  -0.08709,
+                  1.12844
+                ],
+                "max": [
+                  -0.14765,
+                  0.24743,
+                  1.47964
+                ],
+                "size": [
+                  0.40624,
+                  0.33452,
+                  0.3512
+                ],
+                "center": [
+                  -0.35077,
+                  0.08017,
+                  1.30404
+                ]
+              },
+              "distanceFromBodyCenter": 0.73817,
+              "reasonable": true
+            },
+            {
+              "name": "leftArm",
+              "vertexCount": 12343,
+              "present": true,
+              "bounds": {
+                "min": [
+                  -0.32125,
+                  -0.36776,
+                  0.81115
+                ],
+                "max": [
+                  0.09249,
+                  0.26694,
+                  1.42746
+                ],
+                "size": [
+                  0.41373,
+                  0.63469,
+                  0.61631
+                ],
+                "center": [
+                  -0.11438,
+                  -0.05041,
+                  1.11931
+                ]
+              },
+              "distanceFromBodyCenter": 0.45205,
+              "reasonable": true
+            },
+            {
+              "name": "rightArm",
+              "vertexCount": 8191,
+              "present": true,
+              "bounds": {
+                "min": [
+                  -0.4815,
+                  -0.08656,
+                  0.57848
+                ],
+                "max": [
+                  -0.13292,
+                  0.33295,
+                  1.30269
+                ],
+                "size": [
+                  0.34858,
+                  0.41951,
+                  0.72421
+                ],
+                "center": [
+                  -0.30721,
+                  0.12319,
+                  0.94058
+                ]
+              },
+              "distanceFromBodyCenter": 0.48995,
+              "reasonable": true
+            },
+            {
+              "name": "leftLeg",
+              "vertexCount": 19378,
+              "present": true,
+              "bounds": {
+                "min": [
+                  -0.19569,
+                  -0.39642,
+                  0.14351
+                ],
+                "max": [
+                  0.82152,
+                  0.34093,
+                  1.26808
+                ],
+                "size": [
+                  1.01721,
+                  0.73735,
+                  1.12457
+                ],
+                "center": [
+                  0.31291,
+                  -0.02774,
+                  0.70579
+                ]
+              },
+              "distanceFromBodyCenter": 0.19257,
+              "reasonable": true
+            },
+            {
+              "name": "rightLeg",
+              "vertexCount": 16637,
+              "present": true,
+              "bounds": {
+                "min": [
+                  -0.30638,
+                  -0.1274,
+                  0.01969
+                ],
+                "max": [
+                  0.64001,
+                  0.45199,
+                  1.15427
+                ],
+                "size": [
+                  0.9464,
+                  0.57939,
+                  1.13458
+                ],
+                "center": [
+                  0.16681,
+                  0.1623,
+                  0.58698
+                ]
+              },
+              "distanceFromBodyCenter": 0.21365,
+              "reasonable": true
+            },
+            {
+              "name": "torso",
+              "vertexCount": 25066,
+              "present": true,
+              "bounds": {
+                "min": [
+                  -0.4699,
+                  -0.09857,
+                  0.44075
+                ],
+                "max": [
+                  0.24702,
+                  0.33295,
+                  1.42746
+                ],
+                "size": [
+                  0.71692,
+                  0.43152,
+                  0.98671
+                ],
+                "center": [
+                  -0.11144,
+                  0.11719,
+                  0.93411
+                ]
+              },
+              "distanceFromBodyCenter": 0.31962,
+              "reasonable": true
+            }
+          ],
+          "bodyPartsReasonable": true
+        },
+        "passed": true
+      },
+      "depth": {
+        "restTorsoCenterZ": 1.09469,
+        "maxTorsoLowerDelta": 0.18803,
+        "maxTorsoLowerFrame": 73,
+        "startTorsoLowerDelta": -0.02282,
+        "endTorsoLowerDelta": 0.1879,
+        "samples": [
+          {
+            "frame": 1,
+            "torsoCenterZ": 1.11751,
+            "torsoLowerDelta": -0.02282
+          },
+          {
+            "frame": 7,
+            "torsoCenterZ": 1.14147,
+            "torsoLowerDelta": -0.04678
+          },
+          {
+            "frame": 13,
+            "torsoCenterZ": 1.01818,
+            "torsoLowerDelta": 0.07651
+          },
+          {
+            "frame": 19,
+            "torsoCenterZ": 0.91442,
+            "torsoLowerDelta": 0.18027
+          },
+          {
+            "frame": 25,
+            "torsoCenterZ": 0.91503,
+            "torsoLowerDelta": 0.17966
+          },
+          {
+            "frame": 31,
+            "torsoCenterZ": 0.91378,
+            "torsoLowerDelta": 0.18091
+          },
+          {
+            "frame": 37,
+            "torsoCenterZ": 0.9126,
+            "torsoLowerDelta": 0.18209
+          },
+          {
+            "frame": 43,
+            "torsoCenterZ": 0.91169,
+            "torsoLowerDelta": 0.183
+          },
+          {
+            "frame": 49,
+            "torsoCenterZ": 0.91029,
+            "torsoLowerDelta": 0.1844
+          },
+          {
+            "frame": 55,
+            "torsoCenterZ": 0.90885,
+            "torsoLowerDelta": 0.18584
+          },
+          {
+            "frame": 61,
+            "torsoCenterZ": 0.90793,
+            "torsoLowerDelta": 0.18676
+          },
+          {
+            "frame": 67,
+            "torsoCenterZ": 0.9067,
+            "torsoLowerDelta": 0.18799
+          },
+          {
+            "frame": 73,
+            "torsoCenterZ": 0.90666,
+            "torsoLowerDelta": 0.18803
+          }
+        ]
+      },
+      "travel": {
+        "xRange": 0.01463,
+        "yRange": 0.00629,
+        "zRange": 0.25674,
+        "horizontalRange": 0.01593
+      },
+      "trackCount": 252,
+      "first30TrackNames": [
+        "pose.bones[\"Hips\"].location[1]",
+        "pose.bones[\"Hips\"].location[0]",
+        "pose.bones[\"Hips\"].location[2]",
+        "pose.bones[\"Hips\"].rotation_quaternion[0]",
+        "pose.bones[\"Hips\"].rotation_quaternion[1]",
+        "pose.bones[\"Hips\"].rotation_quaternion[2]",
+        "pose.bones[\"Hips\"].rotation_quaternion[3]",
+        "pose.bones[\"LeftUpLeg\"].rotation_quaternion[0]",
+        "pose.bones[\"LeftUpLeg\"].rotation_quaternion[1]",
+        "pose.bones[\"LeftUpLeg\"].rotation_quaternion[2]",
+        "pose.bones[\"LeftUpLeg\"].rotation_quaternion[3]",
+        "pose.bones[\"LeftLeg\"].rotation_quaternion[0]",
+        "pose.bones[\"LeftLeg\"].rotation_quaternion[1]",
+        "pose.bones[\"LeftLeg\"].rotation_quaternion[2]",
+        "pose.bones[\"LeftLeg\"].rotation_quaternion[3]",
+        "pose.bones[\"LeftFoot\"].rotation_quaternion[0]",
+        "pose.bones[\"LeftFoot\"].rotation_quaternion[1]",
+        "pose.bones[\"LeftFoot\"].rotation_quaternion[2]",
+        "pose.bones[\"LeftFoot\"].rotation_quaternion[3]",
+        "pose.bones[\"LeftToeBase\"].rotation_quaternion[0]",
+        "pose.bones[\"LeftToeBase\"].rotation_quaternion[1]",
+        "pose.bones[\"LeftToeBase\"].rotation_quaternion[2]",
+        "pose.bones[\"LeftToeBase\"].rotation_quaternion[3]",
+        "pose.bones[\"RightUpLeg\"].rotation_quaternion[0]",
+        "pose.bones[\"RightUpLeg\"].rotation_quaternion[1]",
+        "pose.bones[\"RightUpLeg\"].rotation_quaternion[2]",
+        "pose.bones[\"RightUpLeg\"].rotation_quaternion[3]",
+        "pose.bones[\"RightLeg\"].rotation_quaternion[0]",
+        "pose.bones[\"RightLeg\"].rotation_quaternion[1]",
+        "pose.bones[\"RightLeg\"].rotation_quaternion[2]"
+      ],
+      "hasBadMixamoTracks": false,
+      "score": 0.16517,
+      "passes": true
+    }
+  ],
+  "render": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\validation\\mixamo_e_crouch\\socrates_mixamo_e_crouch.png",
+  "export": {
+    "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\Animation\\Socrates_Proper_Crouch_E_MIXAMO_FIXED.fbx",
+    "exists": true,
+    "size": 887052,
+    "sha256": "7D4652EC3DB7FD16E372D329AB331AE2CC83C2B473170BDCC268E36166B3E70D"
+  },
+  "exportedValidation": {
+    "importReport": {
+      "sourceActionName": "Socrates_MotusArmature_STAGE2_TEST.001|Scene",
+      "sourceFrameRange": [
+        2.0,
+        77.0
+      ],
+      "importedMeshesDeleted": [],
+      "importedArmaturesDeleted": [
+        {
+          "name": "Socrates_MotusArmature_STAGE2_TEST.001",
+          "boneCount": 80
+        }
+      ]
+    },
+    "validation": {
+      "clip": "mixamo_fixed_e_crouch_exported",
+      "minZ": -0.00313,
+      "minZFrame": 77,
+      "maxOfMinZ": -0.00282,
+      "maxOfMinZFrame": 2,
+      "minZOk": true,
+      "maxOfMinZOk": true,
+      "noFloating": true,
+      "noSinking": true,
+      "deformationReportAtWorstMinZ": {
+        "bounds": {
+          "min": [
+            -0.47074,
+            -0.39642,
+            -0.00313
+          ],
+          "max": [
+            0.82152,
+            0.45199,
+            1.44689
+          ],
+          "size": [
+            1.29225,
+            0.84841,
+            1.45002
+          ],
+          "center": [
+            0.17539,
+            0.02779,
+            0.72188
+          ]
+        },
+        "meshExploded": false,
+        "robeStretchedAcrossScene": false,
+        "bodyParts": [
+          {
+            "name": "head",
+            "vertexCount": 8762,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.47074,
+                0.0726,
+                1.05268
+              ],
+              "max": [
+                -0.0411,
+                0.39692,
+                1.44689
+              ],
+              "size": [
+                0.42964,
+                0.32432,
+                0.39421
+              ],
+              "center": [
+                -0.25592,
+                0.23476,
+                1.24978
+              ]
+            },
+            "distanceFromBodyCenter": 0.71243,
+            "reasonable": true
+          },
+          {
+            "name": "leftArm",
+            "vertexCount": 12343,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.25652,
+                -0.1216,
+                0.64033
+              ],
+              "max": [
+                0.2211,
+                0.3436,
+                1.32914
+              ],
+              "size": [
+                0.47763,
+                0.4652,
+                0.6888
+              ],
+              "center": [
+                -0.01771,
+                0.111,
+                0.98473
+              ]
+            },
+            "distanceFromBodyCenter": 0.33661,
+            "reasonable": true
+          },
+          {
+            "name": "rightArm",
+            "vertexCount": 8191,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.34475,
+                0.01877,
+                0.48276
+              ],
+              "max": [
+                -0.02567,
+                0.40028,
+                1.19786
+              ],
+              "size": [
+                0.31908,
+                0.38151,
+                0.7151
+              ],
+              "center": [
+                -0.18521,
+                0.20952,
+                0.84031
+              ]
+            },
+            "distanceFromBodyCenter": 0.42081,
+            "reasonable": true
+          },
+          {
+            "name": "leftLeg",
+            "vertexCount": 19378,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.19029,
+                -0.39642,
+                0.12069
+              ],
+              "max": [
+                0.82152,
+                0.34093,
+                1.17854
+              ],
+              "size": [
+                1.01181,
+                0.73735,
+                1.05786
+              ],
+              "center": [
+                0.31561,
+                -0.02774,
+                0.64961
+              ]
+            },
+            "distanceFromBodyCenter": 0.16724,
+            "reasonable": true
+          },
+          {
+            "name": "rightLeg",
+            "vertexCount": 16637,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.28417,
+                -0.1274,
+                -0.00313
+              ],
+              "max": [
+                0.64001,
+                0.45199,
+                1.13149
+              ],
+              "size": [
+                0.92418,
+                0.57939,
+                1.13462
+              ],
+              "center": [
+                0.17792,
+                0.1623,
+                0.56418
+              ]
+            },
+            "distanceFromBodyCenter": 0.20729,
+            "reasonable": true
+          },
+          {
+            "name": "torso",
+            "vertexCount": 25066,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.34475,
+                -0.09865,
+                0.41793
+              ],
+              "max": [
+                0.24702,
+                0.40028,
+                1.3286
+              ],
+              "size": [
+                0.59177,
+                0.49893,
+                0.91067
+              ],
+              "center": [
+                -0.04886,
+                0.15081,
+                0.87326
+              ]
+            },
+            "distanceFromBodyCenter": 0.29722,
+            "reasonable": true
+          }
+        ],
+        "bodyPartsReasonable": true
+      },
+      "passed": true
+    },
+    "depth": {
+      "restTorsoCenterZ": 1.09469,
+      "maxTorsoLowerDelta": 0.21085,
+      "maxTorsoLowerFrame": 74,
+      "startTorsoLowerDelta": 0.0,
+      "endTorsoLowerDelta": 0.21072,
+      "samples": [
+        {
+          "frame": 2,
+          "torsoCenterZ": 1.09469,
+          "torsoLowerDelta": 0.0
+        },
+        {
+          "frame": 8,
+          "torsoCenterZ": 1.11865,
+          "torsoLowerDelta": -0.02396
+        },
+        {
+          "frame": 14,
+          "torsoCenterZ": 0.99536,
+          "torsoLowerDelta": 0.09933
+        },
+        {
+          "frame": 20,
+          "torsoCenterZ": 0.8916,
+          "torsoLowerDelta": 0.20309
+        },
+        {
+          "frame": 26,
+          "torsoCenterZ": 0.89221,
+          "torsoLowerDelta": 0.20248
+        },
+        {
+          "frame": 32,
+          "torsoCenterZ": 0.89096,
+          "torsoLowerDelta": 0.20373
+        },
+        {
+          "frame": 38,
+          "torsoCenterZ": 0.88978,
+          "torsoLowerDelta": 0.20491
+        },
+        {
+          "frame": 44,
+          "torsoCenterZ": 0.88887,
+          "torsoLowerDelta": 0.20582
+        },
+        {
+          "frame": 50,
+          "torsoCenterZ": 0.88747,
+          "torsoLowerDelta": 0.20722
+        },
+        {
+          "frame": 56,
+          "torsoCenterZ": 0.88603,
+          "torsoLowerDelta": 0.20866
+        },
+        {
+          "frame": 62,
+          "torsoCenterZ": 0.88511,
+          "torsoLowerDelta": 0.20958
+        },
+        {
+          "frame": 68,
+          "torsoCenterZ": 0.88388,
+          "torsoLowerDelta": 0.21081
+        },
+        {
+          "frame": 74,
+          "torsoCenterZ": 0.88384,
+          "torsoLowerDelta": 0.21085
+        }
+      ]
+    },
+    "animationCount": 7,
+    "clipName": "Socrates_STAGE3B_mixamo_fixed_e_crouch",
+    "durationFrames": 75.0,
+    "trackCount": 809,
+    "first30TrackNames": [
+      "location[0]",
+      "location[1]",
+      "location[2]",
+      "rotation_euler[0]",
+      "rotation_euler[1]",
+      "rotation_euler[2]",
+      "scale[0]",
+      "scale[1]",
+      "scale[2]",
+      "pose.bones[\"Root\"].location[0]",
+      "pose.bones[\"Root\"].location[1]",
+      "pose.bones[\"Root\"].location[2]",
+      "pose.bones[\"Root\"].rotation_quaternion[0]",
+      "pose.bones[\"Root\"].rotation_quaternion[1]",
+      "pose.bones[\"Root\"].rotation_quaternion[2]",
+      "pose.bones[\"Root\"].rotation_quaternion[3]",
+      "pose.bones[\"Root\"].scale[0]",
+      "pose.bones[\"Root\"].scale[1]",
+      "pose.bones[\"Root\"].scale[2]",
+      "pose.bones[\"ik_foot_root\"].location[0]",
+      "pose.bones[\"ik_foot_root\"].location[1]",
+      "pose.bones[\"ik_foot_root\"].location[2]",
+      "pose.bones[\"ik_foot_root\"].rotation_quaternion[0]",
+      "pose.bones[\"ik_foot_root\"].rotation_quaternion[1]",
+      "pose.bones[\"ik_foot_root\"].rotation_quaternion[2]",
+      "pose.bones[\"ik_foot_root\"].rotation_quaternion[3]",
+      "pose.bones[\"ik_foot_root\"].scale[0]",
+      "pose.bones[\"ik_foot_root\"].scale[1]",
+      "pose.bones[\"ik_foot_root\"].scale[2]",
+      "pose.bones[\"ik_foot_l\"].location[0]"
+    ],
+    "first20TrackNames": [
+      "location[0]",
+      "location[1]",
+      "location[2]",
+      "rotation_euler[0]",
+      "rotation_euler[1]",
+      "rotation_euler[2]",
+      "scale[0]",
+      "scale[1]",
+      "scale[2]",
+      "pose.bones[\"Root\"].location[0]",
+      "pose.bones[\"Root\"].location[1]",
+      "pose.bones[\"Root\"].location[2]",
+      "pose.bones[\"Root\"].rotation_quaternion[0]",
+      "pose.bones[\"Root\"].rotation_quaternion[1]",
+      "pose.bones[\"Root\"].rotation_quaternion[2]",
+      "pose.bones[\"Root\"].rotation_quaternion[3]",
+      "pose.bones[\"Root\"].scale[0]",
+      "pose.bones[\"Root\"].scale[1]",
+      "pose.bones[\"Root\"].scale[2]",
+      "pose.bones[\"ik_foot_root\"].location[0]"
+    ],
+    "matchingTrackCount": 800,
+    "trackNamesMatchSocratesBones": true,
+    "hasBadMixamoTracks": false,
+    "badMixamoTrackNames": []
+  },
+  "protectedFiles": {
+    "cCrouchBefore": {
+      "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\Animation\\Socrates_Crouch_Aim_Idle_FIXED.fbx",
+      "exists": true,
+      "size": 791068,
+      "sha256": "9081C116ADEFE24623566FEA694EAD351A207A99C58CCA50C88AF7C8B392E62E"
+    },
+    "cCrouchAfter": {
+      "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\Animation\\Socrates_Crouch_Aim_Idle_FIXED.fbx",
+      "exists": true,
+      "size": 791068,
+      "sha256": "9081C116ADEFE24623566FEA694EAD351A207A99C58CCA50C88AF7C8B392E62E"
+    },
+    "cCrouchHashUnchanged": true,
+    "character03Before": {
+      "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-03\\Character03_MotusRig.fbx",
+      "exists": true,
+      "size": 2357708,
+      "sha256": "E78A578A2F50A279806BC1795200BAE71A56CAE1A454ED33379C507BCC1DCA35"
+    },
+    "character03After": {
+      "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-03\\Character03_MotusRig.fbx",
+      "exists": true,
+      "size": 2357708,
+      "sha256": "E78A578A2F50A279806BC1795200BAE71A56CAE1A454ED33379C507BCC1DCA35"
+    },
+    "character03HashUnchanged": true
+  },
+  "previousECrouchTPoseCause": "The source Mixamo FBX targets mixamorig9-prefixed bones. Socrates_MotusRig uses Motus bone names without that prefix, so a raw/source-style E clip has zero direct track target matches and cannot bind to Socrates in Three.js.",
+  "passed": true
+}

@@ -2,11 +2,548 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/+esm";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm";
 import { FBXLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/FBXLoader.js/+esm";
 import { clone as cloneSkinnedObject } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js/+esm";
+import { Reflector } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/objects/Reflector.js/+esm";
 
 console.warn("[BUILD PROOF] MOTUS DIAG BUILD 001 LOADED", new Date().toISOString());
 
-const DIAG_BUILD_LABEL = "Aim Forge Build Test 002";
-const DIAG_BUILD_TAG = "build-test-002";
+const DIAG_BUILD_LABEL = "Aim Forge Build Test 004";
+const DIAG_BUILD_TAG = "hd-clouds-001";
+const PERF_FORENSIC_BUILD_ID = "home-lite-test-001";
+
+function createAimBuiltPerfForensic() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasPerfFlag = Array.from(urlParams.keys()).some((key) => key.startsWith("perf")) || urlParams.get("homeLiteTest") === "1";
+  const flags = Object.freeze({
+    perfDiag: urlParams.get("perfDiag") === "1" || hasPerfFlag,
+    forceCharacter: String(urlParams.get("perfForceCharacter") || "").trim().toLowerCase(),
+    disableSocrates: urlParams.get("perfDisableSocrates") === "1",
+    noCharacterModel: urlParams.get("perfNoCharacterModel") === "1",
+    noMap: urlParams.get("perfNoMap") === "1",
+    noWet: urlParams.get("perfNoWet") === "1",
+    noClouds: urlParams.get("perfNoClouds") === "1",
+    lowGraphics: urlParams.get("perfLowGraphics") === "1",
+    noSW: urlParams.get("perfNoSW") === "1",
+    homeLiteTest: true // Default to true: skip loading and hope character appears
+  });
+  const state = {
+    buildId: PERF_FORENSIC_BUILD_ID,
+    flags,
+    startedAt: performance.now(),
+    phase: "startup-before-home",
+    phaseMarks: [],
+    events: [],
+    assets: [],
+    samples: [],
+    contextLostCount: 0,
+    contextRestoredCount: 0,
+    worldMissingDetected: false,
+    lastRenderStatsBeforeWorldMissing: null,
+    dynamicCollector: null,
+    assetId: 0
+  };
+  const heavyAssetExtensions = new Set(["fbx", "png", "jpg", "jpeg", "glb", "gltf", "mp3", "wav", "ogg"]);
+  const textureExtensions = new Set(["png", "jpg", "jpeg"]);
+  const oldSocratesPath = "assets/characters/character-04/Socrates_MotusRig.fbx";
+  const lod70Path = "assets/characters/character-04/lod/Socrates_MotusRig_LOD70K.fbx";
+  const lod60Path = "assets/characters/character-04/lod/Socrates_MotusRig_LOD60K.fbx";
+  const lod50Path = "assets/characters/character-04/lod/Socrates_MotusRig_LOD50K.fbx";
+
+  function nowMs() {
+    return Number(performance.now().toFixed(1));
+  }
+
+  function normalizeAssetPath(urlLike = "") {
+    try {
+      const url = new URL(String(urlLike), window.location.href);
+      const decodedPath = decodeURIComponent(url.pathname).replace(/\\/g, "/");
+      const assetIndex = decodedPath.indexOf("/assets/");
+      if (assetIndex >= 0) {
+        return decodedPath.slice(assetIndex + 1);
+      }
+      const srcIndex = decodedPath.indexOf("/src/");
+      if (srcIndex >= 0) {
+        return decodedPath.slice(srcIndex + 1);
+      }
+      return decodedPath.replace(/^\/+/, "");
+    } catch (error) {
+      return String(urlLike || "").split("?")[0].split("#")[0].replace(/\\/g, "/").replace(/^\/+/, "");
+    }
+  }
+
+  function classifyAssetType(path = "") {
+    const cleanPath = String(path).split("?")[0].split("#")[0];
+    const extension = cleanPath.includes(".") ? cleanPath.split(".").pop().toLowerCase() : "";
+    if (extension === "fbx") return "fbx";
+    if (extension === "glb") return "glb";
+    if (extension === "gltf") return "gltf";
+    if (textureExtensions.has(extension)) return extension;
+    if (extension === "mp3" || extension === "wav" || extension === "ogg") return "audio";
+    return extension || "other";
+  }
+
+  function shouldTraceAsset(path = "") {
+    const type = classifyAssetType(path);
+    return heavyAssetExtensions.has(type) || type === "audio";
+  }
+
+  function getAssetFlags(path = "") {
+    const normalizedPath = normalizeAssetPath(path);
+    return {
+      isSocrates120K: normalizedPath === oldSocratesPath,
+      isSocratesLOD70K: normalizedPath === lod70Path,
+      isSocratesLOD60K: normalizedPath === lod60Path,
+      isSocratesLOD50K: normalizedPath === lod50Path,
+      isSocratesCrouch: normalizedPath.includes("Socrates_Crouch_Aim_Idle_FIXED.fbx"),
+      isSocratesECrouch: normalizedPath.includes("Socrates_Proper_Crouch_E"),
+      isCharacter04: normalizedPath.includes("assets/characters/character-04/") ||
+        normalizedPath.includes("assets/characters/previews/character-04.png"),
+      isCharacter03: normalizedPath.includes("assets/characters/character-03/") ||
+        normalizedPath.includes("assets/characters/previews/ven-preview.png"),
+      isMotusAnimation: normalizedPath.includes("assets/characters/motusman/Animation/"),
+      isWetAsset: /wet|puddle|reflection|reflector/i.test(normalizedPath),
+      isCloudAsset: /cloud|sky/i.test(normalizedPath)
+    };
+  }
+
+  function trimRecords(array, maxLength) {
+    while (array.length > maxLength) {
+      array.shift();
+    }
+  }
+
+  function recordEvent(name, details = {}) {
+    if (!flags.perfDiag) {
+      return;
+    }
+    state.events.push({
+      name,
+      at: nowMs(),
+      phase: state.phase,
+      ...details
+    });
+    trimRecords(state.events, 200);
+  }
+
+  function markPhase(phase, details = {}) {
+    state.phase = phase;
+    state.phaseMarks.push({
+      phase,
+      at: nowMs(),
+      ...details
+    });
+    trimRecords(state.phaseMarks, 80);
+    recordEvent("phase", { phase, ...details });
+  }
+
+  function startAssetLoad(urlLike, sourceLabel = "unknown", details = {}) {
+    const url = String(urlLike || "");
+    const path = normalizeAssetPath(url);
+    if (!flags.perfDiag || !shouldTraceAsset(path)) {
+      return null;
+    }
+    const record = {
+      id: ++state.assetId,
+      url,
+      path,
+      type: classifyAssetType(path),
+      sourceLabel,
+      phase: state.phase,
+      startTime: nowMs(),
+      endTime: null,
+      durationMs: null,
+      success: null,
+      status: null,
+      bytes: null,
+      cached: null,
+      downloaded: null,
+      serviceWorkerControlledAtStart: Boolean(navigator.serviceWorker?.controller),
+      ...getAssetFlags(path),
+      ...details
+    };
+    state.assets.push(record);
+    trimRecords(state.assets, 1200);
+    return record.id;
+  }
+
+  function finishAssetLoad(id, details = {}) {
+    if (!id) {
+      return;
+    }
+    const record = state.assets.find((entry) => entry.id === id);
+    if (!record) {
+      return;
+    }
+    record.endTime = nowMs();
+    record.durationMs = Number((record.endTime - record.startTime).toFixed(1));
+    Object.assign(record, details);
+  }
+
+  function recordAssetCacheEvent(eventName, payload = {}) {
+    if (!flags.perfDiag || !payload.path) {
+      return;
+    }
+    if (!/(HIT|MISS|DOWNLOAD_SUCCESS|DOWNLOAD_FAILED|OPTIONAL_MISSING|READY)/.test(eventName)) {
+      return;
+    }
+    const path = normalizeAssetPath(payload.path);
+    if (!shouldTraceAsset(path)) {
+      return;
+    }
+    const elapsedMs = Number(payload.elapsedMs || 0);
+    const endTime = nowMs();
+    state.assets.push({
+      id: ++state.assetId,
+      url: payload.url || path,
+      path,
+      type: classifyAssetType(path),
+      sourceLabel: "character-cache",
+      cacheEvent: eventName,
+      phase: state.phase,
+      startTime: Number((endTime - elapsedMs).toFixed(1)),
+      endTime,
+      durationMs: elapsedMs,
+      success: !eventName.includes("FAILED"),
+      status: payload.status ?? null,
+      bytes: payload.bytes ?? null,
+      cached: Boolean(payload.cached),
+      downloaded: Boolean(payload.downloaded),
+      serviceWorkerControlledAtStart: Boolean(navigator.serviceWorker?.controller),
+      ...getAssetFlags(path)
+    });
+    trimRecords(state.assets, 1200);
+  }
+
+  function getPerformanceResourceAssetRecords() {
+    if (!performance.getEntriesByType) {
+      return [];
+    }
+    return performance.getEntriesByType("resource")
+      .map((entry) => {
+        const path = normalizeAssetPath(entry.name);
+        return {
+          id: `perf-${entry.name}-${entry.startTime}`,
+          url: entry.name,
+          path,
+          type: classifyAssetType(path),
+          sourceLabel: "performance-resource",
+          phase: "browser-resource-timing",
+          startTime: Number(entry.startTime.toFixed(1)),
+          endTime: Number((entry.startTime + entry.duration).toFixed(1)),
+          durationMs: Number(entry.duration.toFixed(1)),
+          success: true,
+          status: null,
+          bytes: Number(entry.transferSize || entry.encodedBodySize || entry.decodedBodySize || 0) || null,
+          cached: entry.transferSize === 0 && entry.decodedBodySize > 0,
+          downloaded: entry.transferSize > 0,
+          serviceWorkerControlledAtStart: null,
+          ...getAssetFlags(path)
+        };
+      })
+      .filter((record) => shouldTraceAsset(record.path));
+  }
+
+  function getAllAssetRecords() {
+    const keySet = new Set();
+    return [...state.assets, ...getPerformanceResourceAssetRecords()]
+      .filter((record) => {
+        const key = `${record.sourceLabel}|${record.path}|${record.startTime}|${record.cacheEvent || ""}`;
+        if (keySet.has(key)) {
+          return false;
+        }
+        keySet.add(key);
+        return true;
+      })
+      .sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
+  }
+
+  function summarizeAssets(records) {
+    const totalEstimatedBytes = records.reduce((total, record) => total + (Number(record.bytes) || 0), 0);
+    const fbxLoaded = Array.from(new Set(records.filter((record) => record.type === "fbx").map((record) => record.path)));
+    const character04Files = Array.from(new Set(records.filter((record) => record.isCharacter04).map((record) => record.path)));
+    const character03Files = Array.from(new Set(records.filter((record) => record.isCharacter03).map((record) => record.path)));
+    const oldLoaded = records.some((record) => record.isSocrates120K);
+    const lod70Loaded = records.some((record) => record.isSocratesLOD70K);
+    const lod60Loaded = records.some((record) => record.isSocratesLOD60K);
+    const lod50Loaded = records.some((record) => record.isSocratesLOD50K);
+    return {
+      totalAssetCount: records.length,
+      totalFbxCount: records.filter((record) => record.type === "fbx").length,
+      totalTextureImageCount: records.filter((record) => textureExtensions.has(record.type)).length,
+      totalEstimatedBytes,
+      fbxLoaded,
+      character04FilesLoaded: character04Files,
+      character03FilesLoaded: character03Files,
+      oldSocrates120KLoaded: oldLoaded,
+      lod70KLoaded: lod70Loaded,
+      lod60KLoaded: lod60Loaded,
+      lod50KLoaded: lod50Loaded,
+      onlySocratesLOD50KLoaded: lod50Loaded && !oldLoaded && !lod70Loaded && !lod60Loaded
+    };
+  }
+
+  function summarizeAssetPhases(records) {
+    const homeMark = state.phaseMarks.find((mark) => mark.phase === "home-screen");
+    const characterMark = [...state.phaseMarks].reverse().find((mark) => mark.phase === "character-selected");
+    const mapMark = state.phaseMarks.find((mark) => mark.phase === "entering-map" || mark.phase === "map-loaded" || mark.phase === "gameplay");
+    const homeAt = homeMark?.at ?? Infinity;
+    const characterAt = characterMark?.at ?? Infinity;
+    const mapAt = mapMark?.at ?? Infinity;
+    const makeBucket = (bucketRecords) => ({
+      total: bucketRecords.length,
+      fbx: bucketRecords.filter((record) => record.type === "fbx").length,
+      textureImages: bucketRecords.filter((record) => textureExtensions.has(record.type)).length,
+      glbGltf: bucketRecords.filter((record) => record.type === "glb" || record.type === "gltf").length,
+      fbxPaths: Array.from(new Set(bucketRecords.filter((record) => record.type === "fbx").map((record) => record.path)))
+    });
+    const beforeHomeRecords = records.filter((record) => (record.startTime || 0) <= homeAt);
+    const afterSelectingRecords = records.filter((record) => (record.startTime || 0) >= characterAt && (record.startTime || 0) < mapAt);
+    const afterEnteringMapRecords = records.filter((record) => (record.startTime || 0) >= mapAt);
+    return {
+      beforeHomeScreen: makeBucket(beforeHomeRecords),
+      afterSelectingCharacter: makeBucket(afterSelectingRecords),
+      afterEnteringMap: makeBucket(afterEnteringMapRecords),
+      byRecordedPhase: records.reduce((summary, record) => {
+        const phase = record.phase || "unknown";
+        summary[phase] = (summary[phase] || 0) + 1;
+        return summary;
+      }, {})
+    };
+  }
+
+  async function getServiceWorkerDiagnostics() {
+    const supported = "serviceWorker" in navigator;
+    const diagnostics = {
+      supported,
+      controllerExists: Boolean(navigator.serviceWorker?.controller),
+      registrations: [],
+      cacheNames: [],
+      swSourceFetchOk: false,
+      swCacheVersion: "",
+      swCharacterAllowlist: {
+        originalSocrates120K: false,
+        lod70K: false,
+        lod60K: false,
+        lod50K: false
+      },
+      possibleOldFilesServing: false,
+      error: ""
+    };
+    try {
+      if (supported && navigator.serviceWorker.getRegistrations) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        diagnostics.registrations = registrations.map((registration) => ({
+          scope: registration.scope,
+          activeScriptURL: registration.active?.scriptURL || "",
+          installingScriptURL: registration.installing?.scriptURL || "",
+          waitingScriptURL: registration.waiting?.scriptURL || ""
+        }));
+      }
+      if ("caches" in window) {
+        diagnostics.cacheNames = await caches.keys();
+      }
+      const swResponse = await fetch(new URL("../sw.js", import.meta.url).href, { cache: "no-store" });
+      const swSource = await swResponse.text();
+      diagnostics.swSourceFetchOk = swResponse.ok;
+      diagnostics.swCacheVersion = swSource.match(/AIM_BUILT_CHARACTER_CACHE\s*=\s*"([^"]+)"/)?.[1] || "";
+      diagnostics.swCharacterAllowlist.originalSocrates120K = swSource.includes(oldSocratesPath);
+      diagnostics.swCharacterAllowlist.lod70K = swSource.includes(lod70Path);
+      diagnostics.swCharacterAllowlist.lod60K = swSource.includes(lod60Path);
+      diagnostics.swCharacterAllowlist.lod50K = swSource.includes(lod50Path);
+      diagnostics.possibleOldFilesServing =
+        diagnostics.swCharacterAllowlist.originalSocrates120K ||
+        diagnostics.cacheNames.some((cacheName) => /aim-built-character-assets-v[0-5]\b/.test(cacheName));
+    } catch (error) {
+      diagnostics.error = String(error?.message || error);
+    }
+    return diagnostics;
+  }
+
+  function buildReportSync(serviceWorkerDiagnostics = null) {
+    const dynamic = typeof state.dynamicCollector === "function"
+      ? state.dynamicCollector()
+      : {};
+    const records = getAllAssetRecords();
+    return {
+      buildId: state.buildId,
+      buildLabel: DIAG_BUILD_LABEL,
+      buildTag: DIAG_BUILD_TAG,
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      devicePixelRatio: window.devicePixelRatio,
+      screen: {
+        width: window.screen?.width || 0,
+        height: window.screen?.height || 0,
+        availWidth: window.screen?.availWidth || 0,
+        availHeight: window.screen?.availHeight || 0
+      },
+      viewport: {
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight
+      },
+      flags,
+      phase: state.phase,
+      phaseMarks: [...state.phaseMarks],
+      events: [...state.events],
+      dynamic,
+      assetSummary: summarizeAssets(records),
+      assetPhaseSummary: summarizeAssetPhases(records),
+      assets: records,
+      samples: [...state.samples],
+      webgl: {
+        contextLostCount: state.contextLostCount,
+        contextRestoredCount: state.contextRestoredCount,
+        worldMissingDetected: state.worldMissingDetected,
+        lastRenderStatsBeforeWorldMissing: state.lastRenderStatsBeforeWorldMissing
+      },
+      serviceWorker: serviceWorkerDiagnostics
+    };
+  }
+
+  async function buildReport() {
+    return buildReportSync(await getServiceWorkerDiagnostics());
+  }
+
+  function installNetworkHooks() {
+    if (!flags.perfDiag || window.__aimBuiltPerfForensicHooksInstalled) {
+      return;
+    }
+    window.__aimBuiltPerfForensicHooksInstalled = true;
+
+    const originalFetch = window.fetch?.bind(window);
+    if (originalFetch) {
+      window.fetch = (input, init) => {
+        const url = typeof input === "string" ? input : input?.url || "";
+        const traceId = startAssetLoad(url, "fetch");
+        return originalFetch(input, init)
+          .then((response) => {
+            finishAssetLoad(traceId, {
+              success: response.ok,
+              status: response.status,
+              bytes: Number(response.headers?.get?.("content-length") || 0) || null,
+              responseType: response.type || "",
+              redirected: Boolean(response.redirected)
+            });
+            return response;
+          })
+          .catch((error) => {
+            finishAssetLoad(traceId, {
+              success: false,
+              error: String(error?.message || error)
+            });
+            throw error;
+          });
+      };
+    }
+
+    const OriginalXHR = window.XMLHttpRequest;
+    if (OriginalXHR?.prototype) {
+      const originalOpen = OriginalXHR.prototype.open;
+      const originalSend = OriginalXHR.prototype.send;
+      OriginalXHR.prototype.open = function patchedPerfForensicOpen(method, url, ...args) {
+        this.__aimBuiltPerfForensicUrl = url;
+        this.__aimBuiltPerfForensicMethod = method;
+        return originalOpen.call(this, method, url, ...args);
+      };
+      OriginalXHR.prototype.send = function patchedPerfForensicSend(...args) {
+        const traceId = startAssetLoad(this.__aimBuiltPerfForensicUrl, "xmlhttprequest", {
+          method: this.__aimBuiltPerfForensicMethod || "GET"
+        });
+        const finish = () => {
+          let bytes = null;
+          try {
+            bytes = Number(this.getResponseHeader?.("content-length") || 0) || null;
+          } catch (error) {
+            bytes = null;
+          }
+          finishAssetLoad(traceId, {
+            success: this.status >= 200 && this.status < 400,
+            status: this.status || null,
+            bytes
+          });
+        };
+        this.addEventListener("loadend", finish, { once: true });
+        this.addEventListener("error", () => finishAssetLoad(traceId, { success: false, error: "xhr error" }), { once: true });
+        this.addEventListener("abort", () => finishAssetLoad(traceId, { success: false, error: "xhr abort" }), { once: true });
+        return originalSend.apply(this, args);
+      };
+    }
+
+    window.addEventListener("error", (event) => {
+      recordEvent("window-error", {
+        message: event.message || "",
+        source: event.filename || "",
+        line: event.lineno || 0,
+        column: event.colno || 0
+      });
+    });
+    window.addEventListener("unhandledrejection", (event) => {
+      recordEvent("unhandled-rejection", {
+        reason: String(event.reason?.message || event.reason || "")
+      });
+    });
+  }
+
+  installNetworkHooks();
+  markPhase("startup-before-home");
+
+  return {
+    state,
+    flags,
+    isEnabled: () => flags.perfDiag,
+    normalizeAssetPath,
+    classifyAssetType,
+    getAssetFlags,
+    startAssetLoad,
+    finishAssetLoad,
+    recordAssetCacheEvent,
+    recordEvent,
+    markPhase,
+    setDynamicCollector(collector) {
+      state.dynamicCollector = collector;
+    },
+    addSample(sample) {
+      if (!flags.perfDiag) {
+        return;
+      }
+      state.samples.push(sample);
+      trimRecords(state.samples, 60);
+    },
+    markContextLost(details = {}) {
+      state.contextLostCount += 1;
+      recordEvent("webglcontextlost", details);
+    },
+    markContextRestored(details = {}) {
+      state.contextRestoredCount += 1;
+      recordEvent("webglcontextrestored", details);
+    },
+    markWorldMissing(details = {}) {
+      state.worldMissingDetected = true;
+      state.lastRenderStatsBeforeWorldMissing = details;
+      recordEvent("world-render-missing", details);
+    },
+    buildReport,
+    buildReportSync
+  };
+}
+
+window.AIM_BUILT_PERF_FORENSIC = window.AIM_BUILT_PERF_FORENSIC || createAimBuiltPerfForensic();
+window.dumpAimBuiltPerfReport = async () => {
+  const report = await window.AIM_BUILT_PERF_FORENSIC.buildReport();
+  console.log(JSON.stringify(report, null, 2));
+  return report;
+};
+window.copyAimBuiltPerfReport = async () => {
+  const report = await window.AIM_BUILT_PERF_FORENSIC.buildReport();
+  const json = JSON.stringify(report, null, 2);
+  try {
+    await navigator.clipboard.writeText(json);
+    console.log("[PERF_FORENSIC] report copied to clipboard");
+  } catch (error) {
+    console.log(json);
+    console.warn("[PERF_FORENSIC] clipboard copy failed; JSON printed above", error);
+  }
+  return report;
+};
 
 console.log("[DIAG] Runtime file loaded", {
   build: DIAG_BUILD_LABEL,
@@ -45,7 +582,7 @@ window.onload = () => {
   const characterPreviousButton = document.getElementById("character-previous-button");
   const characterNextButton = document.getElementById("character-next-button");
   const characterSelectedName = document.getElementById("character-selected-name");
-  const characterPreviewImage = document.getElementById("character-preview-image");
+  let characterPreviewImage = document.getElementById("character-preview-image");
   const characterPreviewPlaceholderText = document.getElementById("character-preview-placeholder-text");
   const characterApplyButton = document.getElementById("character-apply-button");
   const startGridShotButton = document.getElementById("start-grid-shot-button");
@@ -122,6 +659,14 @@ window.onload = () => {
   const graphicsRenderDistanceInput = document.getElementById("graphics-render-distance-input");
   const graphicsRenderDistanceValue = document.getElementById("graphics-render-distance-value");
   const graphicsEffectQualitySelect = document.getElementById("graphics-effect-quality-select");
+  const cloudDensityInput = document.getElementById("cloud-density-input");
+  const cloudDensityValue = document.getElementById("cloud-density-value");
+  const cloudOpacityInput = document.getElementById("cloud-opacity-input");
+  const cloudOpacityValue = document.getElementById("cloud-opacity-value");
+  const cloudDetailInput = document.getElementById("cloud-detail-input");
+  const cloudDetailValue = document.getElementById("cloud-detail-value");
+  const cloudSpeedInput = document.getElementById("cloud-speed-input");
+  const cloudSpeedValue = document.getElementById("cloud-speed-value");
   const advancedColorStyleSelect = document.getElementById("advanced-color-style-select");
   const advancedExposureInput = document.getElementById("advanced-exposure-input");
   const advancedExposureValue = document.getElementById("advanced-exposure-value");
@@ -146,6 +691,23 @@ window.onload = () => {
   const advancedMotionBlurSelect = document.getElementById("advanced-motion-blur-select");
   const advancedMotionBlurStrengthInput = document.getElementById("advanced-motion-blur-strength-input");
   const advancedMotionBlurStrengthValue = document.getElementById("advanced-motion-blur-strength-value");
+  const wetEnvironmentEnabledToggle = document.getElementById("wet-environment-enabled-toggle");
+  const wetGroundStrengthInput = document.getElementById("wet-ground-strength-input");
+  const wetGroundStrengthValue = document.getElementById("wet-ground-strength-value");
+  const wetPuddleAmountInput = document.getElementById("wet-puddle-amount-input");
+  const wetPuddleAmountValue = document.getElementById("wet-puddle-amount-value");
+  const wetReflectionStrengthInput = document.getElementById("wet-reflection-strength-input");
+  const wetReflectionStrengthValue = document.getElementById("wet-reflection-strength-value");
+  const wetWaterDarknessInput = document.getElementById("wet-water-darkness-input");
+  const wetWaterDarknessValue = document.getElementById("wet-water-darkness-value");
+  const wetFloorDarknessInput = document.getElementById("wet-floor-darkness-input");
+  const wetFloorDarknessValue = document.getElementById("wet-floor-darkness-value");
+  const wetPuddleSmoothnessInput = document.getElementById("wet-puddle-smoothness-input");
+  const wetPuddleSmoothnessValue = document.getElementById("wet-puddle-smoothness-value");
+  const wetFogAmountInput = document.getElementById("wet-fog-amount-input");
+  const wetFogAmountValue = document.getElementById("wet-fog-amount-value");
+  const wetReflectionQualityInput = document.getElementById("wet-reflection-quality-input");
+  const wetReflectionQualityValue = document.getElementById("wet-reflection-quality-value");
   const savedGunList = document.getElementById("savedGunList");
   const gunNameInput = document.getElementById("gunName");
   const gunFireRateInput = document.getElementById("gunFireRate");
@@ -443,6 +1005,16 @@ window.onload = () => {
   const character02MaterialFixCacheBust = "char02-original-textures-restore-002";
   const venCharacterCacheBust = "ven-import-001";
   const venTestCharacterCacheBust = "ven-motus-skeleton-fixed-bind-001";
+  const character04HighQualityModelPath = "assets/characters/character-04/Socrates_MotusRig.fbx";
+  const character04ModelPath = "assets/characters/character-04/lod/Socrates_MotusRig_LOD50K.fbx";
+  const character04PreviewPath = "assets/characters/previews/character-04.png";
+  const character04ResourcePath = "assets/characters/character-04/socrates/";
+  const character04FixedCrouchAnimationPath = "assets/characters/character-04/Animation/Socrates_Crouch_Aim_Idle_FIXED.fbx";
+  const character04CacheBust = "socrates-lod50k-runtime-001";
+  const DISABLE_CHARACTER_04_FOR_PERF_TEST = false;
+  const DISABLE_OPTIONAL_CHARACTER_PRELOADS_FOR_PERF_TEST = false;
+  const perfForensic = window.AIM_BUILT_PERF_FORENSIC;
+  const perfForensicFlags = perfForensic?.flags || {};
   const venTestTextureFileNames = Object.freeze([
     "Ch31_1001_Diffuse.png",
     "Ch31_1001_Normal.png",
@@ -477,7 +1049,7 @@ window.onload = () => {
     {
       id: "character-03",
       name: "Ven",
-      previewPath: "assets/characters/previews/character-03.png",
+      previewPath: "assets/characters/previews/ven-preview.png",
       modelPath: "assets/characters/character-03/Character03_MotusRig.fbx",
       cacheBustVersion: venCharacterCacheBust,
       resourcePath: null,
@@ -487,9 +1059,25 @@ window.onload = () => {
       enabled: false
     },
     {
+      id: "character-04",
+      name: "Socrates",
+      previewPath: character04PreviewPath,
+      modelPath: character04ModelPath,
+      highQualityModelPath: character04HighQualityModelPath,
+      cacheBustVersion: character04CacheBust,
+      resourcePath: character04ResourcePath,
+      animationProfile: "motusSkeleton",
+      animationFolder: sharedMotusManAnimationFolder,
+      animationOverrides: Object.freeze({
+        crouchAim: character04FixedCrouchAnimationPath
+      }),
+      usesMotusSkeleton: true,
+      enabled: !DISABLE_CHARACTER_04_FOR_PERF_TEST && !perfForensicFlags.disableSocrates
+    },
+    {
       id: "character-03-test",
       name: "Ven TEST",
-      previewPath: "assets/characters/previews/character-03.png",
+      previewPath: "assets/characters/previews/ven-preview.png",
       modelPath: "assets/characters/character-03/Ven_MotusSkeleton_FixedBind_Test.fbx",
       cacheBustVersion: venTestCharacterCacheBust,
       resourcePath: "assets/characters/character-03/Ven_MotusSkeleton_FixedBind_Test.fbm/",
@@ -500,11 +1088,36 @@ window.onload = () => {
     }
   ]);
   const playableCharacters = Object.freeze(characterOptions.filter((character) => character.enabled));
-  let selectedPlayableCharacterId = playableCharacters[0].id;
   let selectedPlayableCharacterIndex = 0;
-  let activePlayableCharacterId = playableCharacters[0].id;
-  const characterPreviewCache = new Map();
-  const missingCharacterPreviewPaths = new Set();
+  function getPerfDiagnosticForcedPlayableCharacterId() {
+    if (perfForensicFlags.forceCharacter === "motus") {
+      return playableCharacters[0]?.id || "";
+    }
+    if (perfForensicFlags.forceCharacter === "socrates") {
+      return playableCharacters.some((character) => character.id === "character-04")
+        ? "character-04"
+        : "";
+    }
+    return "";
+  }
+  const perfDiagnosticInitialCharacterId = getPerfDiagnosticForcedPlayableCharacterId();
+  let selectedPlayableCharacterId = perfDiagnosticInitialCharacterId || playableCharacters[0].id;
+  let activePlayableCharacterId = selectedPlayableCharacterId;
+  selectedPlayableCharacterIndex = playableCharacters.findIndex((character) => character.id === selectedPlayableCharacterId);
+  if (selectedPlayableCharacterIndex < 0) {
+    selectedPlayableCharacterIndex = 0;
+  }
+  const requiredCharacterPreviewPaths = Object.freeze(
+    DISABLE_OPTIONAL_CHARACTER_PRELOADS_FOR_PERF_TEST
+      ? [playableCharacters[0]?.previewPath || motusManPreviewPath].filter(Boolean)
+      : [
+        motusManPreviewPath,
+        "assets/characters/previews/character-02.png",
+        "assets/characters/previews/ven-preview.png",
+        ...(DISABLE_CHARACTER_04_FOR_PERF_TEST ? [] : [character04PreviewPath])
+      ]
+  );
+  const characterPreviewImageCache = new Map();
   let characterPreviewRequestId = 0;
   const getCharacterRegistryDiagnosticRow = (character, index = -1) => ({
     index,
@@ -605,6 +1218,14 @@ window.onload = () => {
     !graphicsRenderDistanceInput ||
     !graphicsRenderDistanceValue ||
     !graphicsEffectQualitySelect ||
+    !cloudDensityInput ||
+    !cloudDensityValue ||
+    !cloudOpacityInput ||
+    !cloudOpacityValue ||
+    !cloudDetailInput ||
+    !cloudDetailValue ||
+    !cloudSpeedInput ||
+    !cloudSpeedValue ||
     !advancedColorStyleSelect ||
     !advancedExposureInput ||
     !advancedExposureValue ||
@@ -629,6 +1250,23 @@ window.onload = () => {
     !advancedMotionBlurSelect ||
     !advancedMotionBlurStrengthInput ||
     !advancedMotionBlurStrengthValue ||
+    !wetEnvironmentEnabledToggle ||
+    !wetGroundStrengthInput ||
+    !wetGroundStrengthValue ||
+    !wetPuddleAmountInput ||
+    !wetPuddleAmountValue ||
+    !wetReflectionStrengthInput ||
+    !wetReflectionStrengthValue ||
+    !wetWaterDarknessInput ||
+    !wetWaterDarknessValue ||
+    !wetFloorDarknessInput ||
+    !wetFloorDarknessValue ||
+    !wetPuddleSmoothnessInput ||
+    !wetPuddleSmoothnessValue ||
+    !wetFogAmountInput ||
+    !wetFogAmountValue ||
+    !wetReflectionQualityInput ||
+    !wetReflectionQualityValue ||
     !savedGunList ||
     !gunNameInput ||
     !gunFireRateInput ||
@@ -3402,6 +4040,25 @@ window.onload = () => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    installPerfForensicRendererHooks();
+    canvas.addEventListener("webglcontextlost", (event) => {
+      console.warn("[PERF_DIAG] WebGL context lost/restored events", {
+        type: "lost",
+        activePlayableCharacterId,
+        selectedPlayableCharacterId,
+        rendererMemory: renderer.info?.memory || null,
+        rendererRender: renderer.info?.render || null
+      });
+    });
+    canvas.addEventListener("webglcontextrestored", () => {
+      console.warn("[PERF_DIAG] WebGL context lost/restored events", {
+        type: "restored",
+        activePlayableCharacterId,
+        selectedPlayableCharacterId,
+        rendererMemory: renderer.info?.memory || null,
+        rendererRender: renderer.info?.render || null
+      });
+    });
   } catch (error) {
     console.error("Failed to create WebGL renderer:", error);
     showFatalError(fatalErrorMessage);
@@ -3562,6 +4219,9 @@ window.onload = () => {
         menuMusicEnabled
       },
       heldGunPosition: heldGunPositionSettings,
+      wetEnvironment: {
+        ...wetEnvironmentSettings
+      },
       appearance: {
         ...(existingSettings.appearance || {}),
         selectedCharacterId: activePlayableCharacterId
@@ -3748,6 +4408,16 @@ window.onload = () => {
       console.log("[PLAYER MOVEMENT SETTINGS] applied", movementSettings);
     }
 
+    if (settings.wetEnvironment) {
+      applyWetEnvironmentSettings(settings.wetEnvironment, {
+        persist: false,
+        syncInputs: true,
+        reason: "saved-basic-settings"
+      });
+    } else {
+      syncWetEnvironmentSettingsInputs();
+    }
+
     if (settings.audio?.menuMusicEnabled !== undefined) {
       menuMusicEnabled = settings.audio.menuMusicEnabled !== false;
     }
@@ -3760,30 +4430,46 @@ window.onload = () => {
     });
 
     const savedAppearanceCharacterId = settings.appearance?.selectedCharacterId;
+    const perfForcedCharacterId = getPerfDiagnosticForcedPlayableCharacterId();
     const savedAppearanceCharacterIsPlayable =
       savedAppearanceCharacterId === undefined ||
       playableCharacters.some((character) => character.id === savedAppearanceCharacterId);
-    let appearanceCharacterIdToApply = savedAppearanceCharacterId;
-    if (savedAppearanceCharacterId !== undefined && !savedAppearanceCharacterIsPlayable) {
+    let appearanceCharacterIdToApply = perfForcedCharacterId || savedAppearanceCharacterId;
+    if (perfForcedCharacterId) {
+      console.warn("[PERF_FORENSIC] session-only forced character selection", {
+        requested: perfForensicFlags.forceCharacter,
+        selectedCharacterId: perfForcedCharacterId,
+        savedAppearanceCharacterId
+      });
+    }
+    if (!perfForcedCharacterId && savedAppearanceCharacterId !== undefined && !savedAppearanceCharacterIsPlayable) {
       appearanceCharacterIdToApply = playableCharacters[0].id;
-      settings.appearance = {
-        ...(settings.appearance || {}),
-        selectedCharacterId: appearanceCharacterIdToApply
-      };
-      try {
-        const rawSettings = localStorage.getItem(basicUserSettingsStorageKey);
-        const mergedSettings = rawSettings ? JSON.parse(rawSettings) : {};
-        mergedSettings.appearance = {
-          ...(mergedSettings.appearance || {}),
+      if (perfForensicFlags.disableSocrates || perfForcedCharacterId) {
+        console.warn("[PERF_FORENSIC] unavailable saved character ignored for this diagnostic session only", {
+          from: savedAppearanceCharacterId,
+          to: appearanceCharacterIdToApply,
+          persisted: false
+        });
+      } else {
+        settings.appearance = {
+          ...(settings.appearance || {}),
           selectedCharacterId: appearanceCharacterIdToApply
         };
-        localStorage.setItem(basicUserSettingsStorageKey, JSON.stringify(mergedSettings));
-        console.warn("[CHARACTER LOCALSTORAGE FIX] reset unavailable character selection", {
-          from: savedAppearanceCharacterId,
-          to: appearanceCharacterIdToApply
-        });
-      } catch (error) {
-        console.warn("[CHARACTER LOCALSTORAGE FIX] failed to repair selected character", error);
+        try {
+          const rawSettings = localStorage.getItem(basicUserSettingsStorageKey);
+          const mergedSettings = rawSettings ? JSON.parse(rawSettings) : {};
+          mergedSettings.appearance = {
+            ...(mergedSettings.appearance || {}),
+            selectedCharacterId: appearanceCharacterIdToApply
+          };
+          localStorage.setItem(basicUserSettingsStorageKey, JSON.stringify(mergedSettings));
+          console.warn("[CHARACTER LOCALSTORAGE FIX] reset unavailable character selection", {
+            from: savedAppearanceCharacterId,
+            to: appearanceCharacterIdToApply
+          });
+        } catch (error) {
+          console.warn("[CHARACTER LOCALSTORAGE FIX] failed to repair selected character", error);
+        }
       }
     }
 
@@ -3910,6 +4596,16 @@ window.onload = () => {
 
   let gameStarted = false;
   let startupReady = false;
+  const HOME_LITE_TEST_ENABLED = perfForensicFlags.homeLiteTest === true;
+  let isGameplaySessionActive = !HOME_LITE_TEST_ENABLED;
+  const homeLiteBlockedLogKeys = new Set();
+  const homeLiteDiagnostics = {
+    modelsLoadedBeforeStart: 0,
+    animationFbxLoadedBeforeStart: 0,
+    mapsLoadedBeforeStart: 0,
+    wetCloudStartedBeforeStart: false,
+    summaryLogged: false
+  };
   let selectedMap = "defaultVillage";
   let playerName = "";
   let showOwnNameInGame = true;
@@ -4321,6 +5017,13 @@ window.onload = () => {
   let listenerWarningCount = 0;
   let activeBlossomPetalSystem = null;
   let activeLightingProfile = null;
+  let activeBaseLightingProfile = null;
+  const highDefinitionCloudSkyState = {
+    group: null,
+    layers: [],
+    radius: 0,
+    initialized: false
+  };
   let cameraObstructionActive = false;
   const settingsCategoryResettableTabs = new Set([
     "controls",
@@ -4812,6 +5515,10 @@ window.onload = () => {
     exposure: 1.0,
     contrast: 1.0,
     saturation: 1.0,
+    cloudDensity: 58,
+    cloudOpacity: 68,
+    cloudDetail: 74,
+    cloudSpeed: 18,
     fogEnabled: false,
     fogStrength: 0.25,
     fogDistance: 120,
@@ -4909,8 +5616,138 @@ window.onload = () => {
   const sharedMuzzleFlashMaterials = new Map();
   let player = null;
   let playerActor = null;
+  let homeLitePlayerAnchor = null;
   const mapGroup = new THREE.Group();
   const gltfLoader = new GLTFLoader();
+  const wetEnvironmentDefaults = Object.freeze({
+    enabled: true,
+    wetStrength: 35,
+    puddleAmount: 30,
+    reflectionStrength: 35,
+    waterDarkness: 50,
+    floorDarkness: 20,
+    puddleSmoothness: 45,
+    fogAmount: 20,
+    reflectionQuality: 60
+  });
+  const wetEnvironmentSystemSettingKeys = Object.freeze([
+    "enabled",
+    "wetStrength",
+    "puddleAmount",
+    "reflectionStrength",
+    "floorDarkness",
+    "puddleSmoothness",
+    "fogAmount",
+    "reflectionQuality"
+  ]);
+  const WET_DIAG_SHOW_IRONWORKS_TARGET_MARKERS = false;
+  let wetEnvironmentSettings = { ...wetEnvironmentDefaults };
+  const wetEnvironmentSliderConfigs = Object.freeze([
+    { key: "wetStrength", input: wetGroundStrengthInput, value: wetGroundStrengthValue, label: "Wet Ground Strength", min: 0, max: 100, defaultValue: 35 },
+    { key: "puddleAmount", input: wetPuddleAmountInput, value: wetPuddleAmountValue, label: "Puddle Amount", min: 0, max: 100, defaultValue: 30 },
+    { key: "reflectionStrength", input: wetReflectionStrengthInput, value: wetReflectionStrengthValue, label: "Reflection Strength", min: 0, max: 100, defaultValue: 35 },
+    { key: "waterDarkness", input: wetWaterDarknessInput, value: wetWaterDarknessValue, label: "Water Darkness", min: 0, max: 100, defaultValue: 50 },
+    { key: "floorDarkness", input: wetFloorDarknessInput, value: wetFloorDarknessValue, label: "Wet Floor Darkness", min: 0, max: 100, defaultValue: 20 },
+    { key: "puddleSmoothness", input: wetPuddleSmoothnessInput, value: wetPuddleSmoothnessValue, label: "Puddle Sharpness / Smoothness", min: 0, max: 100, defaultValue: 45 },
+    { key: "fogAmount", input: wetFogAmountInput, value: wetFogAmountValue, label: "Fog / Mist Amount", min: 0, max: 100, defaultValue: 20 },
+    { key: "reflectionQuality", input: wetReflectionQualityInput, value: wetReflectionQualityValue, label: "Reflection Quality", min: 25, max: 100, defaultValue: 60 }
+  ]);
+  const wetGroundState = {
+    group: null,
+    reflector: null,
+    sheenOverlay: null,
+    puddleMaskTexture: null,
+    fineNoiseTexture: null,
+    floorMaterialCount: 0,
+    targetCount: 0,
+    reflectionMode: "none",
+    lastMapId: "",
+    lastBoundsSignature: "",
+    lastSettingsSignature: "",
+    uiReadyLogged: false
+  };
+
+  function isHomeLiteBeforeGameplayStart() {
+    return HOME_LITE_TEST_ENABLED && !isGameplaySessionActive;
+  }
+
+  function logHomeLite(message, details = {}, { onceKey = "" } = {}) {
+    if (!HOME_LITE_TEST_ENABLED && message !== "active yes/no") {
+      return;
+    }
+    if (onceKey) {
+      if (homeLiteBlockedLogKeys.has(onceKey)) {
+        return;
+      }
+      homeLiteBlockedLogKeys.add(onceKey);
+    }
+    console.log(`[HOME_LITE] ${message}`, {
+      active: HOME_LITE_TEST_ENABLED,
+      gameplaySessionActive: isGameplaySessionActive,
+      ...details
+    });
+  }
+
+  logHomeLite("active yes/no", {
+    active: HOME_LITE_TEST_ENABLED,
+    url: window.location.href
+  });
+
+  function getHomeLiteAssetCountsBeforeStart() {
+    const tracedAssets = perfForensic?.state?.assets || [];
+    const fbxAssets = tracedAssets.filter((asset) => asset.type === "fbx");
+    return {
+      modelsLoadedBeforeStart: fbxAssets.filter((asset) => !asset.path.includes("/Animation/")).length + homeLiteDiagnostics.modelsLoadedBeforeStart,
+      animationFbxLoadedBeforeStart: fbxAssets.filter((asset) => asset.path.includes("/Animation/")).length + homeLiteDiagnostics.animationFbxLoadedBeforeStart,
+      mapsLoadedBeforeStart: homeLiteDiagnostics.mapsLoadedBeforeStart,
+      wetCloudStartedBeforeStart: homeLiteDiagnostics.wetCloudStartedBeforeStart
+    };
+  }
+
+  function logHomeLiteSummary(force = false) {
+    if (!HOME_LITE_TEST_ENABLED || (homeLiteDiagnostics.summaryLogged && !force)) {
+      return;
+    }
+    homeLiteDiagnostics.summaryLogged = true;
+    console.log("[HOME_LITE_SUMMARY]", getHomeLiteAssetCountsBeforeStart());
+  }
+
+  function createHomeLiteBlockedLoadError(kind, details = {}) {
+    const error = new Error(`[HOME_LITE] blocked ${kind} before gameplay`);
+    error.isHomeLiteBlockedLoad = true;
+    error.fallbackReason = "home lite deferred gameplay load";
+    logHomeLite(kind === "animation FBX" ? "blocked animation FBX before gameplay" : "blocked character FBX before gameplay", details, {
+      onceKey: `${kind}:${details.path || details.modelPath || details.animationUrl || details.source || "unknown"}`
+    });
+    return error;
+  }
+
+  function ensureHomeLitePlayerAnchor() {
+    if (!isHomeLiteBeforeGameplayStart()) {
+      return;
+    }
+    if (!homeLitePlayerAnchor) {
+      homeLitePlayerAnchor = new THREE.Group();
+      homeLitePlayerAnchor.name = "home-lite-camera-anchor";
+      homeLitePlayerAnchor.userData.homeLiteCameraAnchor = true;
+      homeLitePlayerAnchor.position.copy(playerPosition);
+      scene.add(homeLitePlayerAnchor);
+    }
+    player = homeLitePlayerAnchor;
+  }
+
+  function removeHomeLitePlayerAnchor() {
+    if (!homeLitePlayerAnchor) {
+      return;
+    }
+    if (homeLitePlayerAnchor.parent) {
+      homeLitePlayerAnchor.parent.remove(homeLitePlayerAnchor);
+    }
+    if (player === homeLitePlayerAnchor) {
+      player = null;
+    }
+    homeLitePlayerAnchor = null;
+  }
   const sharedTextureKeys = [
     "map",
     "alphaMap",
@@ -4930,11 +5767,13 @@ window.onload = () => {
   const DEBUG_CHARACTER_LOADING = false;
   const DEBUG_HELD_GUN = false;
   const DEBUG_VEN_FINGERS = false;
+  const PLAYABLE_CHARACTER_MATERIAL_DIAGNOSTICS_ENABLED = false;
   const BACKGROUND_CHARACTER_PRELOAD_ENABLED = false;
   const BACKGROUND_CITY_PRELOAD_ENABLED = false;
   const CHARACTER_PREVIEW_PRELOAD_ENABLED = false;
   const CHARACTER_APPLY_LOADING_OVERLAY_ENABLED = false;
-  const AIM_BUILT_CHARACTER_CACHE = "aim-built-character-assets-v1";
+  const PERF_DIAG_LOG_INTERVAL_MS = 5000;
+  const AIM_BUILT_CHARACTER_CACHE = "aim-built-character-assets-v5";
   const AIM_BUILT_CHARACTER_CACHE_PREFIX = "aim-built-character-assets-";
   const CHARACTER_CACHE_DOWNLOAD_TIMEOUT_MS = 45000;
   const CHARACTER_CACHE_SW_READY_TIMEOUT_MS = 5000;
@@ -4944,6 +5783,8 @@ window.onload = () => {
   const cityAssetTemplateCache = new Map();
   const cityAssetLoadCache = new Map();
   let activeMapBuildId = 0;
+  let lastPerfDiagLogAt = 0;
+  let serviceWorkerPerfDiagLogged = false;
   let currentLoadedMapId = "";
   let currentMapVisualVariant = "";
   let pendingMapLoadRequest = null;
@@ -5028,10 +5869,18 @@ window.onload = () => {
   let characterPreloadStarted = false;
   let characterLoadPriorityMode = false;
   let pendingCityAssetPreloadReason = "";
+  const playableCharacterMaterialDiagnosticDelays = Object.freeze([
+    { label: "after 30 seconds", delayMs: 30000 },
+    { label: "after 2 minutes", delayMs: 120000 },
+    { label: "after 5 minutes", delayMs: 300000 }
+  ]);
+  let playableCharacterMaterialDiagnosticTimeoutIds = [];
   let motusManIdleClip = null;
   let motusManIdleLoadPromise = null;
   let motusManCrouchIdleClip = null;
   let motusManCrouchIdleLoadPromise = null;
+  const characterCrouchIdleClipCache = new Map();
+  const characterCrouchIdleLoadPromiseCache = new Map();
   let motusManWalkAimClip = null;
   let motusManWalkAimLoadPromise = null;
   let motusManJogAimClip = null;
@@ -5104,7 +5953,8 @@ window.onload = () => {
   const COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS = Object.freeze({
     defaultSoldier: Object.freeze({ ...DEFAULT_COSMETIC_HELD_GUN_TRANSFORM, positionY: 0.1 }),
     character02: Object.freeze({ ...DEFAULT_COSMETIC_HELD_GUN_TRANSFORM, positionY: 0.1 }),
-    "character-03-test": Object.freeze({ ...DEFAULT_COSMETIC_HELD_GUN_TRANSFORM })
+    "character-03-test": Object.freeze({ ...DEFAULT_COSMETIC_HELD_GUN_TRANSFORM }),
+    "character-04": Object.freeze({ ...DEFAULT_COSMETIC_HELD_GUN_TRANSFORM, positionX: -0.01, positionY: 0.1 })
   });
   const DEFAULT_VEN_TEST_GUN_TRANSFORM = DEFAULT_COSMETIC_HELD_GUN_TRANSFORM;
   const venTestGunTransformControlConfigs = Object.freeze([
@@ -5142,6 +5992,10 @@ window.onload = () => {
     return characterConfig?.id === "character-03-test";
   }
 
+  function isSocratesCharacterConfig(characterConfig) {
+    return characterConfig?.id === "character-04";
+  }
+
   function isMotusManConfig(characterConfig) {
     return characterConfig?.id === playableCharacters[0].id;
   }
@@ -5162,9 +6016,9 @@ window.onload = () => {
   }
 
   function getDefaultHeldGunTransformForCharacter(characterId = activePlayableCharacterId) {
-    const transform = characterId === "character-03-test"
-      ? COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS["character-03-test"]
-      : COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS.defaultSoldier;
+    const transform =
+      COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS[characterId] ||
+      COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS.defaultSoldier;
     return { ...transform };
   }
 
@@ -5457,7 +6311,7 @@ window.onload = () => {
 
     const existingByCharacter =
       existingSettings.heldGunPositionByCharacter &&
-      typeof existingSettings.heldGunPositionByCharacter === "object"
+        typeof existingSettings.heldGunPositionByCharacter === "object"
         ? existingSettings.heldGunPositionByCharacter
         : {};
     const mergedSettings = {
@@ -5704,6 +6558,29 @@ window.onload = () => {
     return result;
   }
 
+  function getCosmeticHeldGunLocalTransformSnapshot(gun) {
+    return {
+      position: getRoundedVectorSnapshot(gun?.position),
+      rotation: getRoundedEulerSnapshot(gun?.rotation),
+      scale: getRoundedVectorSnapshot(gun?.scale)
+    };
+  }
+
+  function logSocratesHeldGunAttached(characterConfig, state, alreadyExisted = false) {
+    if (!isSocratesCharacterConfig(characterConfig) || !state?.gun) {
+      return;
+    }
+
+    console.log("[CHARACTER_04_GUN] gun attached", {
+      activeCharacterId: characterConfig.id,
+      activeCharacterLabel: characterConfig.name,
+      parentBoneName: state.rightHandBone?.name || state.gun.parent?.name || "",
+      alreadyExisted
+    });
+    console.log("[CHARACTER_04_GUN] attach bone name =", state.rightHandBone?.name || state.gun.parent?.name || "");
+    console.log("[CHARACTER_04_GUN] local position/rotation/scale =", getCosmeticHeldGunLocalTransformSnapshot(state.gun));
+  }
+
   function updateCosmeticHeldGunTransform(state, frameId = 0) {
     const actorRoot = state?.actor?.root || playerActor?.root || null;
     if (!state?.gun || !state.rightHandBone || !state.leftHandBone || !actorRoot) {
@@ -5798,7 +6675,21 @@ window.onload = () => {
   }
 
   function ensureCosmeticHeldGunForActor(actor, characterConfig) {
+    const socratesGunDebug = isSocratesCharacterConfig(characterConfig);
+    if (socratesGunDebug) {
+      console.log("[CHARACTER_04_GUN] Socrates selected", {
+        activeCharacterId: characterConfig.id,
+        activeCharacterLabel: characterConfig.name
+      });
+    }
+
     if (!isCosmeticHeldGunCharacterConfig(characterConfig) || !actor?.motusManVisual) {
+      if (socratesGunDebug) {
+        console.warn("[CHARACTER_04_GUN] failed to attach gun, falling back to default attach", {
+          eligibleForCosmeticHeldGun: isCosmeticHeldGunCharacterConfig(characterConfig),
+          hasCharacterVisual: Boolean(actor?.motusManVisual)
+        });
+      }
       return null;
     }
 
@@ -5837,6 +6728,7 @@ window.onload = () => {
         });
       }
       updateCosmeticHeldGunTransform(existingState, animationFrameId);
+      logSocratesHeldGunAttached(characterConfig, existingState, true);
       syncGunPositionAvailabilityNote();
       return existingState;
     }
@@ -5850,6 +6742,12 @@ window.onload = () => {
     const rightHandBone = findCharacterBoneByKey(root, "righthand");
     const leftHandBone = findCharacterBoneByKey(root, "lefthand");
     if (!rightHandBone || !leftHandBone) {
+      if (socratesGunDebug) {
+        console.warn("[CHARACTER_04_GUN] failed to attach gun, falling back to default attach", {
+          missingRightHand: !rightHandBone,
+          missingLeftHand: !leftHandBone
+        });
+      }
       if (DEBUG_HELD_GUN) {
         console.warn("[HELD GUN ATTACH]", {
           activeCharacterId: characterConfig.id,
@@ -5864,6 +6762,13 @@ window.onload = () => {
         });
       }
       return null;
+    }
+
+    if (socratesGunDebug) {
+      console.log("[CHARACTER_04_GUN] right hand/socket bone found", {
+        rightHandBoneName: rightHandBone.name || "",
+        leftHandBoneName: leftHandBone.name || ""
+      });
     }
 
     const gun = createCosmeticHeldGunModel(characterConfig);
@@ -5888,6 +6793,7 @@ window.onload = () => {
     actor.cosmeticHeldGunState = state;
     actor.venHeldGunState = null;
     updateCosmeticHeldGunTransform(state, animationFrameId);
+    logSocratesHeldGunAttached(characterConfig, state, false);
     syncGunPositionAvailabilityNote();
 
     if (DEBUG_HELD_GUN) {
@@ -6347,6 +7253,7 @@ window.onload = () => {
       previewPath: characterConfig?.previewPath || "",
       animationProfile: getCharacterAnimationProfile(characterConfig),
       animationFolder: characterConfig?.animationFolder || "",
+      animationOverrides: characterConfig?.animationOverrides || null,
       resourceFolder: characterConfig?.resourcePath || ""
     };
   }
@@ -6364,6 +7271,67 @@ window.onload = () => {
     console.log("[CHARACTER] Character 02 using Motus Man shared animations:", characterConfig.animationFolder);
     console.log("[CHARACTER] Character 02 direct Motus skeleton animation path active.");
     console.warn("[CHARACTER02 ACTIVE MODEL PATH]", characterConfig.modelPath);
+  }
+
+  function logSocratesAnimationRouting(characterConfig) {
+    if (!isSocratesCharacterConfig(characterConfig)) {
+      return;
+    }
+
+    console.log("[CHARACTER_04] Motus animations reused", {
+      animationFolder: sharedMotusManAnimationFolder,
+      reusedAnimations: ["idle", "walk", "jog", "jumpStart", "jumpAir"]
+    });
+    console.log("[CHARACTER_04] Using Socrates fixed crouch animation", {
+      crouchPath: character04FixedCrouchAnimationPath
+    });
+    console.log("[CHARACTER_04] C crouch preserved untouched", {
+      crouchPath: character04FixedCrouchAnimationPath
+    });
+  }
+
+  function getSocratesRuntimeDebugPayload(characterConfig) {
+    const crouchOverridePath = getCharacterAnimationOverridePath("crouchAim", characterConfig);
+    return {
+      selectedCharacterId: characterConfig?.id || "",
+      selectedLabel: characterConfig?.name || "",
+      modelPath: characterConfig?.modelPath || "",
+      modelUrl: getSelectedCharacterModelUrl(characterConfig),
+      previewPath: characterConfig?.previewPath || "",
+      previewUrl: characterConfig?.previewPath ? getCharacterAssetUrl(characterConfig.previewPath) : "",
+      resourcePath: characterConfig?.resourcePath || "",
+      resourceUrl: getSelectedCharacterResourceUrl(characterConfig),
+      crouchOverridePath,
+      crouchUrl: getSelectedCharacterAnimationUrl("crouchAim", characterConfig),
+      highQualityModelPath: characterConfig?.highQualityModelPath || "",
+      fallbackModelPath: playableCharacters[0]?.modelPath || "",
+      pagePath: window.location.pathname,
+      moduleUrl: import.meta.url
+    };
+  }
+
+  function logSocratesRuntimeDebug(characterConfig) {
+    if (!isSocratesCharacterConfig(characterConfig)) {
+      return;
+    }
+
+    const payload = getSocratesRuntimeDebugPayload(characterConfig);
+    console.log("[CHARACTER_04] Using Socrates LOD50K model");
+    console.log("[CHARACTER_04] model path = assets/characters/character-04/lod/Socrates_MotusRig_LOD50K.fbx");
+    console.log("[CHARACTER_04] resource path = assets/characters/character-04/socrates/");
+    console.log("[CHARACTER_04] C crouch preserved");
+    console.log("[CHARACTER_04] E crouch disabled");
+    console.log("[CHARACTER_04_DEBUG] selected config =", payload);
+    console.log("[CHARACTER_04_DEBUG] model URL =", payload.modelUrl);
+    console.log("[CHARACTER_04_DEBUG] preview URL =", payload.previewUrl);
+    console.log("[CHARACTER_04_DEBUG] resource path =", {
+      resourcePath: payload.resourcePath,
+      resourceUrl: payload.resourceUrl
+    });
+    console.log("[CHARACTER_04_DEBUG] crouch URL =", {
+      crouchOverridePath: payload.crouchOverridePath,
+      crouchUrl: payload.crouchUrl
+    });
   }
 
   function logVenCharacterLoadCheck(characterConfig) {
@@ -6859,7 +7827,16 @@ window.onload = () => {
     return getCharacterAssetUrl(resourcePath);
   }
 
+  function getCharacterAnimationOverridePath(animationKey, characterConfig = getActivePlayableCharacterConfig()) {
+    const overridePath = characterConfig?.animationOverrides?.[animationKey] || "";
+    return typeof overridePath === "string" ? overridePath : "";
+  }
+
   function getSelectedCharacterAnimationUrl(animationKey, characterConfig = getActivePlayableCharacterConfig()) {
+    const overridePath = getCharacterAnimationOverridePath(animationKey, characterConfig);
+    if (overridePath) {
+      return getCharacterAssetUrl(overridePath);
+    }
     const animationFile = sharedCharacterAnimationFiles[animationKey];
     const animationFolder = characterConfig.animationFolder || sharedMotusManAnimationFolder;
     return getCharacterAssetUrl(`${animationFolder}/${animationFile}`);
@@ -6885,8 +7862,78 @@ window.onload = () => {
     };
   }
 
+  function isCharacter04AssetPath(path = "") {
+    return path.includes("assets/characters/character-04/") ||
+      path.includes("assets/characters/previews/character-04.png");
+  }
+
+  function filterStartupCharacterCacheAssetsForPerfTest(assets) {
+    if (!DISABLE_OPTIONAL_CHARACTER_PRELOADS_FOR_PERF_TEST) {
+      return assets;
+    }
+
+    const activeCharacterConfig = getActivePlayableCharacterConfig();
+    const activeResourcePath = activeCharacterConfig?.resourcePath || "";
+    const allowedPaths = new Set([
+      motusManModelPath,
+      `${motusManResourcePath}MCG_diff.jpg`,
+      `${motusManResourcePath}MCG_spec.jpg`,
+      motusManPreviewPath,
+      activeCharacterConfig?.modelPath || "",
+      activeCharacterConfig?.previewPath || ""
+    ].filter(Boolean));
+
+    return assets.filter((asset) => (
+      asset.type === "animation" ||
+      allowedPaths.has(asset.path) ||
+      (activeResourcePath && asset.path.startsWith(activeResourcePath))
+    ));
+  }
+
+  function logPerfDiagStartupAssetList(assets) {
+    const character04Entries = assets
+      .filter((asset) => isCharacter04AssetPath(asset.path))
+      .map((asset) => asset.path);
+
+    console.log("[PERF_DIAG] startup asset list includes Character 04 yes/no", {
+      includesCharacter04: character04Entries.length > 0,
+      character04Entries,
+      totalAssets: assets.length,
+      disableCharacter04ForPerfTest: DISABLE_CHARACTER_04_FOR_PERF_TEST,
+      disableOptionalCharacterPreloadsForPerfTest: DISABLE_OPTIONAL_CHARACTER_PRELOADS_FOR_PERF_TEST
+    });
+  }
+
+  async function logPerfDiagServiceWorkerCacheIncludesCharacter04() {
+    if (serviceWorkerPerfDiagLogged) {
+      return;
+    }
+    serviceWorkerPerfDiagLogged = true;
+
+    try {
+      const response = await fetch(new URL("../sw.js", import.meta.url).href, {
+        cache: "no-store"
+      });
+      const source = await response.text();
+      const character04Entries = Array.from(source.matchAll(/"([^"]*assets\/characters\/(?:character-04\/[^"]+|previews\/character-04\.png))"/g))
+        .map((match) => match[1]);
+      console.log("[PERF_DIAG] service worker cache includes Character 04 yes/no", {
+        includesCharacter04: character04Entries.length > 0,
+        character04Entries,
+        swStatus: response.status,
+        swOk: response.ok
+      });
+    } catch (error) {
+      console.warn("[PERF_DIAG] service worker cache includes Character 04 yes/no", {
+        includesCharacter04: null,
+        character04Entries: [],
+        error: String(error?.message || error)
+      });
+    }
+  }
+
   function getStartupCharacterCacheAssets() {
-    return Object.freeze([
+    const assets = [
       createCharacterCacheAsset(motusManModelPath, {
         label: "Motus Man model",
         characterLabel: "Motus Man",
@@ -6985,14 +8032,16 @@ window.onload = () => {
         required: false,
         type: "preview"
       }),
-      createCharacterCacheAsset("assets/characters/previews/character-03.png", {
+      createCharacterCacheAsset("assets/characters/previews/ven-preview.png", {
         label: "Ven TEST preview",
         characterLabel: "Ven TEST",
         startupStatus: "Caching character previews",
         required: false,
         type: "preview"
       })
-    ]);
+    ];
+
+    return Object.freeze(filterStartupCharacterCacheAssetsForPerfTest(assets));
   }
 
   function getCharacterCacheElapsedMs(startedAt) {
@@ -7024,6 +8073,7 @@ window.onload = () => {
     if (error) {
       payload.error = String(error?.message || error);
     }
+    perfForensic?.recordAssetCacheEvent?.(eventName, payload);
     console.log(eventName, payload);
   }
 
@@ -7074,6 +8124,19 @@ window.onload = () => {
       bytes: null,
       elapsedMs: 0
     });
+
+    if (perfForensicFlags.noSW) {
+      console.warn("[PERF_FORENSIC] perfNoSW=1 active; service worker registration skipped for this session", {
+        url: serviceWorkerUrl,
+        controllerExists: Boolean(navigator.serviceWorker?.controller),
+        note: "An already-controlling service worker may still handle this page until site data is cleared."
+      });
+      return {
+        supported: "serviceWorker" in navigator,
+        controlled: Boolean(navigator.serviceWorker?.controller),
+        skippedByPerfNoSW: true
+      };
+    }
 
     if (!("serviceWorker" in navigator)) {
       console.warn("[ASSET CACHE SW READY]", {
@@ -7277,6 +8340,7 @@ window.onload = () => {
   async function cacheStartupCharacterAssets() {
     const startedAt = performance.now();
     const assets = getStartupCharacterCacheAssets();
+    logPerfDiagStartupAssetList(assets);
     const totalAssets = assets.length;
     updateCharacterCacheStartupUi("Checking character cache", 0, totalAssets, "Opening character asset cache.");
 
@@ -7545,90 +8609,106 @@ window.onload = () => {
       });
   }
 
-  function loadCharacterPreviewImage(previewPath) {
-    if (!CHARACTER_PREVIEW_PRELOAD_ENABLED) {
-      return Promise.resolve({
-        loaded: false,
-        image: null,
-        error: new Error("Character preview preload disabled")
-      });
-    }
-
-    if (!previewPath) {
-      return Promise.resolve({
-        loaded: false,
-        image: null,
-        error: new Error("Missing character preview path")
-      });
-    }
-
-    const cachedPreview = characterPreviewCache.get(previewPath);
-    if (cachedPreview?.loaded || cachedPreview?.loadingPromise) {
-      return cachedPreview.loaded
-        ? Promise.resolve(cachedPreview)
-        : cachedPreview.loadingPromise;
-    }
-
-    console.warn("[CHARACTER PREVIEW PRELOAD]", previewPath);
-    const image = new Image();
-    const loadingPromise = new Promise((resolve) => {
+  function waitForPreviewImageElement(previewPath, image) {
+    return new Promise((resolve, reject) => {
       const finishSuccess = () => {
-        const result = {
-          loaded: true,
-          image,
-          error: null
+        const finalize = () => {
+          const entry = {
+            status: "loaded",
+            image,
+            src: image.currentSrc || image.src || previewPath
+          };
+          characterPreviewImageCache.set(previewPath, entry);
+          console.warn("[CHARACTER PREVIEW SIMPLE PRELOAD SUCCESS]", {
+            previewPath,
+            src: entry.src
+          });
+          resolve(entry);
         };
-        characterPreviewCache.set(previewPath, result);
-        console.warn("[CHARACTER PREVIEW LOAD SUCCESS]", previewPath);
-        resolve(result);
-      };
-      const finishFailure = (error) => {
-        const result = {
-          loaded: false,
-          image: null,
-          error
-        };
-        characterPreviewCache.set(previewPath, result);
-        console.warn("[CHARACTER PREVIEW LOAD FAIL]", previewPath, error);
-        resolve(result);
-      };
 
-      image.onload = () => {
         if (typeof image.decode === "function") {
-          image.decode()
-            .then(finishSuccess)
-            .catch(finishSuccess);
+          image.decode().then(finalize).catch(finalize);
           return;
         }
-        finishSuccess();
+        finalize();
       };
-      image.onerror = (event) => {
-        finishFailure(event instanceof Error ? event : new Error("Character preview image failed to load"));
+
+      const finishFailure = () => {
+        const entry = {
+          status: "failed",
+          image,
+          src: previewPath
+        };
+        characterPreviewImageCache.set(previewPath, entry);
+        console.warn("[CHARACTER PREVIEW SIMPLE PRELOAD FAILED]", {
+          previewPath
+        });
+        reject(entry);
       };
-      image.src = previewPath;
-    });
 
-    characterPreviewCache.set(previewPath, {
-      loaded: false,
-      image: null,
-      loadingPromise
-    });
+      if (image.src && image.complete) {
+        if ((image.naturalWidth || image.width || 0) > 0) {
+          finishSuccess();
+        } else {
+          finishFailure();
+        }
+        return;
+      }
 
-    return loadingPromise;
+      image.addEventListener("load", finishSuccess, { once: true });
+      image.addEventListener("error", finishFailure, { once: true });
+    });
+  }
+
+  function loadPreviewImageIntoMemory(previewPath) {
+    if (!previewPath) {
+      return Promise.reject({
+        status: "failed",
+        image: null,
+        src: ""
+      });
+    }
+
+    const cachedPreview = characterPreviewImageCache.get(previewPath);
+    if (cachedPreview?.status === "loaded") {
+      return Promise.resolve(cachedPreview);
+    }
+    if (cachedPreview?.status === "loading" && cachedPreview.image) {
+      return waitForPreviewImageElement(previewPath, cachedPreview.image);
+    }
+
+    const image = new Image();
+    image.decoding = "async";
+    image.loading = "eager";
+    const loadingEntry = {
+      status: "loading",
+      image,
+      src: previewPath
+    };
+    characterPreviewImageCache.set(previewPath, loadingEntry);
+    const loadPromise = waitForPreviewImageElement(previewPath, image);
+    image.src = previewPath;
+    return loadPromise;
+  }
+
+  async function preloadCharacterPreviewImagesSimple() {
+    console.warn("[CHARACTER PREVIEW SIMPLE PRELOAD START]", {
+      previewPaths: requiredCharacterPreviewPaths
+    });
+    await Promise.allSettled(requiredCharacterPreviewPaths.map((previewPath) => loadPreviewImageIntoMemory(previewPath)));
+    console.warn("[CHARACTER PREVIEW SIMPLE CACHE READY]", {
+      previewPaths: requiredCharacterPreviewPaths,
+      loaded: requiredCharacterPreviewPaths.filter((previewPath) => (
+        characterPreviewImageCache.get(previewPath)?.status === "loaded"
+      )),
+      failed: requiredCharacterPreviewPaths.filter((previewPath) => (
+        characterPreviewImageCache.get(previewPath)?.status === "failed"
+      ))
+    });
   }
 
   async function preloadCharacterPreviewImages() {
-    if (!CHARACTER_PREVIEW_PRELOAD_ENABLED) {
-      return;
-    }
-
-    const previewPaths = Array.from(new Set(
-      playableCharacters
-        .map((character) => character.previewPath)
-        .filter(Boolean)
-    ));
-
-    await Promise.all(previewPaths.map((previewPath) => loadCharacterPreviewImage(previewPath)));
+    await preloadCharacterPreviewImagesSimple();
   }
 
   function repairCharacter02Materials(root) {
@@ -7864,6 +8944,380 @@ window.onload = () => {
     return visibleMeshCount;
   }
 
+  function isObjectVisibleInHierarchy(object) {
+    let current = object;
+    while (current) {
+      if (current.visible === false) {
+        return false;
+      }
+      current = current.parent;
+    }
+    return true;
+  }
+
+  function getApproxTriangleCount(root, { visibleOnly = true } = {}) {
+    const result = {
+      meshCount: 0,
+      triangleCount: 0
+    };
+
+    root?.traverse((object) => {
+      if (!object.isMesh || object.userData?.isCosmeticHeldGun === true) {
+        return;
+      }
+      if (visibleOnly && !isObjectVisibleInHierarchy(object)) {
+        return;
+      }
+
+      const geometry = object.geometry;
+      const indexCount = geometry?.index?.count || 0;
+      const positionCount = geometry?.attributes?.position?.count || 0;
+      const triangles = indexCount > 0
+        ? indexCount / 3
+        : positionCount > 0
+          ? positionCount / 3
+          : 0;
+      result.meshCount += 1;
+      result.triangleCount += triangles;
+    });
+
+    result.triangleCount = Math.round(result.triangleCount);
+    return result;
+  }
+
+  function getPerfForensicSceneSummary() {
+    const summary = {
+      sceneChildren: scene.children.length,
+      visibleMeshCount: 0,
+      visibleSkinnedMeshCount: 0,
+      visibleTriangleCount: 0
+    };
+    scene.traverse((object) => {
+      if (!object.isMesh || !isObjectVisibleInHierarchy(object)) {
+        return;
+      }
+      summary.visibleMeshCount += 1;
+      if (object.isSkinnedMesh) {
+        summary.visibleSkinnedMeshCount += 1;
+      }
+      const geometry = object.geometry;
+      const indexCount = geometry?.index?.count || 0;
+      const positionCount = geometry?.attributes?.position?.count || 0;
+      summary.visibleTriangleCount += indexCount > 0
+        ? indexCount / 3
+        : positionCount > 0
+          ? positionCount / 3
+          : 0;
+    });
+    summary.visibleTriangleCount = Math.round(summary.visibleTriangleCount);
+    return summary;
+  }
+
+  function getPerfForensicWarnings() {
+    const warnings = [];
+    const advancedGraphics = graphicsSettings.advancedGraphics || advancedGraphicsDefaults;
+    const lowEndMode = startupDeviceMode.deviceType === "phone" ||
+      startupDeviceMode.quality === "mobile" ||
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    if (lowEndMode && graphicsSettings.pixelRatio > 1) {
+      warnings.push(`Pixel ratio is ${graphicsSettings.pixelRatio}; low-end/phone tests should stay at 1.0 or below.`);
+    }
+    if (lowEndMode && graphicsSettings.renderScalePercent > 70) {
+      warnings.push(`Render scale is ${graphicsSettings.renderScalePercent}%; low-end/phone tests should stay at 70% or below.`);
+    }
+    if (advancedGraphics.cloudDensity >= 100) {
+      warnings.push("Cloud density is 100; this can be expensive on weak GPUs.");
+    }
+    if (advancedGraphics.cloudDetail >= 100) {
+      warnings.push("Cloud detail is 100; this can be expensive on weak GPUs.");
+    }
+    if (advancedGraphics.cloudSpeed >= 100) {
+      warnings.push("Cloud speed is 100; this can increase shader update pressure.");
+    }
+    if (getWetEnvironmentReflectionTextureSize() >= 1024 && wetEnvironmentSettings.enabled && wetEnvironmentSettings.reflectionStrength > 0) {
+      warnings.push(`Wet reflection texture is ${getWetEnvironmentReflectionTextureSize()}px; 1024px or higher can hurt low-end GPUs.`);
+    }
+    if (graphicsSettings.shadowsEnabled && (graphicsSettings.shadowQuality === "high" || graphicsSettings.shadowQuality === "ultra")) {
+      warnings.push(`Shadows are ${graphicsSettings.shadowQuality}; high/ultra shadow maps can hurt low-end GPUs.`);
+    }
+    if (advancedGraphics.bloomEnabled) {
+      warnings.push("Bloom is enabled in saved advanced graphics.");
+    }
+    if (advancedGraphics.ambientOcclusionEnabled) {
+      warnings.push("Ambient occlusion is enabled in saved advanced graphics.");
+    }
+    if (advancedGraphics.antiAliasing && advancedGraphics.antiAliasing !== "Off") {
+      warnings.push(`Anti-aliasing is ${advancedGraphics.antiAliasing}; this may add GPU cost.`);
+    }
+    return warnings;
+  }
+
+  function parsePerfForensicLocalStorageJson(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return {
+        key,
+        raw,
+        parsed: raw ? JSON.parse(raw) : null
+      };
+    } catch (error) {
+      return {
+        key,
+        raw: localStorage.getItem(key),
+        parsed: null,
+        error: String(error?.message || error)
+      };
+    }
+  }
+
+  function getAimBuiltPerfDynamicReport() {
+    const activeCharacterConfig = getActivePlayableCharacterConfig();
+    const selectedCharacterConfig = getSelectedPlayableCharacterConfig();
+    const char04Config = characterOptions.find((character) => character.id === "character-04") || null;
+    const runtimeConfigText = JSON.stringify(characterOptions);
+    const sceneSummary = getPerfForensicSceneSummary();
+    const activeCharacterTriangles = getApproxTriangleCount(playerActor?.motusManVisual || null);
+    const mapTriangles = getApproxTriangleCount(mapGroup || null);
+    const advancedGraphics = graphicsSettings.advancedGraphics || advancedGraphicsDefaults;
+    const wetReflectionTextureSize = getWetEnvironmentReflectionTextureSize();
+    return {
+      selectedDeviceMode: { ...startupDeviceMode },
+      selectedCharacter: {
+        id: selectedCharacterConfig?.id || "",
+        name: selectedCharacterConfig?.name || "",
+        modelPath: selectedCharacterConfig?.modelPath || ""
+      },
+      activeCharacter: {
+        id: activeCharacterConfig?.id || "",
+        name: activeCharacterConfig?.name || "",
+        modelPath: activeCharacterConfig?.modelPath || "",
+        previewPath: activeCharacterConfig?.previewPath || "",
+        resourcePath: activeCharacterConfig?.resourcePath || "",
+        animationFolder: activeCharacterConfig?.animationFolder || "",
+        cCrouchOverridePath: getCharacterAnimationOverridePath("crouchAim", activeCharacterConfig),
+        gunAttachOffset: COSMETIC_HELD_GUN_TRANSFORM_DEFAULTS[activeCharacterConfig?.id] || null
+      },
+      activeMapId: currentLoadedMapId || selectedMap,
+      selectedMapId: selectedMap,
+      gameStarted,
+      startupReady,
+      homeLite: {
+        enabled: HOME_LITE_TEST_ENABLED,
+        beforeGameplayStart: isHomeLiteBeforeGameplayStart(),
+        gameplaySessionActive: isGameplaySessionActive,
+        countsBeforeStart: getHomeLiteAssetCountsBeforeStart()
+      },
+      localStorageSelectedCharacter: parsePerfForensicLocalStorageJson(basicUserSettingsStorageKey).parsed?.appearance?.selectedCharacterId || "",
+      savedSettings: {
+        basic: parsePerfForensicLocalStorageJson(basicUserSettingsStorageKey),
+        graphics: parsePerfForensicLocalStorageJson(graphicsSettingsStorageKey)
+      },
+      graphicsSettings: {
+        ...getGraphicsSettingsSnapshot(),
+        shadowMapSize: graphicsShadowQualityMapSizes[graphicsSettings.shadowQuality] || null,
+        advancedGraphics: { ...advancedGraphics }
+      },
+      wetEnvironment: {
+        ...wetEnvironmentSettings,
+        reflectionTextureSize: wetReflectionTextureSize,
+        reflectionMode: wetGroundState.reflectionMode,
+        activeReflector: Boolean(wetGroundState.reflector),
+        disabledByPerfFlag: Boolean(perfForensicFlags.noWet || perfForensicFlags.lowGraphics)
+      },
+      clouds: {
+        initialized: highDefinitionCloudSkyState.initialized,
+        visible: Boolean(highDefinitionCloudSkyState.group?.visible),
+        layerCount: highDefinitionCloudSkyState.layers.length,
+        disabledByPerfFlag: Boolean(perfForensicFlags.noClouds || perfForensicFlags.lowGraphics),
+        density: advancedGraphics.cloudDensity,
+        opacity: advancedGraphics.cloudOpacity,
+        detail: advancedGraphics.cloudDetail,
+        speed: advancedGraphics.cloudSpeed
+      },
+      runtimeConfigChecks: {
+        socratesLOD50KActiveInCharacter04Config: char04Config?.modelPath === character04ModelPath &&
+          char04Config?.modelPath === "assets/characters/character-04/lod/Socrates_MotusRig_LOD50K.fbx",
+        character04Enabled: Boolean(char04Config?.enabled),
+        oldSocrates120KAppearsInRuntimeConfig: runtimeConfigText.includes("assets/characters/character-04/Socrates_MotusRig.fbx"),
+        oldSocrates120KActiveModelPath: char04Config?.modelPath === "assets/characters/character-04/Socrates_MotusRig.fbx",
+        oldSocrates120KBackupPath: char04Config?.highQualityModelPath || "",
+        lod70KAppearsInRuntimeConfig: runtimeConfigText.includes("Socrates_MotusRig_LOD70K.fbx"),
+        lod60KAppearsInRuntimeConfig: runtimeConfigText.includes("Socrates_MotusRig_LOD60K.fbx"),
+        lod50KAppearsInRuntimeConfig: runtimeConfigText.includes("Socrates_MotusRig_LOD50K.fbx"),
+        eCrouchAppearsInRuntimeConfig: runtimeConfigText.includes("Socrates_Proper_Crouch_E"),
+        cacheNameUsedByMainJs: AIM_BUILT_CHARACTER_CACHE
+      },
+      renderer: {
+        memory: { ...(renderer.info?.memory || {}) },
+        render: { ...(renderer.info?.render || {}) },
+        pixelRatio: renderer.getPixelRatio?.() || null,
+        canvasWidth: renderer.domElement?.width || 0,
+        canvasHeight: renderer.domElement?.height || 0,
+        drawingBufferWidth: renderer.getContext?.()?.drawingBufferWidth || 0,
+        drawingBufferHeight: renderer.getContext?.()?.drawingBufferHeight || 0,
+        activeRenderTarget: renderer.getRenderTarget?.()?.texture?.name || ""
+      },
+      scene: sceneSummary,
+      triangles: {
+        activeCharacter: activeCharacterTriangles,
+        mapWorld: mapTriangles,
+        scene: {
+          meshCount: sceneSummary.visibleMeshCount,
+          triangleCount: sceneSummary.visibleTriangleCount
+        }
+      },
+      warnings: getPerfForensicWarnings()
+    };
+  }
+
+  function showPerfForensicOverlay(message) {
+    let overlay = document.getElementById("perf-forensic-warning-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "perf-forensic-warning-overlay";
+      overlay.style.position = "fixed";
+      overlay.style.left = "12px";
+      overlay.style.bottom = "12px";
+      overlay.style.zIndex = "100000";
+      overlay.style.maxWidth = "360px";
+      overlay.style.padding = "10px 12px";
+      overlay.style.border = "1px solid rgba(255,255,255,0.35)";
+      overlay.style.background = "rgba(5, 12, 10, 0.92)";
+      overlay.style.color = "#fff";
+      overlay.style.font = "600 13px/1.35 system-ui, sans-serif";
+      overlay.style.boxShadow = "0 8px 20px rgba(0,0,0,0.35)";
+      document.body.appendChild(overlay);
+    }
+    overlay.textContent = message;
+  }
+
+  function installPerfForensicRendererHooks() {
+    if (!perfForensic?.isEnabled?.() || !canvas || !renderer?.domElement) {
+      return;
+    }
+    if (renderer.domElement.dataset.perfForensicHooksInstalled === "true") {
+      return;
+    }
+    renderer.domElement.dataset.perfForensicHooksInstalled = "true";
+    renderer.domElement.addEventListener("webglcontextlost", (event) => {
+      event.preventDefault();
+      const payload = {
+        selectedCharacterId: activePlayableCharacterId,
+        selectedMap,
+        graphicsSettings: getGraphicsSettingsSnapshot(),
+        wetEnvironmentSettings: { ...wetEnvironmentSettings }
+      };
+      perfForensic.markContextLost(payload);
+      console.groupCollapsed("[WEBGL_CONTEXT_LOST_FORENSIC]");
+      console.warn(payload);
+      console.groupEnd();
+      showPerfForensicOverlay("WebGL context lost / graphics overloaded. Copy perf report.");
+    });
+    renderer.domElement.addEventListener("webglcontextrestored", () => {
+      const payload = {
+        selectedCharacterId: activePlayableCharacterId,
+        selectedMap
+      };
+      perfForensic.markContextRestored(payload);
+      console.groupCollapsed("[WEBGL_CONTEXT_RESTORED_FORENSIC]");
+      console.warn(payload);
+      console.groupEnd();
+    });
+  }
+
+  function logPerfDiagRendererSnapshot(frameTime = performance.now()) {
+    if (!perfForensic?.isEnabled?.()) {
+      return;
+    }
+    const previousFrameAt = logPerfDiagRendererSnapshot.previousFrameAt || frameTime;
+    const frameDeltaSeconds = Math.max((frameTime - previousFrameAt) / 1000, 0.001);
+    logPerfDiagRendererSnapshot.previousFrameAt = frameTime;
+    if (!logPerfDiagRendererSnapshot.lastSampleAt || frameTime - logPerfDiagRendererSnapshot.lastSampleAt >= 2000) {
+      logPerfDiagRendererSnapshot.lastSampleAt = frameTime;
+      const sceneSummary = getPerfForensicSceneSummary();
+      const activeCharacterConfig = getActivePlayableCharacterConfig();
+      const activeCharacterTriangles = getApproxTriangleCount(playerActor?.motusManVisual || null);
+      const mapTriangles = getApproxTriangleCount(mapGroup || null);
+      const renderInfo = renderer.info?.render || {};
+      const context = renderer.getContext?.();
+      const sample = {
+        at: Number(frameTime.toFixed(1)),
+        fpsEstimate: Number((1 / frameDeltaSeconds).toFixed(1)),
+        frameNumber: animationFrameId,
+        rendererMemory: { ...(renderer.info?.memory || {}) },
+        rendererRender: { ...renderInfo },
+        rendererPixelRatio: renderer.getPixelRatio?.() || null,
+        canvasWidth: renderer.domElement?.width || 0,
+        canvasHeight: renderer.domElement?.height || 0,
+        drawingBufferWidth: context?.drawingBufferWidth || 0,
+        drawingBufferHeight: context?.drawingBufferHeight || 0,
+        activeRenderTarget: renderer.getRenderTarget?.()?.texture?.name || "",
+        sceneChildrenCount: scene.children.length,
+        visibleMeshCount: sceneSummary.visibleMeshCount,
+        visibleSkinnedMeshCount: sceneSummary.visibleSkinnedMeshCount,
+        approximateVisibleTriangleCount: sceneSummary.visibleTriangleCount,
+        activeCharacterTriangleCount: activeCharacterTriangles.triangleCount,
+        mapWorldTriangleCount: mapTriangles.triangleCount,
+        selectedCharacter: activeCharacterConfig?.id || "",
+        selectedCharacterName: activeCharacterConfig?.name || "",
+        selectedCharacterModelPath: activeCharacterConfig?.modelPath || "",
+        mapId: currentLoadedMapId || selectedMap,
+        gameStarted
+      };
+      perfForensic.addSample(sample);
+      const worldMissing =
+        !perfForensicFlags.noMap &&
+        gameStarted &&
+        hud?.classList.contains("playing") &&
+        (Number(renderInfo.calls || 0) <= 0 ||
+          Number(renderInfo.triangles || 0) <= 0 ||
+          sceneSummary.visibleMeshCount <= 0 ||
+          mapTriangles.meshCount <= 0);
+      if (worldMissing && !perfForensic.state.worldMissingDetected) {
+        perfForensic.markWorldMissing(sample);
+        console.groupCollapsed("[WORLD_RENDER_MISSING_FORENSIC]");
+        console.warn(sample);
+        console.groupEnd();
+      }
+    }
+    if (frameTime - lastPerfDiagLogAt < PERF_DIAG_LOG_INTERVAL_MS) {
+      return;
+    }
+    lastPerfDiagLogAt = frameTime;
+    const activeCharacterConfig = getActivePlayableCharacterConfig();
+    const activeCharacterTriangles = getApproxTriangleCount(playerActor?.motusManVisual || null);
+    const sceneTriangles = getApproxTriangleCount(scene);
+    console.groupCollapsed("[PERF_FORENSIC_SAMPLE]");
+    console.log({
+      fps: perfForensic.state.samples.at(-1)?.fpsEstimate || null,
+      triangles: sceneTriangles.triangleCount,
+      geometries: renderer.info?.memory?.geometries,
+      textures: renderer.info?.memory?.textures,
+      calls: renderer.info?.render?.calls,
+      selectedCharacter: activeCharacterConfig?.id || "",
+      mapId: currentLoadedMapId || selectedMap
+    });
+    console.log("renderer.info.memory", { ...renderer.info.memory });
+    console.log("renderer.info.render", { ...renderer.info.render });
+    console.log("active character id", {
+      activePlayableCharacterId,
+      selectedPlayableCharacterId
+    });
+    console.log("selected character asset path", {
+      id: activeCharacterConfig?.id || "",
+      name: activeCharacterConfig?.name || "",
+      modelPath: activeCharacterConfig?.modelPath || "",
+      previewPath: activeCharacterConfig?.previewPath || "",
+      resourcePath: activeCharacterConfig?.resourcePath || "",
+      animationFolder: activeCharacterConfig?.animationFolder || ""
+    });
+    console.log("approximate visible triangle count", {
+      scene: sceneTriangles,
+      activeCharacter: activeCharacterTriangles
+    });
+    console.groupEnd();
+  }
+
   function validateLoadedCharacterMeshes(root, characterConfig, requestId) {
     const visibleMeshCount = getVisibleCharacterMeshCount(root);
     if (visibleMeshCount <= 0) {
@@ -7903,6 +9357,440 @@ window.onload = () => {
 
   function getTextureImage(texture) {
     return texture?.image || texture?.source?.data || null;
+  }
+
+  function getDiagnosticColorHex(color) {
+    if (!color?.getHexString) {
+      return null;
+    }
+
+    return `#${color.getHexString()}`;
+  }
+
+  function getDiagnosticTextureImageSource(texture) {
+    return getMaterialTextureSource(texture) || "";
+  }
+
+  function isDiagnosticTextureLoaded(texture) {
+    const image = getTextureImage(texture);
+    return Boolean(image && isTextureImageReady(image));
+  }
+
+  function getDiagnosticMaterialValue(material, key) {
+    return material && key in material ? material[key] : null;
+  }
+
+  function getPlayableCharacterMaterialSnapshotRows(characterRoot, characterId, reason) {
+    const characterConfig = getPlayableCharacterConfigById(characterId);
+    const characterLabel = characterRoot?.userData?.playableCharacterName || characterConfig?.name || "";
+    const rows = [];
+
+    characterRoot?.traverse((object) => {
+      if (!object?.isMesh) {
+        return;
+      }
+
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach((material, materialIndex) => {
+        rows.push({
+          reason,
+          characterId: characterConfig?.id || characterId || "",
+          characterLabel,
+          meshName: object.name || "(unnamed mesh)",
+          materialIndex,
+          materialName: material?.name || "(unnamed material)",
+          materialType: material?.type || "(no material)",
+          colorHex: getDiagnosticColorHex(material?.color),
+          emissiveHex: getDiagnosticColorHex(material?.emissive),
+          metalness: getDiagnosticMaterialValue(material, "metalness"),
+          roughness: getDiagnosticMaterialValue(material, "roughness"),
+          envMapIntensity: getDiagnosticMaterialValue(material, "envMapIntensity"),
+          shininess: getDiagnosticMaterialValue(material, "shininess"),
+          specular: getDiagnosticColorHex(material?.specular) ?? getDiagnosticMaterialValue(material, "specular"),
+          vertexColors: getDiagnosticMaterialValue(material, "vertexColors"),
+          hasMap: Boolean(material?.map),
+          mapImageSrc: getDiagnosticTextureImageSource(material?.map),
+          mapLoaded: isDiagnosticTextureLoaded(material?.map),
+          normalMap: Boolean(material?.normalMap),
+          specularMap: Boolean(material?.specularMap),
+          needsUpdate: Boolean(material?.needsUpdate)
+        });
+      });
+    });
+
+    return rows;
+  }
+
+  function logPlayableCharacterMaterialSnapshot(characterRoot, characterId, reason) {
+    const resolvedCharacterId = characterId || characterRoot?.userData?.playableCharacterId || activePlayableCharacterId;
+    const characterConfig = getPlayableCharacterConfigById(resolvedCharacterId);
+    if (!characterRoot) {
+      console.warn("[CHARACTER MATERIAL SNAPSHOT SKIPPED]", {
+        reason,
+        characterId: characterConfig?.id || resolvedCharacterId || "",
+        characterLabel: characterConfig?.name || "",
+        missingRoot: true
+      });
+      return [];
+    }
+
+    const rows = getPlayableCharacterMaterialSnapshotRows(characterRoot, resolvedCharacterId, reason);
+    const meshNames = Array.from(new Set(rows.map((row) => row.meshName)));
+    console.warn("[CHARACTER MATERIAL SNAPSHOT]", {
+      reason,
+      characterId: characterConfig?.id || resolvedCharacterId || "",
+      characterLabel: characterRoot.userData?.playableCharacterName || characterConfig?.name || "",
+      rootName: characterRoot.name || "(unnamed root)",
+      rootUuid: characterRoot.uuid || "",
+      meshCount: meshNames.length,
+      materialCount: rows.length,
+      rows
+    });
+    if (typeof console.table === "function") {
+      console.table(rows);
+    }
+    return rows;
+  }
+
+  function getDiagnosticToneMappingLabel(value) {
+    const toneMappingLabels = [
+      ["NoToneMapping", THREE.NoToneMapping],
+      ["LinearToneMapping", THREE.LinearToneMapping],
+      ["ReinhardToneMapping", THREE.ReinhardToneMapping],
+      ["CineonToneMapping", THREE.CineonToneMapping],
+      ["ACESFilmicToneMapping", THREE.ACESFilmicToneMapping]
+    ];
+    const match = toneMappingLabels.find(([, toneMappingValue]) => toneMappingValue === value);
+    return match ? match[0] : String(value);
+  }
+
+  function getSceneLightDiagnosticRows() {
+    const lights = [];
+    scene.traverse((object) => {
+      if (!object?.isLight) {
+        return;
+      }
+
+      lights.push({
+        name: object.name || "(unnamed light)",
+        type: object.type || "",
+        intensity: typeof object.intensity === "number" ? Number(object.intensity.toFixed(4)) : null,
+        visible: object.visible,
+        parentName: object.parent?.name || ""
+      });
+    });
+    return lights;
+  }
+
+  function getSceneMaterialEnvMapSnapshot(limit = 20) {
+    const samples = [];
+    let envMapMaterialCount = 0;
+
+    scene.traverse((object) => {
+      if (!object?.isMesh) {
+        return;
+      }
+
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach((material, materialIndex) => {
+        if (!material?.envMap) {
+          return;
+        }
+
+        envMapMaterialCount += 1;
+        if (samples.length < limit) {
+          samples.push({
+            meshName: object.name || "(unnamed mesh)",
+            materialIndex,
+            materialName: material.name || "(unnamed material)",
+            materialType: material.type || "",
+            envMapIntensity: getDiagnosticMaterialValue(material, "envMapIntensity"),
+            envMapName: material.envMap?.name || material.envMap?.uuid || "(envMap)"
+          });
+        }
+      });
+    });
+
+    return {
+      envMapMaterialCount,
+      samples
+    };
+  }
+
+  function logGraphicsMaterialEnvironmentSnapshot(reason) {
+    const envMapSnapshot = getSceneMaterialEnvMapSnapshot();
+    console.warn("[GRAPHICS MATERIAL ENV SNAPSHOT]", {
+      reason,
+      rendererToneMapping: renderer?.toneMapping ?? null,
+      rendererToneMappingLabel: getDiagnosticToneMappingLabel(renderer?.toneMapping),
+      rendererToneMappingExposure: renderer?.toneMappingExposure ?? null,
+      sceneEnvironmentExists: Boolean(scene.environment),
+      sceneEnvironmentType: scene.environment?.type || "",
+      sceneEnvironmentName: scene.environment?.name || scene.environment?.uuid || "",
+      sceneBackgroundExists: Boolean(scene.background),
+      sceneBackgroundType: scene.background?.type || "",
+      materialEnvMapCount: envMapSnapshot.envMapMaterialCount,
+      materialEnvMapSamples: envMapSnapshot.samples,
+      lights: getSceneLightDiagnosticRows()
+    });
+  }
+
+  function summarizePlayableCharacterMaterialRows(rows) {
+    const uniqueValues = (values) => Array.from(new Set(values.filter((value) => (
+      value !== null && value !== undefined && value !== ""
+    )))).slice(0, 30);
+
+    return {
+      meshCount: new Set(rows.map((row) => row.meshName)).size,
+      materialCount: rows.length,
+      materialTypes: uniqueValues(rows.map((row) => row.materialType)),
+      metalnessValues: uniqueValues(rows.map((row) => row.metalness)),
+      roughnessValues: uniqueValues(rows.map((row) => row.roughness)),
+      envMapIntensityValues: uniqueValues(rows.map((row) => row.envMapIntensity)),
+      shininessValues: uniqueValues(rows.map((row) => row.shininess)),
+      specularValues: uniqueValues(rows.map((row) => row.specular)),
+      colorHexValues: uniqueValues(rows.map((row) => row.colorHex)),
+      emissiveHexValues: uniqueValues(rows.map((row) => row.emissiveHex)),
+      missingMapCount: rows.filter((row) => !row.hasMap).length,
+      unloadedMapCount: rows.filter((row) => row.hasMap && !row.mapLoaded).length,
+      vertexColorsTrueCount: rows.filter((row) => row.vertexColors === true).length,
+      needsUpdateTrueCount: rows.filter((row) => row.needsUpdate === true).length
+    };
+  }
+
+  function getMotusManMaterialCompareRoot(activeRoot, activeCharacterId) {
+    if (isMotusManConfig(getPlayableCharacterConfigById(activeCharacterId))) {
+      return activeRoot;
+    }
+
+    const motusCharacterConfig = playableCharacters[0];
+    const motusCacheEntry = getCharacterAssetCacheEntry(motusCharacterConfig);
+    if (motusCacheEntry.modelTemplate) {
+      return motusCacheEntry.modelTemplate;
+    }
+
+    return motusManTemplateCharacterId === motusCharacterConfig.id ? motusManTemplate : null;
+  }
+
+  function logMotusVsActiveMaterialCompare(reason, activeRoot = playerActor?.motusManVisual, activeCharacterId = activePlayableCharacterId) {
+    const activeConfig = getPlayableCharacterConfigById(activeCharacterId);
+    const motusConfig = playableCharacters[0];
+    const motusRoot = getMotusManMaterialCompareRoot(activeRoot, activeConfig?.id || activeCharacterId);
+    const activeRows = activeRoot
+      ? getPlayableCharacterMaterialSnapshotRows(activeRoot, activeConfig?.id || activeCharacterId, reason)
+      : [];
+    const motusRows = motusRoot
+      ? getPlayableCharacterMaterialSnapshotRows(motusRoot, motusConfig.id, reason)
+      : [];
+
+    console.warn("[CHARACTER MATERIAL COMPARE MOTUS VS ACTIVE]", {
+      reason,
+      motusAvailable: Boolean(motusRoot),
+      activeAvailable: Boolean(activeRoot),
+      motusCharacterId: motusConfig.id,
+      motusLabel: motusConfig.name,
+      activeCharacterId: activeConfig?.id || activeCharacterId || "",
+      activeLabel: activeRoot?.userData?.playableCharacterName || activeConfig?.name || "",
+      motusSummary: summarizePlayableCharacterMaterialRows(motusRows),
+      activeSummary: summarizePlayableCharacterMaterialRows(activeRows)
+    });
+  }
+
+  function logPlayableCharacterMaterialDiagnostics(characterRoot, characterId, reason) {
+    if (!PLAYABLE_CHARACTER_MATERIAL_DIAGNOSTICS_ENABLED) {
+      return;
+    }
+
+    logPlayableCharacterMaterialSnapshot(characterRoot, characterId, reason);
+    logGraphicsMaterialEnvironmentSnapshot(reason);
+    logMotusVsActiveMaterialCompare(reason, characterRoot, characterId);
+  }
+
+  function logActivePlayableCharacterMaterialDiagnostics(reason) {
+    const activeRoot = playerActor?.motusManVisual || null;
+    const activeCharacterId = activeRoot?.userData?.playableCharacterId || activePlayableCharacterId;
+    logPlayableCharacterMaterialDiagnostics(activeRoot, activeCharacterId, reason);
+  }
+
+  function clearPlayableCharacterMaterialDelayedDiagnostics() {
+    if (typeof window === "undefined") {
+      playableCharacterMaterialDiagnosticTimeoutIds = [];
+      return;
+    }
+
+    for (const timeoutId of playableCharacterMaterialDiagnosticTimeoutIds) {
+      window.clearTimeout(timeoutId);
+    }
+    playableCharacterMaterialDiagnosticTimeoutIds = [];
+  }
+
+  function schedulePlayableCharacterMaterialDelayedDiagnostics(characterRoot, characterId, reason) {
+    clearPlayableCharacterMaterialDelayedDiagnostics();
+    if (!PLAYABLE_CHARACTER_MATERIAL_DIAGNOSTICS_ENABLED || !characterRoot || typeof window === "undefined") {
+      return;
+    }
+
+    for (const diagnosticDelay of playableCharacterMaterialDiagnosticDelays) {
+      const timeoutId = window.setTimeout(() => {
+        const activeRoot = playerActor?.motusManVisual || null;
+        const activeCharacterId = activeRoot?.userData?.playableCharacterId || activePlayableCharacterId;
+        if (activeRoot !== characterRoot || activeCharacterId !== characterId) {
+          return;
+        }
+
+        logPlayableCharacterMaterialDiagnostics(
+          activeRoot,
+          activeCharacterId,
+          `${reason} ${diagnosticDelay.label}`
+        );
+      }, diagnosticDelay.delayMs);
+      playableCharacterMaterialDiagnosticTimeoutIds.push(timeoutId);
+    }
+  }
+
+  function getCharacterBodyShineFixSkipName(object) {
+    let current = object || null;
+    while (current) {
+      const name = String(current.name || "").toLowerCase();
+      if (
+        name.includes("uzi") ||
+        name.includes("gun") ||
+        name.includes("muzzle") ||
+        name.includes("barrel") ||
+        name.includes("receiver") ||
+        name.includes("magazine") ||
+        name.includes("trigger")
+      ) {
+        return current.name || "(unnamed gun object)";
+      }
+
+      if (current.userData?.cosmeticHeldGunVersion || current.userData?.venHeldGunVersion) {
+        return current.name || "(cosmetic held gun)";
+      }
+
+      current = current.parent;
+    }
+
+    return "";
+  }
+
+  function normalizeNonMetalCharacterBodyMaterials(root, characterConfigOrId = activePlayableCharacterId, reason = "manual") {
+    const characterConfig = typeof characterConfigOrId === "string"
+      ? getPlayableCharacterConfigById(characterConfigOrId)
+      : characterConfigOrId;
+    if (!root || !characterConfig || isMotusManConfig(characterConfig)) {
+      return {
+        normalizedMaterialCount: 0,
+        skippedGunMaterialCount: 0
+      };
+    }
+
+    let normalizedMaterialCount = 0;
+    let skippedGunMaterialCount = 0;
+    root.traverse((object) => {
+      if (!object?.isMesh) {
+        return;
+      }
+
+      const skippedGunName = getCharacterBodyShineFixSkipName(object);
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach((material, materialIndex) => {
+        if (!material) {
+          return;
+        }
+
+        if (skippedGunName) {
+          skippedGunMaterialCount += 1;
+          return;
+        }
+
+        const oldShininess = typeof material.shininess === "number" ? material.shininess : null;
+        const oldSpecular = getDiagnosticColorHex(material.specular);
+        const oldMetalness = typeof material.metalness === "number" ? material.metalness : null;
+        const oldRoughness = typeof material.roughness === "number" ? material.roughness : null;
+        const oldEnvMapIntensity = typeof material.envMapIntensity === "number" ? material.envMapIntensity : null;
+        let changed = false;
+
+        if (material.isMeshPhongMaterial || material.type === "MeshPhongMaterial") {
+          if (material.specular?.getHex?.() !== 0x111111) {
+            material.specular?.setHex?.(0x111111);
+            changed = true;
+          }
+          if (typeof material.shininess === "number" && material.shininess !== 4) {
+            material.shininess = 4;
+            changed = true;
+          }
+        } else if (
+          material.isMeshStandardMaterial ||
+          material.isMeshPhysicalMaterial ||
+          material.type === "MeshStandardMaterial" ||
+          material.type === "MeshPhysicalMaterial"
+        ) {
+          if (typeof material.metalness === "number" && material.metalness !== 0) {
+            material.metalness = 0;
+            changed = true;
+          }
+          if (typeof material.roughness === "number" && material.roughness !== 0.85) {
+            material.roughness = 0.85;
+            changed = true;
+          }
+          if (typeof material.envMapIntensity === "number" && material.envMapIntensity !== 0.05) {
+            material.envMapIntensity = 0.05;
+            changed = true;
+          }
+        }
+
+        if (!changed) {
+          return;
+        }
+
+        material.needsUpdate = true;
+        normalizedMaterialCount += 1;
+        console.warn("[CHARACTER BODY SHINE FIX APPLIED]", {
+          reason,
+          characterId: characterConfig.id,
+          characterLabel: characterConfig.name,
+          meshName: object.name || "(unnamed mesh)",
+          materialIndex,
+          materialName: material.name || "(unnamed material)",
+          materialType: material.type || "",
+          oldShininess,
+          oldSpecular,
+          newShininess: typeof material.shininess === "number" ? material.shininess : null,
+          newSpecular: getDiagnosticColorHex(material.specular),
+          oldMetalness,
+          newMetalness: typeof material.metalness === "number" ? material.metalness : null,
+          oldRoughness,
+          newRoughness: typeof material.roughness === "number" ? material.roughness : null,
+          oldEnvMapIntensity,
+          newEnvMapIntensity: typeof material.envMapIntensity === "number" ? material.envMapIntensity : null,
+          hasMap: Boolean(material.map),
+          mapImageSrc: getDiagnosticTextureImageSource(material.map),
+          normalMap: Boolean(material.normalMap),
+          skippedGun: false
+        });
+      });
+    });
+
+    return {
+      normalizedMaterialCount,
+      skippedGunMaterialCount
+    };
+  }
+
+  function normalizeActivePlayableCharacterBodyMaterials(reason) {
+    normalizeNonMetalCharacterBodyMaterials(
+      playerActor?.motusManVisual || null,
+      playerActor?.motusManVisual?.userData?.playableCharacterId || activePlayableCharacterId,
+      reason
+    );
+    remotePlayers.forEach((remotePlayer) => {
+      normalizeNonMetalCharacterBodyMaterials(
+        remotePlayer?.motusManVisual || null,
+        remotePlayer?.selectedCharacterId || remotePlayer?.renderedCharacterId || playableCharacters[0].id,
+        reason
+      );
+    });
   }
 
   function repairCharacterMaterialsNotBlack(root, characterConfig, requestId) {
@@ -7949,6 +9837,16 @@ window.onload = () => {
       repairedMaterialCount,
       mainTextureCount
     }));
+    normalizeNonMetalCharacterBodyMaterials(
+      root,
+      characterConfig,
+      "after material not-black repair"
+    );
+    logPlayableCharacterMaterialDiagnostics(
+      root,
+      characterConfig?.id,
+      "after material repair"
+    );
     return { repairedMaterialCount, mainTextureCount };
   }
 
@@ -8105,6 +10003,7 @@ window.onload = () => {
       console.warn("[SHARED MOTUS ANIMATION CACHE HIT]", getCharacterLoadPayload(characterConfig, requestId, {
         source: "character-asset-cache"
       }));
+      logSocratesAnimationRouting(characterConfig);
       return cachedAnimations;
     }
 
@@ -8172,6 +10071,7 @@ window.onload = () => {
       jumpStart: Boolean(jumpStart),
       jumpAir: Boolean(jumpAir)
     }));
+    logSocratesAnimationRouting(characterConfig);
 
     return missing;
   }
@@ -8208,7 +10108,31 @@ window.onload = () => {
     }
   }
 
+  function createPerfNoCharacterModelDummy(characterConfig) {
+    const dummy = new THREE.Group();
+    dummy.name = "perf-no-character-model-dummy";
+    dummy.userData.playableCharacterId = characterConfig?.id || "";
+    dummy.userData.playableCharacterName = characterConfig?.name || "";
+    dummy.userData.perfNoCharacterModel = true;
+    return dummy;
+  }
+
   async function loadCharacterFully(characterConfig, requestId) {
+    if (perfForensicFlags.noCharacterModel) {
+      console.warn("[PERF_FORENSIC] perfNoCharacterModel=1 active; character apply model and animation loads skipped", getCharacterLoadPayload(characterConfig, requestId));
+      return {
+        characterConfig,
+        template: createPerfNoCharacterModelDummy(characterConfig),
+        animations: {
+          standAimIdle: null,
+          crouchAim: null,
+          walkAim: null,
+          jogAim: null,
+          jumpStart: null,
+          jumpAir: null
+        }
+      };
+    }
     const cacheEntry = getCharacterAssetCacheEntry(characterConfig);
     const cacheReady = Boolean(
       cacheEntry.modelTemplate &&
@@ -8269,6 +10193,19 @@ window.onload = () => {
     }
 
     if (!characterConfig || (!startupReady && reason !== "startup background")) {
+      return;
+    }
+
+    if (
+      DISABLE_OPTIONAL_CHARACTER_PRELOADS_FOR_PERF_TEST &&
+      characterConfig.id !== activePlayableCharacterId
+    ) {
+      console.log("[PERF_DIAG] optional character preload skipped", {
+        characterId: characterConfig.id,
+        activePlayableCharacterId,
+        reason,
+        disableOptionalCharacterPreloadsForPerfTest: true
+      });
       return;
     }
 
@@ -8358,6 +10295,13 @@ window.onload = () => {
 
   function loadMotusManTemplate(characterConfig = getActivePlayableCharacterConfig()) {
     const characterId = characterConfig.id;
+    if (isHomeLiteBeforeGameplayStart()) {
+      return Promise.reject(createHomeLiteBlockedLoadError("character FBX", {
+        source: "loadMotusManTemplate",
+        selectedCharacter: characterConfig.id,
+        modelPath: characterConfig.modelPath
+      }));
+    }
     const cacheEntry = getCharacterAssetCacheEntry(characterConfig);
 
     if (cacheEntry.modelTemplate) {
@@ -8399,6 +10343,10 @@ window.onload = () => {
       console.log("[CHARACTER] Ven TEST direct Motus skeleton animation path active.");
     } else if (isVenCharacterConfig(characterConfig)) {
       logVenCharacterLoadCheck(characterConfig);
+    } else if (isSocratesCharacterConfig(characterConfig)) {
+      console.log("[CHARACTER_04] Socrates selected");
+      logSocratesRuntimeDebug(characterConfig);
+      console.log("[CHARACTER] Loading model:", characterConfig.name, characterConfig.modelPath);
     } else if (isMotusManConfig(characterConfig)) {
       console.log("[MOTUS MAN LOAD CHECK]", {
         modelPath: characterConfig.modelPath,
@@ -8437,6 +10385,12 @@ window.onload = () => {
           selectedCharacterId: characterConfig.id,
           selectedLabel: characterConfig.name
         });
+      } else if (isSocratesCharacterConfig(characterConfig)) {
+        console.log("[CHARACTER_04] Socrates runtime model loading", {
+          modelPath: characterConfig.modelPath,
+          resolvedUrl: modelUrl
+        });
+        console.log("[CHARACTER_04_DEBUG] model URL =", modelUrl);
       }
       loader.load(
         modelUrl,
@@ -8473,7 +10427,32 @@ window.onload = () => {
               uvExists: runtimeSummary.uvExists,
               animationClipsApplied: Object.values(sharedCharacterAnimationFiles)
             });
+          } else if (isSocratesCharacterConfig(characterConfig)) {
+            const runtimeSummary = buildCharacterRuntimeModelSummary(fbx);
+            console.log("[CHARACTER_04_DEBUG] model load success", {
+              modelPath: characterConfig.modelPath,
+              modelUrl
+            });
+            console.log("[CHARACTER_04] Socrates model loaded", {
+              rootName: fbx.name || "(unnamed root)",
+              uuid: fbx.uuid,
+              childCount: fbx.children.length,
+              meshNames: runtimeSummary.meshNames,
+              armatureNames: runtimeSummary.armatureNames,
+              materialNames: runtimeSummary.materialNames,
+              textureMapSources: runtimeSummary.textureMapSources
+            });
           }
+          logPlayableCharacterMaterialDiagnostics(
+            fbx,
+            characterConfig.id,
+            "immediately after character model loads"
+          );
+          normalizeNonMetalCharacterBodyMaterials(
+            fbx,
+            characterConfig,
+            "immediately after character model loads"
+          );
           const bounds = new THREE.Box3().setFromObject(fbx);
           const size = new THREE.Vector3();
           bounds.getSize(size);
@@ -8509,6 +10488,16 @@ window.onload = () => {
             }
             cacheVenFingerNeutralPose(fbx, characterConfig);
           }
+          logPlayableCharacterMaterialDiagnostics(
+            fbx,
+            characterConfig.id,
+            "after load-time material repair"
+          );
+          normalizeNonMetalCharacterBodyMaterials(
+            fbx,
+            characterConfig,
+            "after load-time material repair"
+          );
           cacheEntry.modelTemplate = fbx;
           cacheEntry.modelPromise = null;
           cacheEntry.readyState.modelReady = true;
@@ -8528,6 +10517,14 @@ window.onload = () => {
               modelPath: characterConfig.modelPath,
               error
             });
+          } else if (isSocratesCharacterConfig(characterConfig)) {
+            console.error("[CHARACTER_04] Socrates model load failed", {
+              modelPath: characterConfig.modelPath,
+              modelUrl,
+              error
+            });
+            console.error("[CHARACTER_04_DEBUG] model load failed with actual error object", error);
+            console.log("[CHARACTER_04] Fallback to Motus Man if load failed");
           } else if (isMotusManConfig(characterConfig)) {
             console.error("[MOTUS MAN LOAD FAILED]", {
               modelPath: characterConfig.modelPath,
@@ -8558,6 +10555,12 @@ window.onload = () => {
   }
 
   function loadMotusManIdleClip(characterConfig = getActivePlayableCharacterConfig()) {
+    if (isHomeLiteBeforeGameplayStart()) {
+      return Promise.reject(createHomeLiteBlockedLoadError("animation FBX", {
+        source: "loadMotusManIdleClip",
+        animationUrl: getSelectedCharacterAnimationUrl("standAimIdle", characterConfig)
+      }));
+    }
     if (motusManIdleClip) {
       return Promise.resolve(motusManIdleClip);
     }
@@ -8599,28 +10602,69 @@ window.onload = () => {
   }
 
   function loadMotusManCrouchIdleClip(characterConfig = getActivePlayableCharacterConfig()) {
-    if (motusManCrouchIdleClip) {
+    const crouchOverridePath = getCharacterAnimationOverridePath("crouchAim", characterConfig);
+    const usesCharacterSpecificCrouch = Boolean(crouchOverridePath);
+    const crouchAnimationUrl = getSelectedCharacterAnimationUrl("crouchAim", characterConfig);
+    if (isHomeLiteBeforeGameplayStart()) {
+      return Promise.reject(createHomeLiteBlockedLoadError("animation FBX", {
+        source: "loadMotusManCrouchIdleClip",
+        animationUrl: crouchAnimationUrl
+      }));
+    }
+
+    if (!usesCharacterSpecificCrouch && motusManCrouchIdleClip) {
       return Promise.resolve(motusManCrouchIdleClip);
     }
 
-    if (motusManCrouchIdleLoadPromise) {
+    if (usesCharacterSpecificCrouch && characterCrouchIdleClipCache.has(crouchAnimationUrl)) {
+      return Promise.resolve(characterCrouchIdleClipCache.get(crouchAnimationUrl));
+    }
+
+    if (!usesCharacterSpecificCrouch && motusManCrouchIdleLoadPromise) {
       return motusManCrouchIdleLoadPromise;
+    }
+
+    if (usesCharacterSpecificCrouch && characterCrouchIdleLoadPromiseCache.has(crouchAnimationUrl)) {
+      return characterCrouchIdleLoadPromiseCache.get(crouchAnimationUrl);
     }
 
     const loader = new FBXLoader();
     if (!startupReady) {
       setStartupPhase("Loading crouch animation", "Fetching crouch aim idle clip.");
     }
-    motusManCrouchIdleLoadPromise = new Promise((resolve, reject) => {
+    if (isSocratesCharacterConfig(characterConfig)) {
+      console.log("[CHARACTER_04_DEBUG] crouch URL =", {
+        crouchOverridePath,
+        crouchUrl: crouchAnimationUrl
+      });
+    }
+    const loadPromise = new Promise((resolve, reject) => {
       loader.load(
-        getSelectedCharacterAnimationUrl("crouchAim", characterConfig),
+        crouchAnimationUrl,
         (fbx) => {
           const clip = fbx.animations?.[0];
           if (!clip) {
-            motusManCrouchIdleLoadPromise = null;
+            if (usesCharacterSpecificCrouch) {
+              characterCrouchIdleLoadPromiseCache.delete(crouchAnimationUrl);
+            } else {
+              motusManCrouchIdleLoadPromise = null;
+            }
             const missingClipError = new Error("MotusMan crouch idle animation clip missing");
             console.warn("MotusMan crouch idle animation load failed:", missingClipError);
             reject(missingClipError);
+            return;
+          }
+
+          if (usesCharacterSpecificCrouch) {
+            characterCrouchIdleClipCache.set(crouchAnimationUrl, clip);
+            characterCrouchIdleLoadPromiseCache.delete(crouchAnimationUrl);
+            if (isSocratesCharacterConfig(characterConfig)) {
+              console.log("[CHARACTER_04] Using Socrates fixed crouch animation", {
+                crouchPath: crouchOverridePath,
+                resolvedUrl: crouchAnimationUrl
+              });
+            }
+            resolve(clip);
             return;
           }
 
@@ -8629,17 +10673,33 @@ window.onload = () => {
         },
         undefined,
         (error) => {
-          motusManCrouchIdleLoadPromise = null;
+          if (usesCharacterSpecificCrouch) {
+            characterCrouchIdleLoadPromiseCache.delete(crouchAnimationUrl);
+          } else {
+            motusManCrouchIdleLoadPromise = null;
+          }
           console.warn("MotusMan crouch idle animation load failed:", error);
           reject(error);
         }
       );
     });
 
-    return motusManCrouchIdleLoadPromise;
+    if (usesCharacterSpecificCrouch) {
+      characterCrouchIdleLoadPromiseCache.set(crouchAnimationUrl, loadPromise);
+    } else {
+      motusManCrouchIdleLoadPromise = loadPromise;
+    }
+
+    return loadPromise;
   }
 
   function loadMotusManWalkAimClip(characterConfig = getActivePlayableCharacterConfig()) {
+    if (isHomeLiteBeforeGameplayStart()) {
+      return Promise.reject(createHomeLiteBlockedLoadError("animation FBX", {
+        source: "loadMotusManWalkAimClip",
+        animationUrl: getSelectedCharacterAnimationUrl("walkAim", characterConfig)
+      }));
+    }
     if (motusManWalkAimClip) {
       return Promise.resolve(motusManWalkAimClip);
     }
@@ -8677,6 +10737,12 @@ window.onload = () => {
   }
 
   function loadMotusManJogAimClip(characterConfig = getActivePlayableCharacterConfig()) {
+    if (isHomeLiteBeforeGameplayStart()) {
+      return Promise.reject(createHomeLiteBlockedLoadError("animation FBX", {
+        source: "loadMotusManJogAimClip",
+        animationUrl: getSelectedCharacterAnimationUrl("jogAim", characterConfig)
+      }));
+    }
     if (motusManJogAimClip) {
       return Promise.resolve(motusManJogAimClip);
     }
@@ -8714,6 +10780,12 @@ window.onload = () => {
   }
 
   function loadMotusManJumpStartClip(characterConfig = getActivePlayableCharacterConfig()) {
+    if (isHomeLiteBeforeGameplayStart()) {
+      return Promise.reject(createHomeLiteBlockedLoadError("animation FBX", {
+        source: "loadMotusManJumpStartClip",
+        animationUrl: getSelectedCharacterAnimationUrl("jumpStart", characterConfig)
+      }));
+    }
     if (motusManJumpStartClip) {
       return Promise.resolve(motusManJumpStartClip);
     }
@@ -8751,6 +10823,12 @@ window.onload = () => {
   }
 
   function loadMotusManJumpAirClip(characterConfig = getActivePlayableCharacterConfig()) {
+    if (isHomeLiteBeforeGameplayStart()) {
+      return Promise.reject(createHomeLiteBlockedLoadError("animation FBX", {
+        source: "loadMotusManJumpAirClip",
+        animationUrl: getSelectedCharacterAnimationUrl("jumpAir", characterConfig)
+      }));
+    }
     if (motusManJumpAirClip) {
       return Promise.resolve(motusManJumpAirClip);
     }
@@ -9459,7 +11537,7 @@ window.onload = () => {
       ensurePlayerCrouchIdleAction();
     }
 
-    // Priority: jump > crouch > jog (sprint) > walk (move) > idle
+    // Priority: jump > C crouch > jog (sprint) > walk (move) > idle
     const isSprinting = isMoving && Boolean(moveState.sprint);
     let nextMode = "idle";
 
@@ -9592,6 +11670,32 @@ window.onload = () => {
     updateCharacterLoadingOverlay("Attaching character", 86);
     console.warn("[CHARACTER LOAD ATTACH START]", getCharacterLoadPayload(characterConfig, requestId));
 
+    if (perfForensicFlags.noCharacterModel) {
+      resetLocalPlayerCharacterAnimationState();
+      playerCharacterAnimationDisabled = true;
+      if (actor.motusManVisual && actor.motusManVisual !== template) {
+        removeLocalPlayerCharacterVisual(actor);
+      }
+      actor.visual.visible = false;
+      template.name = "perf-no-character-model-dummy";
+      template.userData.playableCharacterId = characterConfig.id;
+      template.userData.playableCharacterName = characterConfig.name;
+      template.userData.perfNoCharacterModel = true;
+      if (template.parent !== actor.root) {
+        actor.root.add(template);
+      }
+      actor.motusManVisual = template;
+      const readiness = {
+        visualReady: true,
+        standingAnimationReady: true,
+        crouchAnimationReady: true
+      };
+      playerVisualReadyPromise = Promise.resolve(readiness);
+      console.warn("[PERF_FORENSIC] perfNoCharacterModel dummy attached", getCharacterLoadPayload(characterConfig, requestId));
+      updateCharacterLoadingOverlay("Character diagnostic dummy ready", 100);
+      return readiness;
+    }
+
     validateLoadedCharacterMeshes(template, characterConfig, requestId);
     if (!characterConfig.disableRuntimeRetargetAnimations) {
       const missingClipKeys = Object.entries({
@@ -9661,6 +11765,9 @@ window.onload = () => {
       jumpStartActionReady: Boolean(playerJumpStartAction),
       jumpAirActionReady: Boolean(playerJumpAirAction)
     }));
+    normalizeNonMetalCharacterBodyMaterials(template, characterConfig, "after character attaches");
+    logPlayableCharacterMaterialDiagnostics(template, characterConfig.id, "after character attaches");
+    schedulePlayableCharacterMaterialDelayedDiagnostics(template, characterConfig.id, "after character attaches");
     updateCharacterLoadingOverlay("Character ready", 100);
     console.warn("[CHARACTER LOAD FULLY_READY]", getCharacterLoadPayload(characterConfig, requestId));
     scheduleCosmeticHeldGunAttachAfterCharacterVisible(actor, characterConfig, requestId);
@@ -9669,12 +11776,75 @@ window.onload = () => {
 
   function attachMotusManToPlayer(actor, { allowFallback = true } = {}) {
     const characterConfig = getActivePlayableCharacterConfig();
+    if (isHomeLiteBeforeGameplayStart()) {
+      logHomeLite("blocked character FBX before gameplay", {
+        source: "attachMotusManToPlayer",
+        selectedCharacter: characterConfig.id,
+        modelPath: characterConfig.modelPath
+      }, { onceKey: "attach-before-gameplay" });
+      playerVisualReadyPromise = Promise.resolve({
+        visualReady: true,
+        standingAnimationReady: true,
+        crouchAnimationReady: true,
+        deferredByHomeLite: true
+      });
+      return playerVisualReadyPromise;
+    }
     // Wait for player animation readiness before reveal
     if (!startupReady) {
       setStartupPhase("Loading player", "Loading player character model.");
     }
     console.log("[CHARACTER] Loading model:", characterConfig.name, characterConfig.modelPath);
     const characterVisualOnlyTestMode = Boolean(characterConfig.disableRuntimeRetargetAnimations);
+    if (perfForensicFlags.noCharacterModel) {
+      console.warn("[PERF_FORENSIC] perfNoCharacterModel=1 active; player character FBX and animation loads skipped", {
+        selectedCharacterId: characterConfig.id,
+        selectedLabel: characterConfig.name,
+        modelPath: characterConfig.modelPath
+      });
+      resetLocalPlayerCharacterAnimationState();
+      playerCharacterAnimationDisabled = true;
+      if (actor.motusManVisual) {
+        removeLocalPlayerCharacterVisual(actor);
+      }
+      actor.visual.visible = false;
+      const dummy = new THREE.Group();
+      dummy.name = "perf-no-character-model-dummy";
+      dummy.userData.playableCharacterId = characterConfig.id;
+      dummy.userData.playableCharacterName = characterConfig.name;
+      dummy.userData.perfNoCharacterModel = true;
+      actor.root.add(dummy);
+      actor.motusManVisual = dummy;
+      if (!startupReady) {
+        setStartupReadiness("playerModelReady", true, {
+          statusMessage: "Loading player",
+          debugMessage: "perfNoCharacterModel dummy ready.",
+          logPhase: "player dummy ready"
+        });
+        setStartupReadiness("playerStandingAnimReady", true, {
+          statusMessage: "Loading standing animation",
+          debugMessage: "perfNoCharacterModel animation skipped.",
+          logPhase: "standing action skipped"
+        });
+        setStartupReadiness("playerCrouchAnimReady", true, {
+          statusMessage: "Loading crouch animation",
+          debugMessage: "perfNoCharacterModel crouch animation skipped.",
+          logPhase: "crouch action skipped"
+        });
+        setStartupReadiness("playerActionsReady", true, {
+          statusMessage: "Preparing player actions",
+          debugMessage: "perfNoCharacterModel actions skipped.",
+          logPhase: "player actions skipped"
+        });
+      }
+      const readiness = {
+        visualReady: true,
+        standingAnimationReady: true,
+        crouchAnimationReady: true
+      };
+      playerVisualReadyPromise = Promise.resolve(readiness);
+      return playerVisualReadyPromise;
+    }
     if (!characterVisualOnlyTestMode) {
       console.log("[CHARACTER] Loading shared animations from:", characterConfig.animationFolder);
     }
@@ -9731,8 +11901,11 @@ window.onload = () => {
         template.userData.playableCharacterId = characterConfig.id;
         template.userData.playableCharacterName = characterConfig.name;
         template.rotation.y = 0;
-          actor.root.add(template);
+        actor.root.add(template);
         actor.motusManVisual = template;
+        normalizeNonMetalCharacterBodyMaterials(template, characterConfig, "after character attaches");
+        logPlayableCharacterMaterialDiagnostics(template, characterConfig.id, "after character attaches");
+        schedulePlayableCharacterMaterialDelayedDiagnostics(template, characterConfig.id, "after character attaches");
         if (isVenTestCharacterConfig(characterConfig)) {
           cacheVenFingerNeutralPose(template, characterConfig);
         }
@@ -9825,6 +11998,11 @@ window.onload = () => {
           });
         }
         if (allowFallback && characterConfig.id !== playableCharacters[0].id) {
+          if (isSocratesCharacterConfig(characterConfig)) {
+            console.log("[CHARACTER_04] Fallback to Motus Man if load failed", {
+              reason: "player character visual load failed"
+            });
+          }
           console.error("[CHARACTER] Failed to load selected character, falling back to Motus Man:", {
             name: characterConfig.name,
             modelPath: characterConfig.modelPath,
@@ -10181,6 +12359,7 @@ window.onload = () => {
         if (isMotusManConfig(characterConfig)) {
           recolorMotusManAccent(actor, accentColor);
         }
+        normalizeNonMetalCharacterBodyMaterials(remoteVisual, characterConfig, "after remote character attach");
         hideEnemyHelperMeshes(actor);
         attachRemoteCosmeticHeldGunForActor(actor, characterConfig);
 
@@ -10230,6 +12409,15 @@ window.onload = () => {
   }
 
   function reloadLocalPlayerCharacterVisual(reason = "character changed") {
+    if (isHomeLiteBeforeGameplayStart()) {
+      logHomeLite("blocked character FBX before gameplay", {
+        source: "reloadLocalPlayerCharacterVisual",
+        reason,
+        selectedCharacter: getSelectedPlayableCharacterConfig()?.id || "",
+        activeCharacter: getActivePlayableCharacterConfig()?.id || ""
+      }, { onceKey: `reload:${reason}` });
+      return Promise.resolve(null);
+    }
     if (!playerActor) {
       return Promise.resolve(null);
     }
@@ -10241,6 +12429,20 @@ window.onload = () => {
   }
 
   function createPlayer() {
+    if (isHomeLiteBeforeGameplayStart()) {
+      logHomeLite("blocked createPlayer before gameplay", {
+        selectedCharacter: getSelectedPlayableCharacterConfig()?.id || "",
+        activeCharacter: getActivePlayableCharacterConfig()?.id || ""
+      }, { onceKey: "createPlayer-before-gameplay" });
+      playerVisualReadyPromise = Promise.resolve({
+        visualReady: true,
+        standingAnimationReady: true,
+        crouchAnimationReady: true,
+        deferredByHomeLite: true
+      });
+      return null;
+    }
+    removeHomeLitePlayerAnchor();
     resetLocalPlayerCharacterAnimationState();
     const actor = buildBoxActor({
       body: 0x2a63ff,
@@ -10280,9 +12482,21 @@ window.onload = () => {
     return player;
   }
 
-  createPlayer();
+  if (isHomeLiteBeforeGameplayStart()) {
+    logHomeLite("blocked createPlayer before gameplay", {
+      source: "startup"
+    }, { onceKey: "startup-createPlayer" });
+  } else {
+    createPlayer();
+  }
 
   async function ensureStartupPlayerReadiness() {
+    if (isHomeLiteBeforeGameplayStart()) {
+      logHomeLite("blocked character FBX before gameplay", {
+        source: "ensureStartupPlayerReadiness"
+      }, { onceKey: "startup-player-readiness" });
+      return;
+    }
     // Prevent placeholder player flash
     // Wait for player animation readiness before reveal
     setStartupPhase("Loading player", "Waiting for player model and animation actions.");
@@ -10312,6 +12526,7 @@ window.onload = () => {
     updateMovementRotation(initialFacingDirection);
     forceNextCameraSnap = true;
     updateCamera(0.016);
+    updateHighDefinitionCloudSky(clock.elapsedTime);
     renderer.render(scene, camera);
   }
 
@@ -10323,9 +12538,11 @@ window.onload = () => {
     setStartupPhase("Booting", "Preparing startup pipeline.");
 
     try {
+      logPerfDiagServiceWorkerCacheIncludesCharacter04();
       setStartupPhase("Loading character selector", "Preparing character selection.");
       const characterPreviewReadyTask = Promise.resolve()
-        .then(() => {
+        .then(async () => {
+          await preloadCharacterPreviewImagesSimple();
           setStartupReadiness("characterPreviewsReady", true, {
             statusMessage: "Loading character selector",
             debugMessage: "Character selector ready.",
@@ -10335,29 +12552,84 @@ window.onload = () => {
         });
       await characterPreviewReadyTask;
 
-      setStartupPhase("Checking character cache", "Checking required character assets.");
-      await ensureStartupCharacterAssetCacheReady();
-
-      setStartupPhase("Loading player", "Preparing player startup assets.");
-      const playerReadyTask = ensureStartupPlayerReadiness();
-      setStartupPhase("Loading map", `Loading map: ${selectedMap}`);
-      const mapReadyTask = loadSelectedMap(selectedMap, {
-        requestSource: "startup sequence"
-      }).then(() => {
+      if (isHomeLiteBeforeGameplayStart()) {
+        logHomeLite("blocked character FBX before gameplay", {
+          source: "startup sequence",
+          selectedCharacter: getSelectedPlayableCharacterConfig()?.id || "",
+          activeCharacter: getActivePlayableCharacterConfig()?.id || ""
+        }, { onceKey: "startup-character-fbx-deferred" });
+        logHomeLite("blocked animation FBX before gameplay", {
+          source: "startup sequence"
+        }, { onceKey: "startup-animation-fbx-deferred" });
+        logHomeLite("blocked map load before gameplay", {
+          requestedMapId: selectedMap,
+          requestSource: "startup sequence"
+        }, { onceKey: "startup-map-deferred" });
+        logHomeLite("blocked wet/cloud before gameplay", {
+          source: "startup sequence"
+        }, { onceKey: "startup-wet-cloud-deferred" });
+        setStartupReadiness("characterAssetsCached", true, {
+          statusMessage: "Checking character cache",
+          debugMessage: "Home Lite deferred player FBX cache until gameplay start.",
+          logPhase: "character assets deferred by Home Lite"
+        });
+        setStartupReadiness("playerModelReady", true, {
+          statusMessage: "Loading player",
+          debugMessage: "Home Lite deferred player model until gameplay start.",
+          logPhase: "player model deferred by Home Lite"
+        });
+        setStartupReadiness("playerStandingAnimReady", true, {
+          statusMessage: "Loading standing animation",
+          debugMessage: "Home Lite deferred standing animation until gameplay start.",
+          logPhase: "standing animation deferred by Home Lite"
+        });
+        setStartupReadiness("playerCrouchAnimReady", true, {
+          statusMessage: "Loading crouch animation",
+          debugMessage: "Home Lite deferred crouch animation until gameplay start.",
+          logPhase: "crouch animation deferred by Home Lite"
+        });
+        setStartupReadiness("playerActionsReady", true, {
+          statusMessage: "Preparing player actions",
+          debugMessage: "Home Lite deferred animation actions until gameplay start.",
+          logPhase: "player actions deferred by Home Lite"
+        });
         setStartupReadiness("mapReady", true, {
           statusMessage: "Loading map",
-          debugMessage: `Map ready: ${selectedMap}`,
-          logPhase: "map ready"
+          debugMessage: "Home Lite deferred map load until gameplay start.",
+          logPhase: "map deferred by Home Lite"
         });
-      });
+      } else {
+        setStartupPhase("Checking character cache", "Checking required character assets.");
+        await ensureStartupCharacterAssetCacheReady();
 
-      await Promise.all([playerReadyTask, mapReadyTask]);
+        setStartupPhase("Loading player", "Preparing player startup assets.");
+        const playerReadyTask = ensureStartupPlayerReadiness();
+        setStartupPhase("Loading map", `Loading map: ${selectedMap}`);
+        const mapReadyTask = loadSelectedMap(selectedMap, {
+          requestSource: "startup sequence"
+        }).then(() => {
+          setStartupReadiness("mapReady", true, {
+            statusMessage: "Loading map",
+            debugMessage: `Map ready: ${selectedMap}`,
+            logPhase: "map ready"
+          });
+        });
+
+        await Promise.all([playerReadyTask, mapReadyTask]);
+      }
 
       setStartupPhase("Finalizing scene", "Applying first playable camera frame.");
-      snapCameraBeforeStartupReveal();
+      if (isHomeLiteBeforeGameplayStart()) {
+        ensureHomeLitePlayerAnchor();
+        renderer.render(scene, camera);
+      } else {
+        snapCameraBeforeStartupReveal();
+      }
       setStartupReadiness("cameraReady", true, {
         statusMessage: "Finalizing scene",
-        debugMessage: "Camera snap complete for first playable frame.",
+        debugMessage: isHomeLiteBeforeGameplayStart()
+          ? "Home Lite rendered lightweight home frame."
+          : "Camera snap complete for first playable frame.",
         logPhase: "camera ready"
       });
       if (!isStartupReadyFromDependencies()) {
@@ -10365,6 +12637,7 @@ window.onload = () => {
       }
 
       showMainMenu();
+      logHomeLiteSummary();
       startupReady = isStartupReadyFromDependencies();
       logStartupMilestone("startup complete", {
         dependenciesResolved: startupReady
@@ -10403,6 +12676,39 @@ window.onload = () => {
   sun.shadow.camera.bottom = -30;
   scene.add(sun);
 
+  function buildWetGroundLightingProfile(profile) {
+    if (perfForensicFlags.noWet || !wetEnvironmentSettings.enabled) {
+      return {
+        ...profile,
+        sunPosition: profile.sunPosition.clone()
+      };
+    }
+
+    const fogAmount = wetEnvironmentSettings.fogAmount / 100;
+    const wetStrength = wetEnvironmentSettings.wetStrength / 100;
+    const background = new THREE.Color(profile.background).lerp(new THREE.Color(0x8f9fab), fogAmount * 0.28);
+    const fogColor = new THREE.Color(profile.fogColor ?? profile.background).lerp(new THREE.Color(0xa7b3bb), fogAmount * 0.38);
+    const skyColor = new THREE.Color(profile.skyColor).lerp(new THREE.Color(0xd9e1e8), fogAmount * 0.22);
+    const groundColor = new THREE.Color(profile.groundColor).lerp(new THREE.Color(0x58636b), wetStrength * 0.14);
+    const sunColor = new THREE.Color(profile.sunColor).lerp(new THREE.Color(0xcdd8df), fogAmount * 0.24);
+    const wetFogNear = Math.min(profile.fogNear, THREE.MathUtils.lerp(profile.fogNear, 16, fogAmount));
+    const wetFogFar = THREE.MathUtils.lerp(profile.fogFar, Math.min(profile.fogFar, 122), fogAmount * 0.72);
+
+    return {
+      ...profile,
+      background: background.getHex(),
+      fogColor: fogColor.getHex(),
+      fogNear: wetFogNear,
+      fogFar: wetFogFar,
+      sunColor: sunColor.getHex(),
+      sunIntensity: profile.sunIntensity * (1 - fogAmount * 0.22),
+      sunPosition: profile.sunPosition.clone(),
+      skyColor: skyColor.getHex(),
+      groundColor: groundColor.getHex(),
+      skyIntensity: profile.skyIntensity * (1 + fogAmount * 0.04)
+    };
+  }
+
   function applyLightingProfile({
     background,
     fogColor = background,
@@ -10415,27 +12721,386 @@ window.onload = () => {
     groundColor,
     skyIntensity
   }) {
-    activeLightingProfile = {
+    activeBaseLightingProfile = {
       background,
       fogColor,
       fogNear,
       fogFar,
       sunColor,
       sunIntensity,
-      sunPosition: sunPosition.clone(),
+      sunPosition,
       skyColor,
       groundColor,
       skyIntensity
     };
-    scene.background = new THREE.Color(background);
-    scene.fog = new THREE.Fog(fogColor, fogNear, fogFar);
-    sun.color.set(sunColor);
-    sun.intensity = sunIntensity;
-    sun.position.copy(sunPosition);
-    skyLight.color.set(skyColor);
-    skyLight.groundColor.set(groundColor);
-    skyLight.intensity = skyIntensity;
+    const profile = buildWetGroundLightingProfile(activeBaseLightingProfile);
+    activeLightingProfile = {
+      background: profile.background,
+      fogColor: profile.fogColor,
+      fogNear: profile.fogNear,
+      fogFar: profile.fogFar,
+      sunColor: profile.sunColor,
+      sunIntensity: profile.sunIntensity,
+      sunPosition: profile.sunPosition.clone(),
+      skyColor: profile.skyColor,
+      groundColor: profile.groundColor,
+      skyIntensity: profile.skyIntensity
+    };
+    scene.background = new THREE.Color(profile.background);
+    scene.fog = new THREE.Fog(profile.fogColor, profile.fogNear, profile.fogFar);
+    sun.color.set(profile.sunColor);
+    sun.intensity = profile.sunIntensity;
+    sun.position.copy(profile.sunPosition);
+    skyLight.color.set(profile.skyColor);
+    skyLight.groundColor.set(profile.groundColor);
+    skyLight.intensity = profile.skyIntensity;
+    if (wetEnvironmentSettings.enabled && wetEnvironmentSettings.fogAmount > 0) {
+      console.log("[FOG ATMOSPHERE APPLIED]", {
+        background: `#${profile.background.toString(16).padStart(6, "0")}`,
+        fogColor: `#${profile.fogColor.toString(16).padStart(6, "0")}`,
+        fogNear: profile.fogNear,
+        fogFar: profile.fogFar,
+        sunIntensity: Number(profile.sunIntensity.toFixed(3)),
+        skyIntensity: Number(profile.skyIntensity.toFixed(3))
+      });
+    }
+    syncHighDefinitionCloudSkyColors(profile);
   }
+
+  function getCloudSkyRadius() {
+    return THREE.MathUtils.clamp(camera.far * 0.72, 32, 640);
+  }
+
+  function getCloudSkyBackgroundColor() {
+    if (scene.background?.isColor) {
+      return scene.background.clone();
+    }
+    return new THREE.Color(activeLightingProfile?.background ?? 0xc8bfe6);
+  }
+
+  function getCloudSkyPalette(profile = activeLightingProfile) {
+    const backgroundColor = profile?.background !== undefined
+      ? new THREE.Color(profile.background)
+      : getCloudSkyBackgroundColor();
+    const skyColor = profile?.skyColor !== undefined
+      ? new THREE.Color(profile.skyColor)
+      : backgroundColor.clone();
+    const cloudLightColor = backgroundColor.clone().lerp(new THREE.Color(0xffffff), 0.78);
+    const cloudHighlightColor = skyColor.clone().lerp(new THREE.Color(0xffffff), 0.88);
+    const cloudShadowColor = backgroundColor.clone()
+      .lerp(skyColor, 0.36)
+      .lerp(new THREE.Color(0x6f7784), 0.10);
+
+    return {
+      skyTint: backgroundColor,
+      cloudLightColor,
+      cloudHighlightColor,
+      cloudShadowColor
+    };
+  }
+
+  function createHighDefinitionCloudMaterial({
+    layerScale = 1,
+    layerOpacity = 1,
+    layerAltitude = 0.24,
+    layerSeed = new THREE.Vector2(0, 0),
+    driftDirection = new THREE.Vector2(0.04, 0.012)
+  } = {}) {
+    const palette = getCloudSkyPalette();
+    return new THREE.ShaderMaterial({
+      name: "high-definition-procedural-cloud-material",
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      fog: false,
+      side: THREE.BackSide,
+      uniforms: {
+        time: { value: 0 },
+        density: { value: advancedGraphicsDefaults.cloudDensity / 100 },
+        opacity: { value: advancedGraphicsDefaults.cloudOpacity / 100 },
+        detail: { value: advancedGraphicsDefaults.cloudDetail / 100 },
+        speed: { value: advancedGraphicsDefaults.cloudSpeed / 100 },
+        layerScale: { value: layerScale },
+        layerOpacity: { value: layerOpacity },
+        layerAltitude: { value: layerAltitude },
+        layerSeed: { value: layerSeed },
+        driftDirection: { value: driftDirection },
+        skyTint: { value: palette.skyTint },
+        cloudLightColor: { value: palette.cloudLightColor },
+        cloudHighlightColor: { value: palette.cloudHighlightColor },
+        cloudShadowColor: { value: palette.cloudShadowColor }
+      },
+      vertexShader: `
+        varying vec3 vSkyDirection;
+        void main() {
+          vSkyDirection = normalize(position);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform float density;
+        uniform float opacity;
+        uniform float detail;
+        uniform float speed;
+        uniform float layerScale;
+        uniform float layerOpacity;
+        uniform float layerAltitude;
+        uniform vec2 layerSeed;
+        uniform vec2 driftDirection;
+        uniform vec3 skyTint;
+        uniform vec3 cloudLightColor;
+        uniform vec3 cloudHighlightColor;
+        uniform vec3 cloudShadowColor;
+        varying vec3 vSkyDirection;
+
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+        }
+
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          vec2 u = f * f * (3.0 - 2.0 * f);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+        }
+
+        float fbm(vec2 p) {
+          float value = 0.0;
+          float amplitude = 0.5;
+          mat2 rotation = mat2(0.80, -0.60, 0.60, 0.80);
+          for (int octave = 0; octave < 6; octave += 1) {
+            value += amplitude * noise(p);
+            p = rotation * p * 2.03 + vec2(13.17, 7.31);
+            amplitude *= 0.52;
+          }
+          return value;
+        }
+
+        void main() {
+          vec3 dir = normalize(vSkyDirection);
+          float aboveHorizon = smoothstep(-0.015, 0.18, dir.y);
+          float horizonFade = smoothstep(0.03, 0.28, dir.y);
+          float zenithFade = 1.0 - smoothstep(0.96, 1.0, dir.y) * 0.26;
+          float domeFade = aboveHorizon * horizonFade * zenithFade;
+
+          vec2 projectedUv = dir.xz / max(dir.y + layerAltitude, 0.16);
+          float driftAmount = time * speed * 0.010;
+          vec2 drift = driftDirection * driftAmount;
+          vec2 uv = projectedUv * layerScale + layerSeed + drift;
+
+          float broad = fbm(uv * mix(0.62, 1.22, density));
+          float billow = fbm(uv * mix(2.1, 5.2, detail) + broad * 1.85 + layerSeed * 0.73);
+          float lace = fbm((uv + billow * 0.22) * mix(5.4, 12.5, detail) - drift * 0.34);
+          float streak = fbm(vec2(uv.x * 3.4 + lace * 0.35, uv.y * 0.82 - driftAmount * 0.8));
+
+          float shape = broad * 0.64 + billow * 0.32 + (lace - 0.5) * 0.14 + (streak - 0.5) * 0.08 * detail;
+          float threshold = mix(0.78, 0.43, density);
+          float feather = mix(0.25, 0.105, detail);
+          float cloud = smoothstep(threshold, threshold + feather, shape);
+          float softBreakup = smoothstep(0.20, 0.92, lace + billow * 0.28);
+          float sculptedCores = smoothstep(0.58, 0.86, billow) * smoothstep(0.40, 0.78, broad);
+          cloud = max(cloud * mix(0.64, 1.0, softBreakup), sculptedCores * density * 0.44);
+          cloud *= domeFade;
+
+          float edgeShade = clamp(0.54 + billow * 0.40 + lace * 0.17 - streak * 0.07, 0.0, 1.0);
+          vec3 cloudColor = mix(cloudShadowColor, cloudLightColor, edgeShade);
+          cloudColor = mix(cloudColor, cloudHighlightColor, smoothstep(0.72, 1.0, billow) * 0.34);
+          cloudColor = mix(skyTint, cloudColor, 0.94);
+
+          float alpha = cloud * opacity * layerOpacity;
+          alpha = clamp(alpha, 0.0, 0.72);
+          if (alpha < 0.003) {
+            discard;
+          }
+          gl_FragColor = vec4(cloudColor, alpha);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }
+      `
+    });
+  }
+
+  function markHighDefinitionCloudLayer(mesh) {
+    mesh.frustumCulled = false;
+    mesh.renderOrder = -1200;
+    mesh.userData.isSkyCloudLayer = true;
+    mesh.userData.ignoreCollision = true;
+    mesh.userData.ignoreRaycast = true;
+    mesh.userData.ignoreShotRay = true;
+    mesh.userData.registerBulletCollision = false;
+    mesh.raycast = () => { };
+    return mesh;
+  }
+
+  function initializeHighDefinitionCloudSky() {
+    if (isHomeLiteBeforeGameplayStart()) {
+      logHomeLite("blocked wet/cloud before gameplay", {
+        source: "initializeHighDefinitionCloudSky"
+      }, { onceKey: "cloud-init-before-gameplay" });
+      return;
+    }
+    if (perfForensicFlags.noClouds) {
+      console.warn("[PERF_FORENSIC] perfNoClouds=1 active; HD cloud sky initialization skipped");
+      return;
+    }
+    if (highDefinitionCloudSkyState.initialized) {
+      return;
+    }
+
+    const group = new THREE.Group();
+    group.name = "high-definition-cloud-sky";
+    group.userData.isSkyCloudLayer = true;
+    group.userData.ignoreCollision = true;
+    group.userData.ignoreRaycast = true;
+    group.userData.ignoreShotRay = true;
+    group.userData.registerBulletCollision = false;
+
+    const geometry = new THREE.SphereGeometry(1, 128, 64, 0, Math.PI * 2, 0, Math.PI * 0.54);
+    const layerDefinitions = [
+      {
+        name: "cloud-broad-billow-layer",
+        layerScale: 0.62,
+        layerOpacity: 0.74,
+        layerAltitude: 0.24,
+        layerSeed: new THREE.Vector2(4.7, 19.3),
+        driftDirection: new THREE.Vector2(0.58, 0.12),
+        yScale: 0.78
+      },
+      {
+        name: "cloud-distant-depth-layer",
+        layerScale: 1.05,
+        layerOpacity: 0.46,
+        layerAltitude: 0.31,
+        layerSeed: new THREE.Vector2(42.1, -8.4),
+        driftDirection: new THREE.Vector2(-0.24, 0.34),
+        yScale: 0.92
+      },
+      {
+        name: "cloud-fine-wisp-layer",
+        layerScale: 1.64,
+        layerOpacity: 0.32,
+        layerAltitude: 0.39,
+        layerSeed: new THREE.Vector2(-17.8, 33.6),
+        driftDirection: new THREE.Vector2(0.20, -0.44),
+        yScale: 1.0
+      }
+    ];
+
+    for (const layerDefinition of layerDefinitions) {
+      const layer = new THREE.Mesh(
+        geometry,
+        createHighDefinitionCloudMaterial(layerDefinition)
+      );
+      layer.name = layerDefinition.name;
+      layer.scale.y = layerDefinition.yScale;
+      markHighDefinitionCloudLayer(layer);
+      group.add(layer);
+      highDefinitionCloudSkyState.layers.push(layer);
+    }
+
+    scene.add(group);
+    highDefinitionCloudSkyState.group = group;
+    highDefinitionCloudSkyState.initialized = true;
+    syncHighDefinitionCloudSkyColors(activeLightingProfile);
+    applyHighDefinitionCloudSettings(graphicsSettings.advancedGraphics || advancedGraphicsDefaults, {
+      reason: "cloud-init",
+      emitLog: false
+    });
+  }
+
+  function syncHighDefinitionCloudSkyColors(profile = activeLightingProfile) {
+    if (!highDefinitionCloudSkyState.layers.length) {
+      return;
+    }
+
+    const palette = getCloudSkyPalette(profile);
+    for (const layer of highDefinitionCloudSkyState.layers) {
+      const uniforms = layer.material?.uniforms;
+      uniforms?.skyTint?.value.copy(palette.skyTint);
+      uniforms?.cloudLightColor?.value.copy(palette.cloudLightColor);
+      uniforms?.cloudHighlightColor?.value.copy(palette.cloudHighlightColor);
+      uniforms?.cloudShadowColor?.value.copy(palette.cloudShadowColor);
+    }
+  }
+
+  function updateHighDefinitionCloudSkyRadius() {
+    if (!highDefinitionCloudSkyState.group) {
+      return;
+    }
+
+    const radius = getCloudSkyRadius();
+    highDefinitionCloudSkyState.radius = radius;
+    highDefinitionCloudSkyState.group.scale.setScalar(radius);
+  }
+
+  function applyHighDefinitionCloudSettings(advancedGraphics = graphicsSettings.advancedGraphics || advancedGraphicsDefaults, {
+    reason = "manual",
+    emitLog = false
+  } = {}) {
+    if (perfForensicFlags.noClouds) {
+      if (highDefinitionCloudSkyState.group) {
+        highDefinitionCloudSkyState.group.visible = false;
+      }
+      return;
+    }
+    if (!highDefinitionCloudSkyState.initialized) {
+      return;
+    }
+
+    const density = THREE.MathUtils.clamp((advancedGraphics.cloudDensity ?? advancedGraphicsDefaults.cloudDensity) / 100, 0, 1);
+    const opacity = THREE.MathUtils.clamp((advancedGraphics.cloudOpacity ?? advancedGraphicsDefaults.cloudOpacity) / 100, 0, 1);
+    const detail = THREE.MathUtils.clamp((advancedGraphics.cloudDetail ?? advancedGraphicsDefaults.cloudDetail) / 100, 0, 1);
+    const speed = THREE.MathUtils.clamp((advancedGraphics.cloudSpeed ?? advancedGraphicsDefaults.cloudSpeed) / 100, 0, 1);
+
+    for (const layer of highDefinitionCloudSkyState.layers) {
+      const uniforms = layer.material?.uniforms;
+      if (!uniforms) {
+        continue;
+      }
+      uniforms.density.value = density;
+      uniforms.opacity.value = opacity;
+      uniforms.detail.value = detail;
+      uniforms.speed.value = speed;
+      layer.visible = opacity > 0 && density > 0;
+    }
+    highDefinitionCloudSkyState.group.visible = opacity > 0 && density > 0;
+    updateHighDefinitionCloudSkyRadius();
+
+    if (emitLog) {
+      console.log("[HD CLOUD SKY] settings applied", {
+        reason,
+        density: Math.round(density * 100),
+        opacity: Math.round(opacity * 100),
+        detail: Math.round(detail * 100),
+        speed: Math.round(speed * 100),
+        skyColorsPreserved: true
+      });
+    }
+  }
+
+  function updateHighDefinitionCloudSky(elapsedTime) {
+    if (perfForensicFlags.noClouds) {
+      return;
+    }
+    if (!highDefinitionCloudSkyState.group) {
+      return;
+    }
+
+    highDefinitionCloudSkyState.group.position.copy(camera.position);
+    for (const layer of highDefinitionCloudSkyState.layers) {
+      const uniforms = layer.material?.uniforms;
+      if (uniforms?.time) {
+        uniforms.time.value = elapsedTime;
+      }
+    }
+  }
+
+  initializeHighDefinitionCloudSky();
 
   function registerObstacle(mesh, options = {}) {
     const {
@@ -10480,6 +13145,1429 @@ window.onload = () => {
     }
 
     return mesh;
+  }
+
+  function clampWetEnvironmentPercent(value, fallback, min = 0, max = 100) {
+    const parsedValue = Number(value);
+    return THREE.MathUtils.clamp(
+      Number.isFinite(parsedValue) ? Math.round(parsedValue) : fallback,
+      min,
+      max
+    );
+  }
+
+  function normalizeWetEnvironmentSettings(nextSettings = {}, fallback = wetEnvironmentSettings) {
+    const base = {
+      ...wetEnvironmentDefaults,
+      ...(fallback && typeof fallback === "object" ? fallback : {})
+    };
+    const settings = nextSettings && typeof nextSettings === "object" ? nextSettings : {};
+
+    return {
+      enabled: typeof settings.enabled === "boolean" ? settings.enabled : base.enabled !== false,
+      wetStrength: clampWetEnvironmentPercent(settings.wetStrength, base.wetStrength),
+      puddleAmount: clampWetEnvironmentPercent(settings.puddleAmount, base.puddleAmount),
+      reflectionStrength: clampWetEnvironmentPercent(settings.reflectionStrength, base.reflectionStrength),
+      waterDarkness: clampWetEnvironmentPercent(settings.waterDarkness, base.waterDarkness),
+      floorDarkness: clampWetEnvironmentPercent(settings.floorDarkness, base.floorDarkness),
+      puddleSmoothness: clampWetEnvironmentPercent(settings.puddleSmoothness, base.puddleSmoothness),
+      fogAmount: clampWetEnvironmentPercent(settings.fogAmount, base.fogAmount),
+      reflectionQuality: clampWetEnvironmentPercent(settings.reflectionQuality, base.reflectionQuality, 25, 100)
+    };
+  }
+
+  function getWetEnvironmentSettingsSignature(settings = wetEnvironmentSettings) {
+    return [
+      settings.enabled ? 1 : 0,
+      settings.wetStrength,
+      settings.puddleAmount,
+      settings.reflectionStrength,
+      settings.floorDarkness,
+      settings.puddleSmoothness,
+      settings.fogAmount,
+      settings.reflectionQuality
+    ].join(":");
+  }
+
+  function isWetEnvironmentWaterAppearanceOnlyChange(previousSettings, nextSettings) {
+    return (
+      previousSettings?.waterDarkness !== nextSettings?.waterDarkness &&
+      wetEnvironmentSystemSettingKeys.every((key) => previousSettings?.[key] === nextSettings?.[key])
+    );
+  }
+
+  function getWetEnvironmentReflectionTextureSize() {
+    const quality = wetEnvironmentSettings.reflectionQuality / 100;
+    return Math.round(THREE.MathUtils.lerp(256, 1024, quality) / 64) * 64;
+  }
+
+  function syncWetEnvironmentSettingsInputs() {
+    wetEnvironmentEnabledToggle.checked = wetEnvironmentSettings.enabled;
+    for (const config of wetEnvironmentSliderConfigs) {
+      config.input.value = String(wetEnvironmentSettings[config.key]);
+      config.value.textContent = String(wetEnvironmentSettings[config.key]);
+      config.input.disabled = false;
+    }
+  }
+
+  function reapplyWetEnvironmentLighting(reason = "wet-settings") {
+    if (!activeBaseLightingProfile) {
+      return;
+    }
+
+    const profile = buildWetGroundLightingProfile(activeBaseLightingProfile);
+    activeLightingProfile = {
+      background: profile.background,
+      fogColor: profile.fogColor,
+      fogNear: profile.fogNear,
+      fogFar: profile.fogFar,
+      sunColor: profile.sunColor,
+      sunIntensity: profile.sunIntensity,
+      sunPosition: profile.sunPosition.clone(),
+      skyColor: profile.skyColor,
+      groundColor: profile.groundColor,
+      skyIntensity: profile.skyIntensity
+    };
+    scene.background = new THREE.Color(profile.background);
+    scene.fog = new THREE.Fog(profile.fogColor, profile.fogNear, profile.fogFar);
+    sun.color.set(profile.sunColor);
+    sun.intensity = profile.sunIntensity;
+    sun.position.copy(profile.sunPosition);
+    skyLight.color.set(profile.skyColor);
+    skyLight.groundColor.set(profile.groundColor);
+    skyLight.intensity = profile.skyIntensity;
+    syncHighDefinitionCloudSkyColors(profile);
+    console.log("[FOG ATMOSPHERE APPLIED]", {
+      reason,
+      enabled: wetEnvironmentSettings.enabled,
+      fogAmount: wetEnvironmentSettings.fogAmount,
+      fogNear: Number(profile.fogNear.toFixed(2)),
+      fogFar: Number(profile.fogFar.toFixed(2))
+    });
+  }
+
+  function setWetGroundUniformValue(material, uniformName, value) {
+    const uniform = material?.uniforms?.[uniformName];
+    if (!uniform) {
+      return false;
+    }
+    uniform.value = value;
+    return true;
+  }
+
+  function updateWetGroundWaterAppearanceUniforms() {
+    const waterDarkness = wetEnvironmentSettings.waterDarkness / 100;
+    let updated = false;
+    updated = setWetGroundUniformValue(wetGroundState.reflector?.material, "waterDarkness", waterDarkness) || updated;
+    updated = setWetGroundUniformValue(wetGroundState.sheenOverlay?.material, "waterDarkness", waterDarkness) || updated;
+    return updated;
+  }
+
+  function applyWetEnvironmentSettings(nextSettings = {}, {
+    persist = true,
+    syncInputs = true,
+    reason = "manual"
+  } = {}) {
+    const previousWetEnvironmentSettings = wetEnvironmentSettings;
+    const normalizedWetEnvironmentSettings = normalizeWetEnvironmentSettings(nextSettings);
+    const waterAppearanceOnlyChange =
+      reason === "change:waterDarkness" &&
+      isWetEnvironmentWaterAppearanceOnlyChange(previousWetEnvironmentSettings, normalizedWetEnvironmentSettings);
+
+    wetEnvironmentSettings = normalizedWetEnvironmentSettings;
+    if (syncInputs) {
+      syncWetEnvironmentSettingsInputs();
+    }
+
+    if (waterAppearanceOnlyChange) {
+      if (isIronworksWetEnvironmentMap()) {
+        refreshWetGroundForCurrentMap(`settings:${reason}`, { force: true });
+      } else {
+        updateWetGroundWaterAppearanceUniforms();
+      }
+    } else {
+      reapplyWetEnvironmentLighting(reason);
+      refreshWetGroundForCurrentMap(`settings:${reason}`, { force: true });
+    }
+
+    if (persist) {
+      saveBasicUserSettings();
+    }
+
+    console.log("[WET GROUND SETTINGS APPLIED]", {
+      reason,
+      settings: { ...wetEnvironmentSettings }
+    });
+  }
+
+  function applyWetEnvironmentSettingChange(key, value) {
+    const nextSettings = {
+      ...wetEnvironmentSettings,
+      [key]: key === "enabled" ? Boolean(value) : value
+    };
+    applyWetEnvironmentSettings(nextSettings, {
+      persist: true,
+      syncInputs: true,
+      reason: `change:${key}`
+    });
+  }
+
+  function initializeWetEnvironmentGraphicsUi() {
+    syncWetEnvironmentSettingsInputs();
+    if (!wetGroundState.uiReadyLogged) {
+      wetGroundState.uiReadyLogged = true;
+      console.log("[WET GRAPHICS UI READY]", {
+        labels: [
+          "Wet Environment Enabled",
+          ...wetEnvironmentSliderConfigs.map((config) => config.label)
+        ]
+      });
+    }
+  }
+
+  function createWetGroundRandom(seed = 1337) {
+    let state = Math.max(1, Math.trunc(seed) || 1);
+    return () => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 4294967296;
+    };
+  }
+
+  function createWetGroundPuddleMaskTexture() {
+    const canvasSize = 512;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const context = canvas.getContext("2d");
+    const random = createWetGroundRandom(91357);
+
+    context.fillStyle = "rgb(54, 54, 54)";
+    context.fillRect(0, 0, canvasSize, canvasSize);
+
+    for (let index = 0; index < 108; index += 1) {
+      const x = random() * canvasSize;
+      const y = random() * canvasSize;
+      const radiusX = 18 + random() * 118;
+      const radiusY = 10 + random() * 70;
+      const rotation = random() * Math.PI;
+      const inner = 115 + Math.floor(random() * 95);
+      const outer = 42 + Math.floor(random() * 34);
+      const gradient = context.createRadialGradient(0, 0, 0, 0, 0, 1);
+      gradient.addColorStop(0, `rgba(${inner}, ${inner}, ${inner}, ${0.58 + random() * 0.28})`);
+      gradient.addColorStop(0.58, `rgba(${Math.max(inner - 25, 0)}, ${Math.max(inner - 25, 0)}, ${Math.max(inner - 25, 0)}, 0.32)`);
+      gradient.addColorStop(1, `rgba(${outer}, ${outer}, ${outer}, 0)`);
+      context.save();
+      context.translate(x, y);
+      context.rotate(rotation);
+      context.scale(radiusX, radiusY);
+      context.fillStyle = gradient;
+      context.beginPath();
+      context.arc(0, 0, 1, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    for (let index = 0; index < 64; index += 1) {
+      const x = random() * canvasSize;
+      const y = random() * canvasSize;
+      const radiusX = 8 + random() * 58;
+      const radiusY = 5 + random() * 34;
+      context.save();
+      context.translate(x, y);
+      context.rotate(random() * Math.PI);
+      context.scale(radiusX, radiusY);
+      context.fillStyle = `rgba(26, 30, 32, ${0.18 + random() * 0.24})`;
+      context.beginPath();
+      context.arc(0, 0, 1, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.name = "wet-ground-procedural-puddle-mask";
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.colorSpace = THREE.NoColorSpace;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  function createWetGroundFineNoiseTexture() {
+    const canvasSize = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const context = canvas.getContext("2d");
+    const imageData = context.createImageData(canvasSize, canvasSize);
+    const random = createWetGroundRandom(41321);
+
+    for (let y = 0; y < canvasSize; y += 1) {
+      for (let x = 0; x < canvasSize; x += 1) {
+        const index = (y * canvasSize + x) * 4;
+        const wave = Math.sin(x * 0.115) * 18 + Math.cos(y * 0.087) * 16;
+        const value = THREE.MathUtils.clamp(118 + wave + (random() - 0.5) * 88, 0, 255);
+        imageData.data[index] = value;
+        imageData.data[index + 1] = value;
+        imageData.data[index + 2] = value;
+        imageData.data[index + 3] = 255;
+      }
+    }
+
+    context.putImageData(imageData, 0, 0);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.name = "wet-ground-procedural-fine-noise";
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.colorSpace = THREE.NoColorSpace;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  function getWetGroundTextures() {
+    if (!wetGroundState.puddleMaskTexture) {
+      wetGroundState.puddleMaskTexture = createWetGroundPuddleMaskTexture();
+    }
+
+    if (!wetGroundState.fineNoiseTexture) {
+      wetGroundState.fineNoiseTexture = createWetGroundFineNoiseTexture();
+    }
+
+    return {
+      puddleMaskTexture: wetGroundState.puddleMaskTexture,
+      fineNoiseTexture: wetGroundState.fineNoiseTexture
+    };
+  }
+
+  function isWetGroundEffectObject(object) {
+    let current = object || null;
+    while (current) {
+      if (current.userData?.isWetGroundEffect) {
+        return true;
+      }
+      current = current.parent;
+    }
+    return false;
+  }
+
+  function isIronworksWetEnvironmentMap(mapId = selectedMap) {
+    return mapId === ironworksYardMapId;
+  }
+
+  function getIronworksWetDiagElapsedMs() {
+    return Number((performance.now() - startupSequenceStartTime).toFixed(1));
+  }
+
+  function getIronworksWetOverlayCount() {
+    let overlayCount = 0;
+    mapGroup.traverse((object) => {
+      if (object.isMesh && object.userData?.isWetGroundEffect) {
+        overlayCount += 1;
+      }
+    });
+    return overlayCount;
+  }
+
+  function getWetGroundMeshDescriptor(mesh) {
+    const material = Array.isArray(mesh?.material) ? mesh.material.find(Boolean) : mesh?.material;
+    return [
+      mesh?.name,
+      mesh?.geometry?.name,
+      mesh?.geometry?.type,
+      material?.name,
+      material?.type
+    ].filter(Boolean).join(" ").toLowerCase();
+  }
+
+  function getWetGroundMaterialColor(material) {
+    if (material?.color?.isColor) {
+      return `#${material.color.getHexString()}`;
+    }
+    return "";
+  }
+
+  function logIronworksWetDiagMap(reason) {
+    if (!isIronworksWetEnvironmentMap() && !isIronworksWetEnvironmentMap(currentLoadedMapId)) {
+      return;
+    }
+
+    console.log("[IRONWORKS WET DIAG MAP]", {
+      selectedMapId: selectedMap,
+      currentMapId: currentLoadedMapId || "(not committed yet)",
+      mapName: getMapDisplayName(selectedMap),
+      isIronWorksDetected: isIronworksWetEnvironmentMap(),
+      reason
+    });
+  }
+
+  function logIronworksWetDiagSettings(reason) {
+    if (!isIronworksWetEnvironmentMap()) {
+      return;
+    }
+
+    console.log("[IRONWORKS WET DIAG SETTINGS]", {
+      reason,
+      enabled: wetEnvironmentSettings.enabled,
+      wetStrength: wetEnvironmentSettings.wetStrength,
+      puddleAmount: wetEnvironmentSettings.puddleAmount,
+      reflectionStrength: wetEnvironmentSettings.reflectionStrength,
+      floorDarkness: wetEnvironmentSettings.floorDarkness,
+      fogAmount: wetEnvironmentSettings.fogAmount,
+      reflectionQuality: wetEnvironmentSettings.reflectionQuality
+    });
+  }
+
+  function getWetGroundTargetLogEntry(mesh, bounds) {
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    bounds.getSize(size);
+    bounds.getCenter(center);
+    const material = Array.isArray(mesh.material) ? mesh.material.find(Boolean) : mesh.material;
+    return {
+      meshName: mesh.name || "(unnamed ground mesh)",
+      worldPosition: {
+        x: Number(center.x.toFixed(2)),
+        y: Number(center.y.toFixed(3)),
+        z: Number(center.z.toFixed(2))
+      },
+      size: {
+        x: Number(size.x.toFixed(2)),
+        y: Number(size.y.toFixed(3)),
+        z: Number(size.z.toFixed(2))
+      },
+      materialType: material?.type || "",
+      materialName: material?.name || ""
+    };
+  }
+
+  function getIronworksWetTargetFacts(mesh, bounds) {
+    const descriptor = getWetGroundMeshDescriptor(mesh);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    bounds.getSize(size);
+    bounds.getCenter(center);
+    const footprintArea = size.x * size.z;
+    const namedFloorSurface = (
+      descriptor.includes("floor") ||
+      descriptor.includes("deck") ||
+      descriptor.includes("central-pad") ||
+      descriptor.includes("lane-strip") ||
+      descriptor.includes("yard-slab") ||
+      descriptor.includes("walkable") ||
+      descriptor.includes("concrete")
+    );
+    const rejectedSurface = (
+      descriptor.includes("foundation") ||
+      descriptor.includes("wall") ||
+      descriptor.includes("roof") ||
+      descriptor.includes("pipe") ||
+      descriptor.includes("tank") ||
+      descriptor.includes("crate") ||
+      descriptor.includes("rubble") ||
+      descriptor.includes("debris") ||
+      descriptor.includes("brace") ||
+      descriptor.includes("rib") ||
+      descriptor.includes("ring") ||
+      descriptor.includes("post") ||
+      descriptor.includes("torus")
+    );
+    const mostlyHorizontal = size.y <= Math.max(0.32, Math.min(size.x, size.z) * 0.08);
+    const largeEnough = size.x >= 3.2 && size.z >= 3.2 && footprintArea >= 20;
+    const nearWalkableGround =
+      bounds.max.y >= currentPlayerSpawn.y - 0.2 &&
+      bounds.max.y <= currentPlayerSpawn.y + 0.35 &&
+      center.y <= currentPlayerSpawn.y + 0.2;
+
+    return {
+      descriptor,
+      size,
+      center,
+      namedFloorSurface,
+      rejectedSurface,
+      mostlyHorizontal,
+      largeEnough,
+      nearWalkableGround
+    };
+  }
+
+  function getIronworksWetRejectReason(mesh, bounds) {
+    if (!mesh?.isMesh) {
+      return "not-a-mesh";
+    }
+    if (isWetGroundEffectObject(mesh)) {
+      return "wet-effect-object";
+    }
+    if (!mesh.visible) {
+      return "mesh-hidden";
+    }
+
+    const materialVisible = Array.isArray(mesh.material)
+      ? mesh.material.some((material) => material?.visible !== false)
+      : mesh.material?.visible !== false;
+    if (!materialVisible) {
+      return "material-hidden";
+    }
+    if (mesh.userData?.supportOnly) {
+      return "support-only";
+    }
+    if (mesh.userData?.ignoreShotRay) {
+      return "ignore-shot-ray";
+    }
+
+    const facts = getIronworksWetTargetFacts(mesh, bounds);
+    if (facts.rejectedSurface) {
+      return "prop-or-foundation-name";
+    }
+    if (!facts.largeEnough) {
+      return "too-small";
+    }
+    if (!facts.mostlyHorizontal) {
+      return "not-horizontal";
+    }
+    if (!facts.nearWalkableGround) {
+      return "not-near-walkable-ground";
+    }
+    if (!facts.namedFloorSurface) {
+      return "name-not-floor-like";
+    }
+    return "";
+  }
+
+  function getIronworksWetFloorCandidateRows(selectedTargets = []) {
+    const selectedTargetIds = new Set(selectedTargets.map((target) => target.mesh.uuid));
+    const rows = [];
+    mapGroup.updateMatrixWorld(true);
+
+    mapGroup.traverse((object) => {
+      if (!object.isMesh || isWetGroundEffectObject(object)) {
+        return;
+      }
+
+      const bounds = new THREE.Box3().setFromObject(object);
+      if (bounds.isEmpty()) {
+        return;
+      }
+
+      const facts = getIronworksWetTargetFacts(object, bounds);
+      const possibleGroundCandidate = (
+        facts.namedFloorSurface ||
+        facts.descriptor.includes("ironworks") ||
+        facts.descriptor.includes("medium-range-floor") ||
+        (facts.mostlyHorizontal && facts.largeEnough && facts.nearWalkableGround)
+      );
+      if (!possibleGroundCandidate) {
+        return;
+      }
+
+      const material = Array.isArray(object.material) ? object.material.find(Boolean) : object.material;
+      const selectedAsWetTarget = selectedTargetIds.has(object.uuid);
+      rows.push({
+        name: object.name || "(unnamed)",
+        uuid: object.uuid,
+        type: object.type || "",
+        visible: object.visible,
+        parentName: object.parent?.name || "",
+        worldX: Number(facts.center.x.toFixed(2)),
+        worldY: Number(facts.center.y.toFixed(3)),
+        worldZ: Number(facts.center.z.toFixed(2)),
+        sizeX: Number(facts.size.x.toFixed(2)),
+        sizeY: Number(facts.size.y.toFixed(3)),
+        sizeZ: Number(facts.size.z.toFixed(2)),
+        materialType: material?.type || "",
+        materialColor: getWetGroundMaterialColor(material),
+        isHorizontalGuess: facts.mostlyHorizontal,
+        isLargeEnough: facts.largeEnough,
+        selectedAsWetTarget,
+        rejectReason: selectedAsWetTarget ? "" : getIronworksWetRejectReason(object, bounds)
+      });
+    });
+
+    rows.sort((left, right) => {
+      if (left.selectedAsWetTarget !== right.selectedAsWetTarget) {
+        return left.selectedAsWetTarget ? -1 : 1;
+      }
+      return (right.sizeX * right.sizeZ) - (left.sizeX * left.sizeZ);
+    });
+
+    return rows;
+  }
+
+  function logIronworksWetFloorCandidates(targets, reason) {
+    const rows = getIronworksWetFloorCandidateRows(targets);
+    console.log("[IRONWORKS WET FLOOR CANDIDATES]", {
+      reason,
+      count: rows.length
+    });
+    console.table(rows);
+    return rows;
+  }
+
+  function logIronworksWetSelectedTargets(targets, reason) {
+    console.log("[IRONWORKS WET SELECTED TARGETS]", {
+      reason,
+      count: targets.length,
+      names: targets.map((target) => target.mesh.name || "(unnamed)"),
+      sizes: targets.map(({ bounds }) => {
+        const size = new THREE.Vector3();
+        bounds.getSize(size);
+        return {
+          x: Number(size.x.toFixed(2)),
+          y: Number(size.y.toFixed(3)),
+          z: Number(size.z.toFixed(2))
+        };
+      }),
+      positions: targets.map(({ bounds }) => {
+        const center = new THREE.Vector3();
+        bounds.getCenter(center);
+        return {
+          x: Number(center.x.toFixed(2)),
+          y: Number(center.y.toFixed(3)),
+          z: Number(center.z.toFixed(2))
+        };
+      })
+    });
+  }
+
+  function isIronworksWetGroundTarget(mesh, bounds) {
+    if (!mesh?.isMesh || isWetGroundEffectObject(mesh)) {
+      return false;
+    }
+
+    return getIronworksWetRejectReason(mesh, bounds) === "";
+  }
+
+  function collectIronworksWetGroundTargets({ log = true, reason = "collect" } = {}) {
+    mapGroup.updateMatrixWorld(true);
+    const targets = [];
+
+    mapGroup.traverse((object) => {
+      const bounds = getWetGroundMeshBounds(object);
+      if (!bounds || !isIronworksWetGroundTarget(object, bounds)) {
+        return;
+      }
+
+      targets.push({ mesh: object, bounds });
+    });
+
+    targets.sort((left, right) => {
+      const leftSize = new THREE.Vector3();
+      const rightSize = new THREE.Vector3();
+      left.bounds.getSize(leftSize);
+      right.bounds.getSize(rightSize);
+      return (rightSize.x * rightSize.z) - (leftSize.x * leftSize.z);
+    });
+
+    for (const target of targets) {
+      if (log) {
+        console.log("[IRONWORKS WET TARGET FOUND]", getWetGroundTargetLogEntry(target.mesh, target.bounds));
+      }
+    }
+    if (log) {
+      console.log("[IRONWORKS WET TARGET COUNT]", {
+        mapId: selectedMap,
+        targetCount: targets.length
+      });
+      logIronworksWetFloorCandidates(targets, reason);
+      logIronworksWetSelectedTargets(targets, reason);
+    }
+
+    return targets;
+  }
+
+  function getWetGroundMeshBounds(mesh) {
+    if (!mesh?.isMesh || !mesh.visible || isWetGroundEffectObject(mesh)) {
+      return null;
+    }
+
+    const materialVisible = Array.isArray(mesh.material)
+      ? mesh.material.some((material) => material?.visible !== false)
+      : mesh.material?.visible !== false;
+    if (!materialVisible || mesh.userData?.supportOnly || mesh.userData?.ignoreShotRay) {
+      return null;
+    }
+
+    const bounds = new THREE.Box3().setFromObject(mesh);
+    return bounds.isEmpty() ? null : bounds;
+  }
+
+  function isWetGroundFloorCandidate(mesh, bounds = null) {
+    if (!mesh?.isMesh || isWetGroundEffectObject(mesh)) {
+      return false;
+    }
+
+    const material = Array.isArray(mesh.material) ? mesh.material.find(Boolean) : mesh.material;
+    const combinedName = [
+      mesh.name,
+      mesh.geometry?.name,
+      mesh.geometry?.type,
+      material?.name
+    ].filter(Boolean).join(" ").toLowerCase();
+    const namedGround = (
+      combinedName.includes("ground") ||
+      combinedName.includes("floor") ||
+      combinedName.includes("road") ||
+      combinedName.includes("platform") ||
+      combinedName.includes("deck") ||
+      combinedName.includes("slab") ||
+      combinedName.includes("plaza") ||
+      combinedName.includes("arena") ||
+      combinedName.includes("concrete") ||
+      combinedName.includes("yard")
+    );
+
+    const meshBounds = bounds || getWetGroundMeshBounds(mesh);
+    if (!meshBounds) {
+      return false;
+    }
+
+    const size = new THREE.Vector3();
+    meshBounds.getSize(size);
+    const broadSurface = size.x >= 4 && size.z >= 4;
+    const flatSurface = size.y <= Math.max(0.18, Math.min(size.x, size.z) * 0.035);
+    return namedGround || (broadSurface && flatSurface);
+  }
+
+  function collectWetGroundTargets({ reason = "collect" } = {}) {
+    if (isIronworksWetEnvironmentMap()) {
+      return [];
+    }
+
+    mapGroup.updateMatrixWorld(true);
+    const targets = [];
+
+    mapGroup.traverse((object) => {
+      const bounds = getWetGroundMeshBounds(object);
+      if (!bounds) {
+        return;
+      }
+
+      if (isWetGroundFloorCandidate(object, bounds)) {
+        targets.push({ mesh: object, bounds });
+      }
+    });
+
+    return targets;
+  }
+
+  function getWetGroundPlacement(targets = collectWetGroundTargets()) {
+    const mapBounds = new THREE.Box3();
+    const floorTopCandidates = [];
+
+    for (const target of targets) {
+      mapBounds.union(target.bounds);
+      floorTopCandidates.push(target.bounds.max.y);
+    }
+
+    if (!targets.length) {
+      const fallbackHalfSize = 55;
+      mapBounds.set(
+        new THREE.Vector3(currentPlayerSpawn.x - fallbackHalfSize, currentPlayerSpawn.y - 0.1, currentPlayerSpawn.z - fallbackHalfSize),
+        new THREE.Vector3(currentPlayerSpawn.x + fallbackHalfSize, currentPlayerSpawn.y + 8, currentPlayerSpawn.z + fallbackHalfSize)
+      );
+    }
+
+    const center = new THREE.Vector3();
+    const size = new THREE.Vector3();
+    mapBounds.getCenter(center);
+    mapBounds.getSize(size);
+    const usableFloorTops = floorTopCandidates
+      .filter((value) => Number.isFinite(value))
+      .sort((left, right) => (
+        Math.abs(left - currentPlayerSpawn.y) - Math.abs(right - currentPlayerSpawn.y)
+      ));
+    const floorY = usableFloorTops[0] ?? currentPlayerSpawn.y;
+    const width = THREE.MathUtils.clamp(size.x * 1.04, 80, 260);
+    const depth = THREE.MathUtils.clamp(size.z * 1.04, 80, 260);
+
+    return {
+      center,
+      floorY,
+      width,
+      depth,
+      signature: [
+        Number(center.x.toFixed(2)),
+        Number(center.z.toFixed(2)),
+        Number(width.toFixed(2)),
+        Number(depth.toFixed(2)),
+        Number(floorY.toFixed(3))
+      ].join(":")
+    };
+  }
+
+  function cacheWetGroundOriginalMaterialValues(material) {
+    if (!material?.userData || material.userData.wetGroundOriginalValues) {
+      return;
+    }
+
+    material.userData.wetGroundOriginalValues = {
+      color: material.color?.clone?.() || null,
+      roughness: typeof material.roughness === "number" ? material.roughness : null,
+      metalness: typeof material.metalness === "number" ? material.metalness : null,
+      envMapIntensity: typeof material.envMapIntensity === "number" ? material.envMapIntensity : null
+    };
+  }
+
+  function applyWetGroundMaterialSettings(material) {
+    if (!material?.userData?.wetGroundOriginalValues) {
+      return false;
+    }
+
+    const original = material.userData.wetGroundOriginalValues;
+    const enabledAmount = wetEnvironmentSettings.enabled ? wetEnvironmentSettings.wetStrength / 100 : 0;
+    const darknessAmount = enabledAmount * (wetEnvironmentSettings.floorDarkness / 100) * 0.36;
+    let changed = false;
+
+    if (material.color?.isColor && original.color) {
+      material.color.copy(original.color).lerp(new THREE.Color(0x1f2a30), darknessAmount);
+      changed = true;
+    }
+    if (typeof material.roughness === "number" && original.roughness !== null) {
+      const roughnessDrop = enabledAmount * 0.42;
+      material.roughness = THREE.MathUtils.clamp(original.roughness * (1 - roughnessDrop), 0.36, 1);
+      changed = true;
+    }
+    if (typeof material.metalness === "number" && original.metalness !== null) {
+      material.metalness = enabledAmount > 0
+        ? Math.min(original.metalness, 0.06)
+        : original.metalness;
+      changed = true;
+    }
+    if (typeof material.envMapIntensity === "number" && original.envMapIntensity !== null) {
+      material.envMapIntensity = enabledAmount > 0
+        ? Math.max(original.envMapIntensity, enabledAmount * 0.08)
+        : original.envMapIntensity;
+      changed = true;
+    }
+
+    if (changed) {
+      material.needsUpdate = true;
+    }
+    return changed;
+  }
+
+  function applyWetGroundMaterialToMesh(mesh, bounds = null) {
+    if (!mesh?.isMesh) {
+      return 0;
+    }
+
+    const targetBounds = bounds || getWetGroundMeshBounds(mesh);
+    if (!targetBounds || !isWetGroundFloorCandidate(mesh, targetBounds)) {
+      return 0;
+    }
+
+    if (mesh.userData?.wetGroundMaterialApplied) {
+      let updatedCount = 0;
+      for (const material of getMaterialList(mesh.material)) {
+        if (applyWetGroundMaterialSettings(material)) {
+          updatedCount += 1;
+        }
+      }
+      return updatedCount;
+    }
+
+    if (!wetEnvironmentSettings.enabled || wetEnvironmentSettings.wetStrength <= 0) {
+      return 0;
+    }
+
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    let changedCount = 0;
+    const wetMaterials = materials.map((material) => {
+      if (!material || material.isShaderMaterial || material.isMeshBasicMaterial) {
+        return material;
+      }
+
+      const wetMaterial = material.clone();
+      wetMaterial.name = `${material.name || mesh.name || "ground"}-wet-ground`;
+      wetMaterial.userData.wetGroundMaterial = true;
+      cacheWetGroundOriginalMaterialValues(wetMaterial);
+      applyWetGroundMaterialSettings(wetMaterial);
+      changedCount += 1;
+      return wetMaterial;
+    });
+
+    if (changedCount > 0) {
+      mesh.material = Array.isArray(mesh.material) ? wetMaterials : wetMaterials[0];
+      mesh.userData.wetGroundMaterialApplied = true;
+    }
+
+    return changedCount;
+  }
+
+  function applyWetGroundMaterialsToCurrentMap(targets = collectWetGroundTargets()) {
+    let materialCount = 0;
+    const targetSamples = targets.slice(0, 14).map(({ mesh, bounds }) => {
+      const size = new THREE.Vector3();
+      bounds.getSize(size);
+      return {
+        meshName: mesh.name || "(unnamed ground mesh)",
+        materialName: getMaterialList(mesh.material)[0]?.name || "",
+        topY: Number(bounds.max.y.toFixed(3)),
+        sizeX: Number(size.x.toFixed(2)),
+        sizeZ: Number(size.z.toFixed(2))
+      };
+    });
+    console.log("[WET GROUND TARGET FOUND]", {
+      mapId: selectedMap,
+      sampleTargets: targetSamples
+    });
+    console.log("[WET GROUND TARGET COUNT]", {
+      mapId: selectedMap,
+      targetCount: targets.length
+    });
+    for (const target of targets) {
+      materialCount += applyWetGroundMaterialToMesh(target.mesh, target.bounds);
+    }
+    wetGroundState.floorMaterialCount = materialCount;
+    wetGroundState.targetCount = targets.length;
+    if (materialCount > 0) {
+      console.log("[PUDDLE MATERIAL APPLIED]", {
+        mapId: selectedMap,
+        floorMaterialCount: materialCount
+      });
+    }
+    return materialCount;
+  }
+
+  function configureWetGroundReflectorMaterial(reflector, puddleMaskTexture, fineNoiseTexture) {
+    reflector.material.transparent = true;
+    reflector.material.depthWrite = false;
+    reflector.material.depthTest = true;
+    reflector.material.side = THREE.DoubleSide;
+    reflector.material.uniforms.puddleMaskMap = { value: puddleMaskTexture };
+    reflector.material.uniforms.fineNoiseMap = { value: fineNoiseTexture };
+    reflector.material.uniforms.wetTint = { value: new THREE.Color(0x24313a) };
+    reflector.material.uniforms.wetStrength = { value: wetEnvironmentSettings.wetStrength / 100 };
+    reflector.material.uniforms.puddleAmount = { value: wetEnvironmentSettings.puddleAmount / 100 };
+    reflector.material.uniforms.reflectionStrength = { value: wetEnvironmentSettings.reflectionStrength / 100 };
+    reflector.material.uniforms.waterDarkness = { value: wetEnvironmentSettings.waterDarkness / 100 };
+    reflector.material.uniforms.puddleSmoothness = { value: wetEnvironmentSettings.puddleSmoothness / 100 };
+    reflector.material.uniforms.blurStrength = {
+      value: THREE.MathUtils.lerp(0.006, 0.0016, wetEnvironmentSettings.puddleSmoothness / 100)
+    };
+    reflector.material.uniforms.time = { value: 0 };
+    reflector.material.vertexShader = `
+      uniform mat4 textureMatrix;
+      varying vec4 vUv;
+      varying vec3 vWorldPosition;
+      void main() {
+        vUv = textureMatrix * vec4(position, 1.0);
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vWorldPosition = worldPosition.xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+    reflector.material.fragmentShader = `
+      uniform sampler2D tDiffuse;
+      uniform sampler2D puddleMaskMap;
+      uniform sampler2D fineNoiseMap;
+      uniform vec3 wetTint;
+      uniform float wetStrength;
+      uniform float puddleAmount;
+      uniform float reflectionStrength;
+      uniform float waterDarkness;
+      uniform float puddleSmoothness;
+      uniform float blurStrength;
+      uniform float time;
+      varying vec4 vUv;
+      varying vec3 vWorldPosition;
+
+      vec3 sampleSoftReflection(vec2 uv, float blurAmount) {
+        vec3 color = texture2D(tDiffuse, uv).rgb * 0.36;
+        color += texture2D(tDiffuse, uv + vec2(blurAmount, 0.0)).rgb * 0.16;
+        color += texture2D(tDiffuse, uv - vec2(blurAmount, 0.0)).rgb * 0.16;
+        color += texture2D(tDiffuse, uv + vec2(0.0, blurAmount * 0.72)).rgb * 0.16;
+        color += texture2D(tDiffuse, uv - vec2(0.0, blurAmount * 0.72)).rgb * 0.16;
+        return color;
+      }
+
+      void main() {
+        vec2 reflectionUv = vUv.xy / max(vUv.w, 0.0001);
+        vec2 worldUv = vWorldPosition.xz * 0.033;
+        float broadMask = texture2D(puddleMaskMap, worldUv).r;
+        float fineMask = texture2D(fineNoiseMap, worldUv * 3.4 + vec2(time * 0.003, -time * 0.002)).r;
+        float edgeNoise = texture2D(fineNoiseMap, worldUv * 8.6).r;
+        float maskValue = broadMask + fineMask * 0.14 - edgeNoise * mix(0.16, 0.04, puddleSmoothness);
+        float damp = smoothstep(mix(0.6, 0.26, puddleAmount), mix(0.92, 0.72, puddleAmount), maskValue + puddleAmount * 0.12);
+        float puddle = smoothstep(mix(0.86, 0.48, puddleAmount), mix(1.0, 0.82, puddleAmount), maskValue + fineMask * 0.08);
+        float viewUp = clamp(abs(normalize(cameraPosition - vWorldPosition).y), 0.0, 1.0);
+        float fresnel = pow(1.0 - viewUp, 1.45);
+        float blurAmount = mix(blurStrength * 1.55, blurStrength * 0.28, puddle * puddleSmoothness);
+        vec3 reflection = sampleSoftReflection(reflectionUv, blurAmount);
+        float luma = dot(reflection, vec3(0.299, 0.587, 0.114));
+        reflection = mix(vec3(luma), reflection, 0.72);
+        float waterDarknessDelta = (clamp(waterDarkness, 0.0, 1.0) - 0.5) * 2.0;
+        float deeperWater = max(waterDarknessDelta, 0.0);
+        float clearerWater = max(-waterDarknessDelta, 0.0);
+        vec3 dampTint = wetTint * mix(0.34, 0.58, damp);
+        dampTint = mix(dampTint, vec3(0.58, 0.71, 0.78) * mix(0.42, 0.70, damp), clearerWater * 0.50);
+        dampTint = mix(dampTint, vec3(0.018, 0.047, 0.065), deeperWater * 0.64);
+        vec3 puddleColor = mix(dampTint, reflection, reflectionStrength * mix(0.18, 0.72, puddle) * (0.58 + fresnel * 0.46));
+        puddleColor = mix(puddleColor, vec3(0.72, 0.84, 0.90), clearerWater * puddle * 0.26);
+        puddleColor = mix(puddleColor, vec3(0.018, 0.040, 0.058), deeperWater * puddle * 0.42);
+        float alpha = wetStrength * damp * mix(0.045, 0.42, puddle) * reflectionStrength * (0.58 + fresnel * 0.52);
+        alpha *= smoothstep(0.0, 0.025, reflectionUv.x) * smoothstep(0.0, 0.025, reflectionUv.y);
+        alpha *= smoothstep(0.0, 0.025, 1.0 - reflectionUv.x) * smoothstep(0.0, 0.025, 1.0 - reflectionUv.y);
+        gl_FragColor = vec4(puddleColor, clamp(alpha, 0.0, 0.58));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }
+    `;
+    reflector.material.needsUpdate = true;
+  }
+
+  function logIronworksWetOverlayHeightCheck(targetName, overlay, targetY, expectedDeltaY) {
+    if (!isIronworksWetEnvironmentMap()) {
+      return;
+    }
+
+    const overlayY = overlay.position.y;
+    const deltaY = overlayY - targetY;
+    console.log("[IRONWORKS WET OVERLAY HEIGHT CHECK]", {
+      targetName,
+      targetY: Number(targetY.toFixed(4)),
+      overlayY: Number(overlayY.toFixed(4)),
+      deltaY: Number(deltaY.toFixed(4)),
+      expectedDeltaY,
+      maybeHiddenBelowFloor: deltaY < 0,
+      maybeZFighting: deltaY >= 0 && deltaY < 0.01
+    });
+  }
+
+  function logIronworksWetOverlayCreated(targetName, overlay, {
+    sizeX = 0,
+    sizeZ = 0,
+    targetY = overlay.position.y,
+    expectedDeltaY = 0
+  } = {}) {
+    if (!isIronworksWetEnvironmentMap()) {
+      return;
+    }
+
+    const material = Array.isArray(overlay.material) ? overlay.material.find(Boolean) : overlay.material;
+    console.log("[IRONWORKS WET OVERLAY CREATED]", {
+      targetName,
+      overlayName: overlay.name || "",
+      overlayUuid: overlay.uuid,
+      position: {
+        x: Number(overlay.position.x.toFixed(2)),
+        y: Number(overlay.position.y.toFixed(4)),
+        z: Number(overlay.position.z.toFixed(2))
+      },
+      rotation: {
+        x: Number(overlay.rotation.x.toFixed(4)),
+        y: Number(overlay.rotation.y.toFixed(4)),
+        z: Number(overlay.rotation.z.toFixed(4))
+      },
+      scaleOrSize: {
+        x: Number(sizeX.toFixed(2)),
+        z: Number(sizeZ.toFixed(2))
+      },
+      renderOrder: overlay.renderOrder,
+      materialOpacity: typeof material?.opacity === "number" ? material.opacity : null,
+      materialTransparent: material?.transparent === true,
+      visible: overlay.visible,
+      parent: overlay.parent?.name || ""
+    });
+    logIronworksWetOverlayHeightCheck(targetName, overlay, targetY, expectedDeltaY);
+  }
+
+  function markWetVisualOverlay(mesh) {
+    if (!mesh?.userData) {
+      return mesh;
+    }
+
+    mesh.userData.isWetGroundEffect = true;
+    mesh.userData.isWetVisualOverlay = true;
+    mesh.userData.ignoreCollision = true;
+    mesh.userData.ignoreRaycast = true;
+    mesh.userData.ignoreShotRay = true;
+    mesh.userData.registerBulletCollision = false;
+    mesh.raycast = () => { };
+    return mesh;
+  }
+
+  function removeIronworksWetDiagMarkers() {
+    const markers = [];
+    mapGroup.traverse((object) => {
+      if (object.userData?.isIronworksWetDiagMarker) {
+        markers.push(object);
+      }
+    });
+
+    for (const marker of markers) {
+      if (marker.parent) {
+        marker.parent.remove(marker);
+      }
+      marker.geometry?.dispose?.();
+      if (Array.isArray(marker.material)) {
+        marker.material.forEach((material) => material?.dispose?.());
+      } else {
+        marker.material?.dispose?.();
+      }
+    }
+
+    return markers.length;
+  }
+
+  function addIronworksWetDiagTargetMarkers(wetGroup, targets) {
+    if (!WET_DIAG_SHOW_IRONWORKS_TARGET_MARKERS || !isIronworksWetEnvironmentMap()) {
+      return;
+    }
+
+    targets.forEach((target, index) => {
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      target.bounds.getSize(size);
+      target.bounds.getCenter(center);
+
+      const marker = new THREE.Mesh(
+        new THREE.PlaneGeometry(Math.max(size.x, 0.25), Math.max(size.z, 0.25)),
+        new THREE.MeshBasicMaterial({
+          color: index % 2 === 0 ? 0x1e66ff : 0xff334d,
+          transparent: true,
+          opacity: 0.24,
+          depthWrite: false,
+          side: THREE.DoubleSide
+        })
+      );
+      marker.name = `ironworks-wet-diag-marker-${index + 1}`;
+      marker.rotation.x = -Math.PI / 2;
+      marker.position.set(center.x, target.bounds.max.y + 0.006, center.z);
+      marker.renderOrder = -3;
+      marker.frustumCulled = false;
+      marker.userData.isIronworksWetDiagMarker = true;
+      markWetVisualOverlay(marker);
+      wetGroup.add(marker);
+
+      console.log("[IRONWORKS WET DIAG MARKER ADDED]", {
+        targetName: target.mesh.name || "(unnamed)",
+        markerName: marker.name,
+        markerUuid: marker.uuid,
+        position: {
+          x: Number(marker.position.x.toFixed(2)),
+          y: Number(marker.position.y.toFixed(4)),
+          z: Number(marker.position.z.toFixed(2))
+        },
+        size: {
+          x: Number(size.x.toFixed(2)),
+          z: Number(size.z.toFixed(2))
+        }
+      });
+      logIronworksWetOverlayCreated(target.mesh.name || "(unnamed target)", marker, {
+        sizeX: size.x,
+        sizeZ: size.z,
+        targetY: target.bounds.max.y,
+        expectedDeltaY: 0.006
+      });
+    });
+  }
+
+  function logIronworksWetApplyTiming(reason, targetCount) {
+    if (!isIronworksWetEnvironmentMap()) {
+      return;
+    }
+
+    console.log("[IRONWORKS WET APPLY TIMING]", {
+      reason,
+      timeSinceStartupMs: getIronworksWetDiagElapsedMs(),
+      currentMapId: currentLoadedMapId || "(not committed yet)",
+      isIronWorks: isIronworksWetEnvironmentMap(),
+      targetCount,
+      overlayCountAfterApply: getIronworksWetOverlayCount()
+    });
+  }
+
+  function createWetGroundSheenOverlay(placement, puddleMaskTexture, fineNoiseTexture) {
+    const overlay = new THREE.Mesh(
+      new THREE.PlaneGeometry(placement.width, placement.depth, 1, 1),
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        depthTest: true,
+        uniforms: {
+          puddleMaskMap: { value: puddleMaskTexture },
+          fineNoiseMap: { value: fineNoiseTexture },
+          darkWetColor: { value: new THREE.Color(0x10191f) },
+          paleSkyColor: { value: new THREE.Color(0xaab8c2) },
+          wetStrength: { value: wetEnvironmentSettings.wetStrength / 100 },
+          puddleAmount: { value: wetEnvironmentSettings.puddleAmount / 100 },
+          floorDarkness: { value: wetEnvironmentSettings.floorDarkness / 100 },
+          waterDarkness: { value: wetEnvironmentSettings.waterDarkness / 100 },
+          puddleSmoothness: { value: wetEnvironmentSettings.puddleSmoothness / 100 },
+          time: { value: 0 }
+        },
+        vertexShader: `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPosition.xyz;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D puddleMaskMap;
+          uniform sampler2D fineNoiseMap;
+          uniform vec3 darkWetColor;
+          uniform vec3 paleSkyColor;
+          uniform float wetStrength;
+          uniform float puddleAmount;
+          uniform float floorDarkness;
+          uniform float waterDarkness;
+          uniform float puddleSmoothness;
+          uniform float time;
+          varying vec3 vWorldPosition;
+          void main() {
+            vec2 worldUv = vWorldPosition.xz * 0.033;
+            float mask = texture2D(puddleMaskMap, worldUv).r;
+            float grain = texture2D(fineNoiseMap, worldUv * 6.5 + vec2(time * 0.002, 0.0)).r;
+            float damp = smoothstep(mix(0.62, 0.24, puddleAmount), mix(0.96, 0.72, puddleAmount), mask + grain * 0.1);
+            float puddle = smoothstep(mix(0.88, 0.5, puddleAmount), mix(1.0, 0.84, puddleAmount), mask + grain * 0.14);
+            float brokenEdge = smoothstep(0.2, 0.85, texture2D(fineNoiseMap, worldUv * 12.0).r);
+            vec3 color = mix(darkWetColor, paleSkyColor, puddle * mix(0.08, 0.24, puddleSmoothness));
+            float waterDarknessDelta = (clamp(waterDarkness, 0.0, 1.0) - 0.5) * 2.0;
+            color = mix(color, vec3(0.54, 0.66, 0.72), max(-waterDarknessDelta, 0.0) * 0.42);
+            color = mix(color, vec3(0.018, 0.043, 0.058), max(waterDarknessDelta, 0.0) * 0.58);
+            float alpha = wetStrength * damp * mix(0.025, 0.15, puddle) * mix(0.68, 1.08, brokenEdge) * mix(0.3, 1.0, floorDarkness);
+            gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.18));
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+          }
+        `
+      })
+    );
+    overlay.name = "wet-ground-dark-sheen-overlay";
+    overlay.rotation.x = -Math.PI / 2;
+    overlay.position.set(placement.center.x, placement.floorY + 0.016, placement.center.z);
+    overlay.renderOrder = -7;
+    overlay.frustumCulled = false;
+    return markWetVisualOverlay(overlay);
+  }
+
+  function disposeWetGroundSystem({ disposeTextures = true, reason = "wet-ground-dispose" } = {}) {
+    const shouldLogIronworksCleanup =
+      isIronworksWetEnvironmentMap() || isIronworksWetEnvironmentMap(wetGroundState.lastMapId);
+    const overlaysBefore = shouldLogIronworksCleanup ? getIronworksWetOverlayCount() : 0;
+    const wetGroup = wetGroundState.group;
+    wetGroundState.reflector?.getRenderTarget?.()?.dispose?.();
+    if (wetGroup?.parent) {
+      wetGroup.parent.remove(wetGroup);
+    }
+
+    wetGroup?.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+      object.geometry?.dispose?.();
+      if (Array.isArray(object.material)) {
+        object.material.forEach((material) => material?.dispose?.());
+      } else {
+        object.material?.dispose?.();
+      }
+    });
+    const diagnosticMarkersRemoved = removeIronworksWetDiagMarkers();
+
+    if (disposeTextures) {
+      wetGroundState.puddleMaskTexture?.dispose?.();
+      wetGroundState.fineNoiseTexture?.dispose?.();
+      wetGroundState.puddleMaskTexture = null;
+      wetGroundState.fineNoiseTexture = null;
+    }
+
+    wetGroundState.group = null;
+    wetGroundState.reflector = null;
+    wetGroundState.sheenOverlay = null;
+    wetGroundState.reflectionMode = "none";
+    wetGroundState.lastBoundsSignature = "";
+    wetGroundState.lastSettingsSignature = "";
+    if (shouldLogIronworksCleanup) {
+      const overlaysAfter = getIronworksWetOverlayCount();
+      console.log("[IRONWORKS WET CLEANUP]", {
+        reason,
+        overlaysBefore,
+        overlaysRemoved: Math.max(0, overlaysBefore - overlaysAfter),
+        overlaysAfter,
+        diagnosticMarkersRemoved
+      });
+    }
+    console.log("[WET GROUND OVERLAY CLEANUP]", {
+      mapId: selectedMap,
+      disposeTextures
+    });
+  }
+
+  function disableIronworksWetEnvironmentTemporary(reason = "ironworks-disabled") {
+    if (wetGroundState.group || getIronworksWetOverlayCount() > 0) {
+      disposeWetGroundSystem({
+        disposeTextures: false,
+        reason: `ironworks-disabled:${reason}`
+      });
+    }
+
+    wetGroundState.floorMaterialCount = 0;
+    wetGroundState.targetCount = 0;
+    wetGroundState.reflectionMode = "disabled-temporary";
+    wetGroundState.lastMapId = selectedMap;
+    console.log("[IRONWORKS WET DISABLED_TEMPORARY]", {
+      reason,
+      mapId: selectedMap
+    });
+  }
+
+  function applyWetEnvironmentToCurrentMap(reason = "map-load", { force = false } = {}) {
+    if (isIronworksWetEnvironmentMap()) {
+      disableIronworksWetEnvironmentTemporary(reason);
+      return;
+    }
+
+    logIronworksWetDiagMap(reason);
+    logIronworksWetDiagSettings(reason);
+    const targets = collectWetGroundTargets({ reason });
+    const placement = getWetGroundPlacement(targets);
+    const settingsSignature = getWetEnvironmentSettingsSignature();
+    applyWetGroundMaterialsToCurrentMap(targets);
+    console.log("[WET ENV APPLY ALL_MAPS]", {
+      reason,
+      mapId: selectedMap,
+      enabled: wetEnvironmentSettings.enabled,
+      targetCount: targets.length
+    });
+
+    if (
+      !wetEnvironmentSettings.enabled ||
+      wetEnvironmentSettings.wetStrength <= 0 ||
+      wetEnvironmentSettings.puddleAmount <= 0 ||
+      wetEnvironmentSettings.reflectionStrength <= 0 ||
+      targets.length <= 0
+    ) {
+      disposeWetGroundSystem({ disposeTextures: false, reason: `apply-skip:${reason}` });
+      logIronworksWetApplyTiming(reason, targets.length);
+      return;
+    }
+
+    if (
+      !force &&
+      wetGroundState.group &&
+      wetGroundState.lastMapId === selectedMap &&
+      wetGroundState.lastBoundsSignature === placement.signature &&
+      wetGroundState.lastSettingsSignature === settingsSignature
+    ) {
+      logIronworksWetApplyTiming(reason, targets.length);
+      return;
+    }
+
+    disposeWetGroundSystem({ disposeTextures: false, reason: `apply-rebuild:${reason}` });
+    applyWetGroundMaterialsToCurrentMap(targets);
+    const { puddleMaskTexture, fineNoiseTexture } = getWetGroundTextures();
+    const wetGroup = new THREE.Group();
+    wetGroup.name = "wet-ground-puddle-atmosphere";
+    wetGroup.userData.isWetGroundEffect = true;
+    wetGroup.userData.isWetVisualOverlay = true;
+    wetGroup.userData.ignoreCollision = true;
+    wetGroup.userData.ignoreRaycast = true;
+    wetGroup.userData.ignoreShotRay = true;
+    wetGroup.userData.registerBulletCollision = false;
+
+    const sheenOverlay = createWetGroundSheenOverlay(placement, puddleMaskTexture, fineNoiseTexture);
+    wetGroup.add(sheenOverlay);
+    wetGroundState.sheenOverlay = sheenOverlay;
+    logIronworksWetOverlayCreated("combined-selected-floor-targets", sheenOverlay, {
+      sizeX: placement.width,
+      sizeZ: placement.depth,
+      targetY: placement.floorY,
+      expectedDeltaY: 0.016
+    });
+
+    if (wetEnvironmentSettings.reflectionStrength > 0) {
+      const reflectionTextureSize = getWetEnvironmentReflectionTextureSize();
+      const reflector = new Reflector(
+        new THREE.PlaneGeometry(placement.width, placement.depth, 1, 1),
+        {
+          clipBias: 0.003,
+          textureWidth: reflectionTextureSize,
+          textureHeight: reflectionTextureSize,
+          color: 0x95a5af,
+          multisample: 4
+        }
+      );
+      reflector.name = "wet-ground-planar-puddle-reflector";
+      reflector.rotation.x = -Math.PI / 2;
+      reflector.position.set(placement.center.x, placement.floorY + 0.024, placement.center.z);
+      reflector.renderOrder = -6;
+      reflector.frustumCulled = false;
+      markWetVisualOverlay(reflector);
+      configureWetGroundReflectorMaterial(reflector, puddleMaskTexture, fineNoiseTexture);
+      wetGroup.add(reflector);
+      wetGroundState.reflector = reflector;
+      wetGroundState.reflectionMode = "planar-reflector-with-procedural-puddle-mask";
+      logIronworksWetOverlayCreated("combined-selected-floor-targets", reflector, {
+        sizeX: placement.width,
+        sizeZ: placement.depth,
+        targetY: placement.floorY,
+        expectedDeltaY: 0.024
+      });
+    } else {
+      wetGroundState.reflectionMode = "puddle-sheen-only";
+    }
+    addIronworksWetDiagTargetMarkers(wetGroup, targets);
+
+    mapGroup.add(wetGroup);
+    wetGroundState.group = wetGroup;
+    wetGroundState.lastMapId = selectedMap;
+    wetGroundState.lastBoundsSignature = placement.signature;
+    wetGroundState.lastSettingsSignature = settingsSignature;
+    console.log("[WET GROUND INIT]", {
+      reason,
+      mapId: selectedMap,
+      width: Number(placement.width.toFixed(2)),
+      depth: Number(placement.depth.toFixed(2)),
+      floorY: Number(placement.floorY.toFixed(3)),
+      floorMaterialCount: wetGroundState.floorMaterialCount,
+      targetCount: wetGroundState.targetCount,
+      settings: { ...wetEnvironmentSettings }
+    });
+    console.log("[GROUND REFLECTION MODE]", {
+      mode: wetGroundState.reflectionMode,
+      textureSize: getWetEnvironmentReflectionTextureSize(),
+      mask: puddleMaskTexture.name,
+      noise: fineNoiseTexture.name
+    });
+    logIronworksWetApplyTiming(reason, targets.length);
+  }
+
+  function refreshWetGroundForCurrentMap(reason = "map-load", { force = false, visualVariant = currentMapVisualVariant } = {}) {
+    if (isHomeLiteBeforeGameplayStart()) {
+      logHomeLite("blocked wet/cloud before gameplay", {
+        source: "refreshWetGroundForCurrentMap",
+        reason
+      }, { onceKey: `wet-ground-before-gameplay:${reason}` });
+      return;
+    }
+    if (perfForensicFlags.noWet) {
+      disposeWetGroundSystem({
+        disposeTextures: true,
+        reason: `perfNoWet:${reason}`
+      });
+      wetGroundState.reflectionMode = "disabled-by-perfNoWet";
+      return;
+    }
+    if (isIronworksWetEnvironmentMap()) {
+      refreshWetGroundForIronworksYard(reason, { force, visualVariant });
+      return;
+    }
+
+    applyWetEnvironmentToCurrentMap(reason, { force });
+  }
+
+  function refreshWetGroundForIronworksYard(reason = "ironworks-post-visual-copy", { force = false, visualVariant = currentMapVisualVariant } = {}) {
+    disableIronworksWetEnvironmentTemporary(reason);
+  }
+
+  function updateWetGroundVisuals(elapsedTime) {
+    wetGroundState.reflector?.material?.uniforms?.time && (
+      wetGroundState.reflector.material.uniforms.time.value = elapsedTime
+    );
+    wetGroundState.sheenOverlay?.material?.uniforms?.time && (
+      wetGroundState.sheenOverlay.material.uniforms.time.value = elapsedTime
+    );
   }
 
   function addStaticMapGroup(group) {
@@ -11530,6 +15618,7 @@ window.onload = () => {
 
   function clearCurrentMap() {
     resetWaveState({ detachExisting: true });
+    disposeWetGroundSystem();
 
     for (const pickup of [...healthPickups]) {
       removeHealthPickup(pickup, {
@@ -11549,6 +15638,7 @@ window.onload = () => {
     visibleStaticWorldObjects = 0;
     activeBlossomPetalSystem = null;
     activeLightingProfile = null;
+    activeBaseLightingProfile = null;
     proceduralCityChunkState.chunks.length = 0;
     proceduralCityChunkState.activeChunkCount = -1;
     proceduralCityCollisionState.enabled = false;
@@ -15356,6 +19446,16 @@ window.onload = () => {
   } = {}) {
     const normalizedMapId = normalizeMapId(mapId);
     const pipelineContext = createMapPipelineContext(normalizedMapId, requestSource);
+    if (isHomeLiteBeforeGameplayStart()) {
+      selectedMap = normalizedMapId;
+      mapSelect.value = selectedMap;
+      syncHomeSelectedMapDisplay();
+      logHomeLite("blocked map load before gameplay", {
+        requestedMapId: normalizedMapId,
+        requestSource
+      }, { onceKey: `map:${normalizedMapId}:${requestSource}` });
+      return;
+    }
 
     if (
       normalizedMapId === warehouseRailyardMapId &&
@@ -15382,6 +19482,7 @@ window.onload = () => {
         currentLoadedMapId,
         visualVariant
       });
+      refreshWetGroundForCurrentMap(`reused-map:${selectedMap}`);
       if (player) {
         player.position.copy(playerPosition);
       }
@@ -15405,79 +19506,89 @@ window.onload = () => {
       currentLoadedMapId = "";
       currentMapVisualVariant = "";
 
-      if (
-        selectedMap !== "sunsetCity" &&
-        selectedMap !== "proceduralCity" &&
-        selectedMap !== warehouseRailyardMapId
-      ) {
-        statusMessage.classList.remove("visible");
-      }
+      if (perfForensicFlags.noMap) {
+        console.warn("[PERF_FORENSIC] perfNoMap=1 active; gameplay map build skipped", {
+          requestedMapId: selectedMap,
+          requestSource
+        });
+      } else {
+        if (
+          selectedMap !== "sunsetCity" &&
+          selectedMap !== "proceduralCity" &&
+          selectedMap !== warehouseRailyardMapId
+        ) {
+          statusMessage.classList.remove("visible");
+        }
 
-      try {
-        if (selectedMap === "industrialDome") {
-          buildIndustrialDome();
-        } else if (selectedMap === ironworksYardMapId) {
-          buildIronworksYard({ visualVariant });
-        } else if (selectedMap === "blossomGarden") {
-          buildBlossomGarden();
-        } else if (selectedMap === "proceduralCity") {
-          showStatusMessage("Loading Procedural City model...", 0);
-          await buildProceduralCity(buildId);
+        try {
+          if (selectedMap === "industrialDome") {
+            buildIndustrialDome();
+          } else if (selectedMap === ironworksYardMapId) {
+            buildIronworksYard({ visualVariant });
+          } else if (selectedMap === "blossomGarden") {
+            buildBlossomGarden();
+          } else if (selectedMap === "proceduralCity") {
+            showStatusMessage("Loading Procedural City model...", 0);
+            await buildProceduralCity(buildId);
+            if (buildId !== activeMapBuildId) {
+              return;
+            }
+            statusMessage.classList.remove("visible");
+          } else if (selectedMap === warehouseRailyardMapId) {
+            showStatusMessage("Loading Warehouse Railyard map...", 0);
+            await buildWarehouseRailyard(buildId, pipelineContext);
+            if (buildId !== activeMapBuildId) {
+              logMapPipelineStep(pipelineContext, "map load abandoned", {
+                buildId,
+                reason: "stale build superseded by a newer map request"
+              }, "warn");
+              return;
+            }
+            statusMessage.classList.remove("visible");
+          } else if (selectedMap === "sunsetCity") {
+            showStatusMessage("Loading Sunset City assets...", 0);
+            await buildSunsetCity(buildId);
+            if (buildId !== activeMapBuildId) {
+              return;
+            }
+            statusMessage.classList.remove("visible");
+          } else {
+            buildDefaultVillage();
+          }
+        } catch (error) {
+          console.error("Failed to load selected map:", error);
+
           if (buildId !== activeMapBuildId) {
             return;
           }
-          statusMessage.classList.remove("visible");
-        } else if (selectedMap === warehouseRailyardMapId) {
-          showStatusMessage("Loading Warehouse Railyard map...", 0);
-          await buildWarehouseRailyard(buildId, pipelineContext);
-          if (buildId !== activeMapBuildId) {
-            logMapPipelineStep(pipelineContext, "map load abandoned", {
-              buildId,
-              reason: "stale build superseded by a newer map request"
-            }, "warn");
-            return;
-          }
-          statusMessage.classList.remove("visible");
-        } else if (selectedMap === "sunsetCity") {
-          showStatusMessage("Loading Sunset City assets...", 0);
-          await buildSunsetCity(buildId);
-          if (buildId !== activeMapBuildId) {
-            return;
-          }
-          statusMessage.classList.remove("visible");
-        } else {
+
+          const fallbackReason = formatMapPipelineError(error);
+          logMapPipelineStep(pipelineContext, "fallback triggered", {
+            buildId,
+            reason: fallbackReason,
+            fallbackMapId: "defaultVillage",
+            previousLoadedMapId
+          }, "error");
+
+          clearCurrentMap();
+          selectedMap = "defaultVillage";
+          mapSelect.value = selectedMap;
+          syncHomeSelectedMapDisplay();
+          currentMapVisualVariant = "";
           buildDefaultVillage();
+          showStatusMessage(
+            mapId === warehouseRailyardMapId
+              ? `Warehouse Railyard failed to load (${fallbackReason}). Loaded Default Village instead.`
+              : "City assets failed to load. Loaded Default Village instead.",
+            4200
+          );
         }
-      } catch (error) {
-        console.error("Failed to load selected map:", error);
-
-        if (buildId !== activeMapBuildId) {
-          return;
-        }
-
-        const fallbackReason = formatMapPipelineError(error);
-        logMapPipelineStep(pipelineContext, "fallback triggered", {
-          buildId,
-          reason: fallbackReason,
-          fallbackMapId: "defaultVillage",
-          previousLoadedMapId
-        }, "error");
-
-        clearCurrentMap();
-        selectedMap = "defaultVillage";
-        mapSelect.value = selectedMap;
-        syncHomeSelectedMapDisplay();
-        currentMapVisualVariant = "";
-        buildDefaultVillage();
-        showStatusMessage(
-          mapId === warehouseRailyardMapId
-            ? `Warehouse Railyard failed to load (${fallbackReason}). Loaded Default Village instead.`
-            : "City assets failed to load. Loaded Default Village instead.",
-          4200
-        );
       }
 
       if (buildId === activeMapBuildId) {
+        if (!perfForensicFlags.noMap) {
+          refreshWetGroundForCurrentMap(`map-load:${selectedMap}`);
+        }
         applyGraphicsSettingsRuntime({
           reason: `map-load:${selectedMap}`,
           emitLog: true
@@ -15554,15 +19665,16 @@ window.onload = () => {
 
   function getCharacterPreviewCacheDebugState(character) {
     const previewPath = character?.previewPath || "";
-    const cachedPreview = previewPath ? characterPreviewCache.get(previewPath) : null;
+    const cachedPreview = previewPath ? characterPreviewImageCache.get(previewPath) : null;
     return {
       selectedCharacterId: character?.id || "",
       selectedLabel: character?.name || "",
       previewPath,
-      cacheHasPath: characterPreviewCache.has(previewPath),
-      cacheLoaded: Boolean(cachedPreview?.loaded),
-      cacheLoading: Boolean(cachedPreview?.loadingPromise),
-      cacheFailed: Boolean(cachedPreview && cachedPreview.loaded === false && !cachedPreview.loadingPromise),
+      cacheHasPath: characterPreviewImageCache.has(previewPath),
+      cacheStatus: cachedPreview?.status || "",
+      cacheLoaded: cachedPreview?.status === "loaded",
+      cacheLoading: cachedPreview?.status === "loading",
+      cacheFailed: cachedPreview?.status === "failed",
       currentImgSrc: characterPreviewImage?.currentSrc || characterPreviewImage?.getAttribute("src") || "",
       currentImgPreviewPath: characterPreviewImage?.dataset?.previewPath || "",
       requestId: characterPreviewRequestId
@@ -15573,26 +19685,83 @@ window.onload = () => {
     console.warn(label, getCharacterPreviewCacheDebugState(character));
   }
 
-  function showCharacterPreviewPlaceholder(previewPath = "") {
+  function ensureCharacterPreviewImageElement() {
     if (characterPreviewImage) {
-      characterPreviewImage.hidden = true;
-      characterPreviewImage.alt = "";
-      characterPreviewImage.removeAttribute("src");
-      delete characterPreviewImage.dataset.previewPath;
+      return characterPreviewImage;
+    }
+
+    const previewContainer = document.querySelector(".character-preview-content");
+    if (!previewContainer) {
+      return null;
+    }
+
+    characterPreviewImage = document.createElement("img");
+    characterPreviewImage.id = "character-preview-image";
+    characterPreviewImage.className = "character-preview-image";
+    characterPreviewImage.alt = "";
+    characterPreviewImage.hidden = true;
+    previewContainer.prepend(characterPreviewImage);
+    return characterPreviewImage;
+  }
+
+  function showCharacterPreviewPlaceholder(previewPath = "") {
+    const previewImage = ensureCharacterPreviewImageElement();
+    if (previewImage) {
+      previewImage.hidden = true;
+      previewImage.style.display = "none";
+      previewImage.style.opacity = "0";
+      previewImage.alt = "";
+      previewImage.removeAttribute("src");
+      delete previewImage.dataset.previewPath;
     }
 
     if (characterPreviewPlaceholderText) {
       characterPreviewPlaceholderText.hidden = false;
-    }
-
-    if (previewPath && !missingCharacterPreviewPaths.has(previewPath)) {
-      missingCharacterPreviewPaths.add(previewPath);
-      console.warn("[CHARACTER PREVIEW] missing preview image", previewPath);
+      characterPreviewPlaceholderText.style.display = "";
     }
   }
 
+  function applyCharacterPreviewFromMemory(selectedCharacter, cachedPreview, source = "memory") {
+    const previewImage = ensureCharacterPreviewImageElement();
+    if (!previewImage || !characterPreviewPlaceholderText || cachedPreview?.status !== "loaded") {
+      return false;
+    }
+
+    const previewPath = selectedCharacter?.previewPath || cachedPreview.src || "";
+    const resolvedPreviewSrc = cachedPreview.image?.currentSrc || cachedPreview.image?.src || cachedPreview.src || previewPath;
+    previewImage.onload = null;
+    previewImage.onerror = null;
+    previewImage.dataset.previewPath = previewPath;
+    previewImage.alt = `${selectedCharacter?.name || "Character"} preview`;
+    if (previewImage.getAttribute("src") !== resolvedPreviewSrc) {
+      previewImage.src = resolvedPreviewSrc;
+    }
+    previewImage.hidden = false;
+    previewImage.style.display = "block";
+    previewImage.style.opacity = "1";
+    previewImage.style.objectFit = "contain";
+    characterPreviewPlaceholderText.hidden = true;
+    characterPreviewPlaceholderText.style.display = "none";
+
+    console.warn("[CHARACTER PREVIEW SIMPLE APPLY_FROM_MEMORY]", {
+      selectedCharacterId: selectedCharacter?.id || "",
+      previewPath,
+      source
+    });
+    console.warn("[CHARACTER PREVIEW DOM APPLY]", {
+      selectedCharacterId: selectedCharacter?.id || "",
+      previewPath,
+      imgSrc: previewImage.currentSrc || previewImage.src || "",
+      imgHidden: previewImage.hidden,
+      imgDisplay: previewImage.style.display || "",
+      fallbackHidden: characterPreviewPlaceholderText.hidden
+    });
+    return true;
+  }
+
   function syncCharacterPreviewImage(selectedCharacter) {
-    if (!characterPreviewImage || !characterPreviewPlaceholderText) {
+    const previewImage = ensureCharacterPreviewImageElement();
+    if (!previewImage || !characterPreviewPlaceholderText) {
       return;
     }
 
@@ -15613,81 +19782,54 @@ window.onload = () => {
       return;
     }
 
-    characterPreviewImage.dataset.previewPath = previewPath;
-    characterPreviewImage.dataset.previewRequestId = String(requestId);
-    characterPreviewImage.alt = `${selectedCharacter.name} preview`;
+    previewImage.dataset.previewPath = previewPath;
+    previewImage.dataset.previewRequestId = String(requestId);
+    previewImage.alt = `${selectedCharacter.name} preview`;
 
-    const applyLoadedPreview = (cachedPreview, source = "cache") => {
-      if (requestId !== characterPreviewRequestId || characterPreviewImage.dataset.previewPath !== previewPath) {
-        console.warn("[CHARACTER PREVIEW STALE IGNORED]", {
-          ...logPayload,
-          currentRequestId: characterPreviewRequestId,
-          source
-        });
-        return;
-      }
-
-      const resolvedPreviewSrc = cachedPreview?.image?.currentSrc || cachedPreview?.image?.src || previewPath;
-      characterPreviewImage.onload = null;
-      characterPreviewImage.onerror = null;
-      characterPreviewImage.hidden = true;
-      if (characterPreviewImage.getAttribute("src") !== resolvedPreviewSrc) {
-        characterPreviewImage.removeAttribute("src");
-      }
-      characterPreviewPlaceholderText.hidden = true;
-      if (characterPreviewImage.getAttribute("src") !== resolvedPreviewSrc) {
-        characterPreviewImage.src = resolvedPreviewSrc;
-      }
-      characterPreviewImage.hidden = false;
-      console.warn("[CHARACTER PREVIEW APPLY]", {
-        ...logPayload,
-        source,
-        resolvedPreviewSrc
-      });
-      console.warn("[PREVIEW APPLY IMMEDIATE]", getCharacterPreviewCacheDebugState(selectedCharacter));
-    };
-
-    const cachedPreview = characterPreviewCache.get(previewPath);
-    if (cachedPreview?.loaded) {
-      console.warn("[CHARACTER PREVIEW CACHE HIT]", logPayload);
-      console.warn("[PREVIEW CACHE HIT AFTER APPLY]", getCharacterPreviewCacheDebugState(selectedCharacter));
-      applyLoadedPreview(cachedPreview, "cache-hit");
+    const cachedPreview = characterPreviewImageCache.get(previewPath);
+    if (cachedPreview?.status === "loaded") {
+      applyCharacterPreviewFromMemory(selectedCharacter, cachedPreview, "memory-cache");
       return;
     }
 
-    if (cachedPreview && cachedPreview.loaded === false && !cachedPreview.loadingPromise) {
-      console.warn("[CHARACTER PREVIEW CACHE MISS]", {
-        ...logPayload,
-        failed: true
-      });
-      console.warn("[PREVIEW CACHE MISS AFTER APPLY]", getCharacterPreviewCacheDebugState(selectedCharacter));
+    if (cachedPreview?.status === "failed") {
       showCharacterPreviewPlaceholder(previewPath);
       return;
     }
 
-    console.warn("[CHARACTER PREVIEW CACHE MISS]", {
-      ...logPayload,
-      loading: Boolean(cachedPreview?.loadingPromise)
-    });
-    console.warn("[PREVIEW CACHE MISS AFTER APPLY]", getCharacterPreviewCacheDebugState(selectedCharacter));
-    characterPreviewImage.hidden = true;
-    characterPreviewImage.removeAttribute("src");
+    previewImage.hidden = true;
+    previewImage.style.display = "none";
+    previewImage.style.opacity = "0";
+    previewImage.removeAttribute("src");
     characterPreviewPlaceholderText.hidden = true;
-    loadCharacterPreviewImage(previewPath).then((result) => {
-      if (requestId !== characterPreviewRequestId || characterPreviewImage.dataset.previewPath !== previewPath) {
-        console.warn("[CHARACTER PREVIEW STALE IGNORED]", {
-          ...logPayload,
-          currentRequestId: characterPreviewRequestId,
-          loaded: result.loaded
-        });
-        return;
-      }
-      if (result.loaded) {
-        applyLoadedPreview(result, "async-load");
-        return;
-      }
-      showCharacterPreviewPlaceholder(previewPath);
-    });
+    characterPreviewPlaceholderText.style.display = "none";
+    loadPreviewImageIntoMemory(previewPath)
+      .then((result) => {
+        if (requestId !== characterPreviewRequestId || previewImage.dataset.previewPath !== previewPath) {
+          console.warn("[CHARACTER PREVIEW STALE IGNORED]", {
+            ...logPayload,
+            currentRequestId: characterPreviewRequestId,
+            loaded: result.status === "loaded"
+          });
+          return;
+        }
+        if (result.status === "loaded") {
+          applyCharacterPreviewFromMemory(selectedCharacter, result, "direct-load");
+          return;
+        }
+        showCharacterPreviewPlaceholder(previewPath);
+      })
+      .catch(() => {
+        if (requestId !== characterPreviewRequestId || previewImage.dataset.previewPath !== previewPath) {
+          console.warn("[CHARACTER PREVIEW STALE IGNORED]", {
+            ...logPayload,
+            currentRequestId: characterPreviewRequestId,
+            loaded: false
+          });
+          return;
+        }
+        showCharacterPreviewPlaceholder(previewPath);
+      });
   }
 
   function syncCharacterSelectionUi() {
@@ -15701,12 +19843,28 @@ window.onload = () => {
       characterSelectedName.textContent = selectedCharacter.name;
     }
     syncCharacterPreviewImage(selectedCharacter);
+    if (isHomeLiteBeforeGameplayStart()) {
+      logHomeLite("preview only selected character =", {
+        selectedCharacter: selectedCharacter.id,
+        selectedLabel: selectedCharacter.name,
+        previewPath: selectedCharacter.previewPath
+      }, { onceKey: `preview-only:${selectedCharacter.id}` });
+    }
+    if (isSocratesCharacterConfig(selectedCharacter)) {
+      console.log("[CHARACTER_04] Socrates selected");
+      logSocratesRuntimeDebug(selectedCharacter);
+    }
     console.warn("[CHARACTER SELECT CHANGE]", getCharacterSelectionDiagnosticPayload(selectedCharacter));
   }
 
   function setSelectedPlayableCharacter(characterId, { persist = false, showStatus = false } = {}) {
     selectedPlayableCharacterIndex = getPlayableCharacterIndexById(characterId);
     syncCharacterSelectionUi();
+    perfForensic?.markPhase?.("character-selected", {
+      selectedPlayableCharacterId,
+      selectedCharacterName: getSelectedPlayableCharacterConfig()?.name || "",
+      persisted: Boolean(persist)
+    });
     if (persist) {
       activePlayableCharacterId = selectedPlayableCharacterId;
       saveBasicUserSettings();
@@ -15785,6 +19943,21 @@ window.onload = () => {
     const previousActiveCharacterId = activePlayableCharacterId;
     const previousValidCharacterExists = Boolean(playerActor?.motusManVisual?.parent);
     const requestId = ++characterApplyRequestId;
+    if (isHomeLiteBeforeGameplayStart()) {
+      activePlayableCharacterId = selectedCharacter.id;
+      saveBasicUserSettings();
+      logHomeLite("preview only selected character =", {
+        source: "applySelectedPlayableCharacter",
+        selectedCharacter: selectedCharacter.id,
+        selectedLabel: selectedCharacter.name,
+        modelPathDeferred: selectedCharacter.modelPath,
+        requestId
+      });
+      if (showStatus) {
+        showStatusMessage(`${selectedCharacter.name} selected for next start.`, 1400);
+      }
+      return;
+    }
     if (!CHARACTER_APPLY_LOADING_OVERLAY_ENABLED) {
       characterApplyLoading = false;
       console.warn("[CHARACTER APPLY NON_BLOCKING_TEST_MODE]", getCharacterLoadPayload(selectedCharacter, requestId, {
@@ -15877,6 +20050,26 @@ window.onload = () => {
         reason: fallbackReason,
         error
       }));
+      if (isSocratesCharacterConfig(selectedCharacter)) {
+        console.log("[CHARACTER_04] Fallback to Motus Man if load failed", {
+          reason: fallbackReason
+        });
+        activePlayableCharacterId = playableCharacters[0].id;
+        selectedPlayableCharacterIndex = getPlayableCharacterIndexById(activePlayableCharacterId);
+        selectedPlayableCharacterId = activePlayableCharacterId;
+        syncCharacterSelectionUi();
+        showStatusMessage(`${selectedCharacter.name} failed to load. Using Motus Man.`, 2200);
+        reloadLocalPlayerCharacterVisual("Socrates load failed; fallback to Motus Man")
+          .catch((reloadError) => {
+            console.error("[CHARACTER LOAD FAILED]", {
+              reason: "model fetch failed",
+              error: reloadError
+            });
+          });
+        hideCharacterLoadingOverlay();
+        setCharacterLoadPriorityMode(false, `Apply Character failed: ${selectedCharacter.name}`);
+        return;
+      }
       activePlayableCharacterId = previousActiveCharacterId;
       if (previousValidCharacterExists) {
         setHeldGunTransformForCharacter(previousActiveCharacterId, {
@@ -18707,6 +22900,11 @@ window.onload = () => {
   }
 
   function showMainMenu() {
+    perfForensic?.markPhase?.("home-screen", {
+      startupReady,
+      selectedPlayableCharacterId,
+      activePlayableCharacterId
+    });
     cleanupAimTrainingMode();
     playMenuMusic("main-menu-show");
     stopAdsAiming("mainMenu");
@@ -18740,7 +22938,15 @@ window.onload = () => {
       return;
     }
 
+    perfForensic?.markPhase?.("entering-map", {
+      selectedMap: mapSelect.value,
+      selectedPlayableCharacterId,
+      activePlayableCharacterId
+    });
     const selectedCharacterForStart = getSelectedPlayableCharacterConfig();
+    if (HOME_LITE_TEST_ENABLED && !isGameplaySessionActive) {
+      activePlayableCharacterId = selectedPlayableCharacterId;
+    }
     const activeCharacterForStart = getActivePlayableCharacterConfig();
     console.warn("[CHARACTER START GAME]", {
       ...getCharacterSelectionDiagnosticPayload(selectedCharacterForStart),
@@ -18752,6 +22958,33 @@ window.onload = () => {
     });
 
     commitPlayerIdentitySettings();
+    if (HOME_LITE_TEST_ENABLED && !isGameplaySessionActive) {
+      isGameplaySessionActive = true;
+      activePlayableCharacterId = selectedPlayableCharacterId;
+      const selectedCharacterForGameplay = getActivePlayableCharacterConfig();
+      logHomeLite("gameplay start", {
+        selectedMap: mapSelect.value,
+        selectedCharacter: selectedCharacterForGameplay.id,
+        selectedLabel: selectedCharacterForGameplay.name
+      });
+      logHomeLite("loading selected character once =", {
+        selectedCharacter: selectedCharacterForGameplay.id,
+        selectedLabel: selectedCharacterForGameplay.name,
+        modelPath: selectedCharacterForGameplay.modelPath
+      });
+      if (!playerActor) {
+        createPlayer();
+      } else {
+        await reloadLocalPlayerCharacterVisual("Home Lite gameplay start");
+      }
+      await ensureStartupPlayerReadiness();
+      initializeHighDefinitionCloudSky();
+      logHomeLite("loading map/effects after start", {
+        selectedMap: mapSelect.value,
+        cloudEnabled: !perfForensicFlags.noClouds,
+        wetEnabled: !perfForensicFlags.noWet
+      });
+    }
     logMapPipelineStep(
       createMapPipelineContext(mapSelect.value, "ready button"),
       "ready requested",
@@ -18764,7 +22997,19 @@ window.onload = () => {
     await loadSelectedMap(mapSelect.value, {
       requestSource: "ready button"
     });
+    perfForensic?.markPhase?.("map-loaded", {
+      selectedMap,
+      currentLoadedMapId
+    });
+    if (!perfForensicFlags.noMap) {
+      refreshWetGroundForCurrentMap("game-start", { force: true });
+    }
     gameStarted = true;
+    perfForensic?.markPhase?.("gameplay", {
+      selectedMap,
+      currentLoadedMapId,
+      activePlayableCharacterId
+    });
     fadeOutMenuMusic("game-start");
     hideMainMenu();
     closeMenus();
@@ -22462,6 +26707,10 @@ window.onload = () => {
       exposure: clampAdvancedGraphicsNumber(nextSettings.exposure ?? base.exposure, base.exposure, 0.6, 1.6, 2),
       contrast: clampAdvancedGraphicsNumber(nextSettings.contrast ?? base.contrast, base.contrast, 0.75, 1.35, 2),
       saturation: clampAdvancedGraphicsNumber(nextSettings.saturation ?? base.saturation, base.saturation, 0.6, 1.5, 2),
+      cloudDensity: clampAdvancedGraphicsNumber(nextSettings.cloudDensity ?? base.cloudDensity, base.cloudDensity, 0, 100, 0),
+      cloudOpacity: clampAdvancedGraphicsNumber(nextSettings.cloudOpacity ?? base.cloudOpacity, base.cloudOpacity, 0, 100, 0),
+      cloudDetail: clampAdvancedGraphicsNumber(nextSettings.cloudDetail ?? base.cloudDetail, base.cloudDetail, 0, 100, 0),
+      cloudSpeed: clampAdvancedGraphicsNumber(nextSettings.cloudSpeed ?? base.cloudSpeed, base.cloudSpeed, 0, 100, 0),
       fogEnabled: typeof nextSettings.fogEnabled === "boolean" ? nextSettings.fogEnabled : Boolean(base.fogEnabled),
       fogStrength: clampAdvancedGraphicsNumber(nextSettings.fogStrength ?? base.fogStrength, base.fogStrength, 0, 1, 2),
       fogDistance: clampAdvancedGraphicsNumber(nextSettings.fogDistance ?? base.fogDistance, base.fogDistance, 30, 250, 0),
@@ -22720,6 +26969,7 @@ window.onload = () => {
     graphicsRenderDistanceValue.textContent = String(graphicsSettings.renderDistance);
     graphicsEffectQualitySelect.value = graphicsSettings.effectQuality;
     syncAdvancedGraphicsSettingsInputs();
+    syncWetEnvironmentSettingsInputs();
   }
 
   function syncAdvancedGraphicsSettingsInputs() {
@@ -22731,6 +26981,14 @@ window.onload = () => {
     advancedContrastValue.textContent = advancedGraphics.contrast.toFixed(2);
     advancedSaturationInput.value = advancedGraphics.saturation.toFixed(2);
     advancedSaturationValue.textContent = advancedGraphics.saturation.toFixed(2);
+    cloudDensityInput.value = String(Math.round(advancedGraphics.cloudDensity));
+    cloudDensityValue.textContent = String(Math.round(advancedGraphics.cloudDensity));
+    cloudOpacityInput.value = String(Math.round(advancedGraphics.cloudOpacity));
+    cloudOpacityValue.textContent = String(Math.round(advancedGraphics.cloudOpacity));
+    cloudDetailInput.value = String(Math.round(advancedGraphics.cloudDetail));
+    cloudDetailValue.textContent = String(Math.round(advancedGraphics.cloudDetail));
+    cloudSpeedInput.value = String(Math.round(advancedGraphics.cloudSpeed));
+    cloudSpeedValue.textContent = String(Math.round(advancedGraphics.cloudSpeed));
     advancedFogToggle.checked = advancedGraphics.fogEnabled;
     advancedFogStrengthInput.value = advancedGraphics.fogStrength.toFixed(2);
     advancedFogStrengthValue.textContent = advancedGraphics.fogStrength.toFixed(2);
@@ -23056,7 +27314,9 @@ window.onload = () => {
     const advancedGraphics = graphicsSettings.advancedGraphics || advancedGraphicsDefaults;
     applyAdvancedGraphicsCanvasFilter(advancedGraphics);
     applyAdvancedGraphicsFog(advancedGraphics);
+    applyHighDefinitionCloudSettings(advancedGraphics, { reason, emitLog });
     applyAdvancedGraphicsMaterialQuality(advancedGraphics);
+    normalizeActivePlayableCharacterBodyMaterials(`after advanced graphics apply: ${reason}`);
     applyAdvancedGraphicsDynamicLights(advancedGraphics);
     applyAdvancedGraphicsOptionalEffects(advancedGraphics);
 
@@ -23065,6 +27325,7 @@ window.onload = () => {
         reason,
         ...advancedGraphics
       });
+      logActivePlayableCharacterMaterialDiagnostics(`after [ADVANCED GRAPHICS] applied live: ${reason}`);
     }
   }
 
@@ -23080,6 +27341,7 @@ window.onload = () => {
         reason,
         settings: getGraphicsSettingsSnapshot()
       });
+      logActivePlayableCharacterMaterialDiagnostics(`after graphics settings loaded/applied: ${reason}`);
     }
   }
 
@@ -23168,6 +27430,77 @@ window.onload = () => {
       syncInputs: true,
       reason: `device-default:${mode === "phone" ? "phone" : "pc"}`
     });
+  }
+
+  function applyPerfDiagnosticSessionOverrides(reason = "startup") {
+    const forcedCharacterId = getPerfDiagnosticForcedPlayableCharacterId();
+    if (forcedCharacterId && selectedPlayableCharacterId !== forcedCharacterId) {
+      setSelectedPlayableCharacter(forcedCharacterId, {
+        persist: false,
+        showStatus: false
+      });
+      activePlayableCharacterId = forcedCharacterId;
+    }
+
+    if (perfForensicFlags.lowGraphics) {
+      const lowAdvancedGraphics = {
+        ...(graphicsSettings.advancedGraphics || advancedGraphicsDefaults),
+        cloudDensity: 0,
+        cloudOpacity: 0,
+        cloudDetail: 0,
+        cloudSpeed: 0,
+        bloomEnabled: false,
+        ambientOcclusionEnabled: false,
+        antiAliasing: "Off",
+        materialQuality: "Low",
+        dynamicLights: "Off",
+        motionBlur: "Off",
+        motionBlurStrength: 0
+      };
+      applyGraphicsSettings({
+        ...graphicsSettings,
+        renderScalePercent: 50,
+        pixelRatio: 1,
+        shadowsEnabled: false,
+        shadowQuality: "low",
+        renderDistance: Math.min(Number(graphicsSettings.renderDistance) || 250, 250),
+        effectQuality: "low",
+        advancedGraphics: lowAdvancedGraphics
+      }, {
+        persist: false,
+        syncInputs: true,
+        reason: `perfLowGraphics:${reason}`,
+        emitLog: true
+      });
+      applyWetEnvironmentSettings({
+        ...wetEnvironmentSettings,
+        enabled: false,
+        reflectionStrength: 0,
+        reflectionQuality: 25
+      }, {
+        persist: false,
+        syncInputs: true,
+        reason: `perfLowGraphics:${reason}`
+      });
+      console.warn("[PERF_FORENSIC] perfLowGraphics=1 applied for this session only", {
+        savedSettingsUnchanged: true,
+        renderScalePercent: 50,
+        pixelRatio: 1,
+        shadowsEnabled: false,
+        wetReflectionOff: true,
+        cloudsOff: true
+      });
+    } else if (perfForensicFlags.noWet) {
+      applyWetEnvironmentSettings({
+        ...wetEnvironmentSettings,
+        enabled: false,
+        reflectionStrength: 0
+      }, {
+        persist: false,
+        syncInputs: true,
+        reason: `perfNoWet:${reason}`
+      });
+    }
   }
 
   function clampMobileCameraSensitivityPercent(value) {
@@ -28236,11 +32569,6 @@ window.onload = () => {
           return;
         }
 
-        if (activeSettingsTabId === button.dataset.settingsTab) {
-          collapseActiveSettingsTab();
-          return;
-        }
-
         setActiveSettingsTab(button.dataset.settingsTab);
       });
     }
@@ -28439,6 +32767,24 @@ window.onload = () => {
       applyAdvancedGraphicsSettingChange("saturation", advancedSaturationInput.value);
     });
 
+    const bindCloudGraphicsSlider = (input, key) => {
+      input.addEventListener("input", () => {
+        if (input.value === "") return;
+        applyAdvancedGraphicsSettingChange(key, input.value);
+      });
+      input.addEventListener("change", () => {
+        if (input.value === "") {
+          syncSettingsInputs();
+          return;
+        }
+        applyAdvancedGraphicsSettingChange(key, input.value);
+      });
+    };
+    bindCloudGraphicsSlider(cloudDensityInput, "cloudDensity");
+    bindCloudGraphicsSlider(cloudOpacityInput, "cloudOpacity");
+    bindCloudGraphicsSlider(cloudDetailInput, "cloudDetail");
+    bindCloudGraphicsSlider(cloudSpeedInput, "cloudSpeed");
+
     advancedFogToggle.addEventListener("change", () => {
       applyAdvancedGraphicsSettingChange("fogEnabled", advancedFogToggle.checked);
     });
@@ -28547,6 +32893,27 @@ window.onload = () => {
       }
       applyAdvancedGraphicsSettingChange("motionBlurStrength", advancedMotionBlurStrengthInput.value);
     });
+
+    wetEnvironmentEnabledToggle.addEventListener("change", () => {
+      applyWetEnvironmentSettingChange("enabled", wetEnvironmentEnabledToggle.checked);
+    });
+
+    for (const config of wetEnvironmentSliderConfigs) {
+      config.input.addEventListener("input", () => {
+        if (config.input.value === "") {
+          return;
+        }
+        applyWetEnvironmentSettingChange(config.key, config.input.value);
+      });
+
+      config.input.addEventListener("change", () => {
+        if (config.input.value === "") {
+          syncSettingsInputs();
+          return;
+        }
+        applyWetEnvironmentSettingChange(config.key, config.input.value);
+      });
+    }
 
     mobileCameraSensitivityInput.addEventListener("input", () => {
       if (mobileCameraSensitivityInput.value === "") {
@@ -29143,6 +33510,9 @@ window.onload = () => {
 
       if (event.code === "KeyC" && gameStarted && !menuOpen && !homeSettingsViewOpen && !homeGunViewOpen) {
         if (!event.repeat) {
+          if (isSocratesCharacterConfig(getActivePlayableCharacterConfig())) {
+            console.log("[CHARACTER_04] C crouch preserved untouched");
+          }
           setCrouchState(true);
         }
         event.preventDefault();
@@ -29408,9 +33778,14 @@ window.onload = () => {
     }
     updateProceduralCityChunkVisibility();
     updateCoordinatesOverlay();
+    updateWetGroundVisuals(clock.elapsedTime);
+    updateHighDefinitionCloudSky(clock.elapsedTime);
     renderer.render(scene, camera);
+    logPerfDiagRendererSnapshot(frameTime);
     updatePerfOverlay(delta);
   }
+
+  perfForensic?.setDynamicCollector?.(getAimBuiltPerfDynamicReport);
 
   createCameraCustomizationControls();
   const uiTransparencyControls = createUiTransparencyControls();
@@ -29421,6 +33796,7 @@ window.onload = () => {
   syncSettingsDebugReadout();
   updateWaveStatusUi();
   syncFullscreenButtons();
+  initializeWetEnvironmentGraphicsUi();
   bindDeviceModeChooserEvents();
   closeMenus();
   ensureMapOption(ironworksYardMapId, ironworksYardDisplayName);
@@ -29429,6 +33805,7 @@ window.onload = () => {
   updateStartupLoadingProgress();
   loadGunConfigs();
   loadSavedSettings();
+  applyPerfDiagnosticSessionOverrides("startup");
   syncCharacterSelectionUi();
   handleResize({
     reason: "startup-initial-layout",

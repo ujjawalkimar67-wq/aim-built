@@ -1,0 +1,945 @@
+{
+  "stage": "stage5a_socrates_proper_e_crouch",
+  "sourceRig": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\Socrates_MotusRig.fbx",
+  "sourceMotusCrouchAnimation": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\motusman\\Animation\\W1_Crouch_Aim_Idle_IPC.fbx",
+  "outputProperECrouch": {
+    "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\Animation\\Socrates_Proper_Crouch_E.fbx",
+    "exists": true,
+    "size": 759068
+  },
+  "currentCCrouchPreserved": {
+    "before": {
+      "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\Animation\\Socrates_Crouch_Aim_Idle_FIXED.fbx",
+      "exists": true,
+      "size": 791068
+    },
+    "after": {
+      "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\Animation\\Socrates_Crouch_Aim_Idle_FIXED.fbx",
+      "exists": true,
+      "size": 791068
+    },
+    "sameSize": true
+  },
+  "method": "Created a new Socrates-authored rest-to-crouch action on the working Socrates rig; the existing Socrates C-crouch FBX is untouched.",
+  "poseReports": [
+    {
+      "frame": 1,
+      "appliedBones": {},
+      "isRestEntryFrame": true,
+      "targetMinZ": -0.02,
+      "restMinZ": -0.00282
+    },
+    {
+      "frame": 16,
+      "appliedBones": {
+        "Hips": true,
+        "Spine": true,
+        "Spine1": true,
+        "Spine2": true,
+        "LeftUpLeg": true,
+        "RightUpLeg": true,
+        "LeftLeg": true,
+        "RightLeg": true,
+        "LeftFoot": true,
+        "RightFoot": true,
+        "Neck": true,
+        "Head": true,
+        "Root": true
+      },
+      "preRootLiftMinZ": -0.05125,
+      "poseScale": 0.21,
+      "rootVerticalAxisIndex": 1,
+      "rootVerticalWorldDeltaPerLocalUnit": 0.01,
+      "rootLocalLift": 0.0,
+      "targetMinZ": -0.02
+    },
+    {
+      "frame": 61,
+      "appliedBones": {
+        "Hips": true,
+        "Spine": true,
+        "Spine1": true,
+        "Spine2": true,
+        "LeftUpLeg": true,
+        "RightUpLeg": true,
+        "LeftLeg": true,
+        "RightLeg": true,
+        "LeftFoot": true,
+        "RightFoot": true,
+        "Neck": true,
+        "Head": true,
+        "Root": true
+      },
+      "preRootLiftMinZ": -0.05125,
+      "poseScale": 0.21,
+      "rootVerticalAxisIndex": 1,
+      "rootVerticalWorldDeltaPerLocalUnit": 0.01,
+      "rootLocalLift": 0.0,
+      "targetMinZ": -0.02
+    }
+  ],
+  "properAction": {
+    "validation": {
+      "clip": "proper_e_crouch_procedural",
+      "minZ": -0.05125,
+      "minZFrame": 16,
+      "maxOfMinZ": -0.00282,
+      "maxOfMinZFrame": 1,
+      "minZOk": false,
+      "maxOfMinZOk": true,
+      "noFloating": true,
+      "noSinking": false,
+      "deformationReportAtWorstMinZ": {
+        "bounds": {
+          "min": [
+            -0.93287,
+            -0.31718,
+            -0.05125
+          ],
+          "max": [
+            0.93287,
+            0.29155,
+            1.78651
+          ],
+          "size": [
+            1.86574,
+            0.60873,
+            1.83776
+          ],
+          "center": [
+            0.0,
+            -0.01282,
+            0.86763
+          ]
+        },
+        "meshExploded": false,
+        "robeStretchedAcrossScene": false,
+        "bodyParts": [
+          {
+            "name": "head",
+            "vertexCount": 8762,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.16462,
+                -0.08711,
+                1.40384
+              ],
+              "max": [
+                0.15741,
+                0.26888,
+                1.78651
+              ],
+              "size": [
+                0.32202,
+                0.35598,
+                0.38267
+              ],
+              "center": [
+                -0.00361,
+                0.09089,
+                1.59517
+              ]
+            },
+            "distanceFromBodyCenter": 0.73491,
+            "reasonable": true
+          },
+          {
+            "name": "leftArm",
+            "vertexCount": 12343,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.05428,
+                -0.05739,
+                1.0815
+              ],
+              "max": [
+                0.86379,
+                0.28869,
+                1.59407
+              ],
+              "size": [
+                0.91807,
+                0.34608,
+                0.51257
+              ],
+              "center": [
+                0.40476,
+                0.11565,
+                1.33779
+              ]
+            },
+            "distanceFromBodyCenter": 0.63354,
+            "reasonable": true
+          },
+          {
+            "name": "rightArm",
+            "vertexCount": 8191,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.83233,
+                -0.05766,
+                1.15102
+              ],
+              "max": [
+                -0.01545,
+                0.27384,
+                1.55366
+              ],
+              "size": [
+                0.81688,
+                0.33151,
+                0.40264
+              ],
+              "center": [
+                -0.42389,
+                0.10809,
+                1.35234
+              ]
+            },
+            "distanceFromBodyCenter": 0.65517,
+            "reasonable": true
+          },
+          {
+            "name": "leftLeg",
+            "vertexCount": 19378,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.22338,
+                -0.31541,
+                -0.05034
+              ],
+              "max": [
+                0.2936,
+                0.28611,
+                1.34591
+              ],
+              "size": [
+                0.51698,
+                0.60151,
+                1.39624
+              ],
+              "center": [
+                0.03511,
+                -0.01465,
+                0.64778
+              ]
+            },
+            "distanceFromBodyCenter": 0.22264,
+            "reasonable": true
+          },
+          {
+            "name": "rightLeg",
+            "vertexCount": 16637,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.24958,
+                -0.26889,
+                -0.05125
+              ],
+              "max": [
+                0.13711,
+                0.28558,
+                1.26018
+              ],
+              "size": [
+                0.38669,
+                0.55446,
+                1.31143
+              ],
+              "center": [
+                -0.05624,
+                0.00834,
+                0.60447
+              ]
+            },
+            "distanceFromBodyCenter": 0.26993,
+            "reasonable": true
+          },
+          {
+            "name": "torso",
+            "vertexCount": 25066,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.37356,
+                -0.08947,
+                0.54265
+              ],
+              "max": [
+                0.40371,
+                0.29155,
+                1.52732
+              ],
+              "size": [
+                0.77727,
+                0.38103,
+                0.98467
+              ],
+              "center": [
+                0.01508,
+                0.10104,
+                1.03498
+              ]
+            },
+            "distanceFromBodyCenter": 0.20297,
+            "reasonable": true
+          }
+        ],
+        "bodyPartsReasonable": true
+      },
+      "passed": false
+    },
+    "depth": {
+      "sampleFrame": 31,
+      "restTorsoCenterZ": 1.09469,
+      "crouchTorsoCenterZ": 1.03498,
+      "torsoLowerDelta": 0.05971
+    },
+    "animatedBoneCount": 80,
+    "fcurveCount": 720
+  },
+  "exportGroundCorrection": null,
+  "exportAttempts": [
+    {
+      "label": "initial_export",
+      "export": {
+        "path": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\Animation\\Socrates_Proper_Crouch_E.fbx",
+        "exists": true,
+        "size": 759068
+      },
+      "validation": {
+        "importReport": {
+          "sourceActionName": "Socrates_MotusArmature_STAGE2_TEST.001|Scene",
+          "sourceFrameRange": [
+            2.0,
+            62.0
+          ],
+          "importedMeshesDeleted": [],
+          "importedArmaturesDeleted": [
+            {
+              "name": "Socrates_MotusArmature_STAGE2_TEST.001",
+              "boneCount": 80
+            }
+          ]
+        },
+        "validation": {
+          "clip": "proper_e_crouch_exported",
+          "minZ": -0.04901,
+          "minZFrame": 17,
+          "maxOfMinZ": -0.00282,
+          "maxOfMinZFrame": 2,
+          "minZOk": true,
+          "maxOfMinZOk": true,
+          "noFloating": true,
+          "noSinking": true,
+          "deformationReportAtWorstMinZ": {
+            "bounds": {
+              "min": [
+                -0.93287,
+                -0.13243,
+                -0.04901
+              ],
+              "max": [
+                0.93287,
+                0.29408,
+                1.78709
+              ],
+              "size": [
+                1.86574,
+                0.4265,
+                1.8361
+              ],
+              "center": [
+                -0.0,
+                0.08082,
+                0.86904
+              ]
+            },
+            "meshExploded": false,
+            "robeStretchedAcrossScene": false,
+            "bodyParts": [
+              {
+                "name": "head",
+                "vertexCount": 8762,
+                "present": true,
+                "bounds": {
+                  "min": [
+                    -0.16462,
+                    -0.08787,
+                    1.4038
+                  ],
+                  "max": [
+                    0.15741,
+                    0.26954,
+                    1.78709
+                  ],
+                  "size": [
+                    0.32202,
+                    0.35741,
+                    0.38329
+                  ],
+                  "center": [
+                    -0.00361,
+                    0.09084,
+                    1.59545
+                  ]
+                },
+                "distanceFromBodyCenter": 0.72648,
+                "reasonable": true
+              },
+              {
+                "name": "leftArm",
+                "vertexCount": 12343,
+                "present": true,
+                "bounds": {
+                  "min": [
+                    -0.05428,
+                    -0.0552,
+                    1.08173
+                  ],
+                  "max": [
+                    0.86379,
+                    0.29118,
+                    1.59515
+                  ],
+                  "size": [
+                    0.91807,
+                    0.34638,
+                    0.51342
+                  ],
+                  "center": [
+                    0.40476,
+                    0.11799,
+                    1.33844
+                  ]
+                },
+                "distanceFromBodyCenter": 0.62092,
+                "reasonable": true
+              },
+              {
+                "name": "rightArm",
+                "vertexCount": 8191,
+                "present": true,
+                "bounds": {
+                  "min": [
+                    -0.83233,
+                    -0.05548,
+                    1.15297
+                  ],
+                  "max": [
+                    -0.01545,
+                    0.27636,
+                    1.555
+                  ],
+                  "size": [
+                    0.81688,
+                    0.33183,
+                    0.40204
+                  ],
+                  "center": [
+                    -0.42389,
+                    0.11044,
+                    1.35399
+                  ]
+                },
+                "distanceFromBodyCenter": 0.64477,
+                "reasonable": true
+              },
+              {
+                "name": "leftLeg",
+                "vertexCount": 19378,
+                "present": true,
+                "bounds": {
+                  "min": [
+                    -0.21852,
+                    -0.13197,
+                    -0.04901
+                  ],
+                  "max": [
+                    0.29361,
+                    0.28806,
+                    1.34609
+                  ],
+                  "size": [
+                    0.51214,
+                    0.42003,
+                    1.3951
+                  ],
+                  "center": [
+                    0.03754,
+                    0.07805,
+                    0.64854
+                  ]
+                },
+                "distanceFromBodyCenter": 0.22369,
+                "reasonable": true
+              },
+              {
+                "name": "rightLeg",
+                "vertexCount": 16637,
+                "present": true,
+                "bounds": {
+                  "min": [
+                    -0.24771,
+                    -0.12866,
+                    -0.0489
+                  ],
+                  "max": [
+                    0.12058,
+                    0.2862,
+                    1.26007
+                  ],
+                  "size": [
+                    0.3683,
+                    0.41486,
+                    1.30897
+                  ],
+                  "center": [
+                    -0.06357,
+                    0.07877,
+                    0.60558
+                  ]
+                },
+                "distanceFromBodyCenter": 0.27103,
+                "reasonable": true
+              },
+              {
+                "name": "torso",
+                "vertexCount": 25066,
+                "present": true,
+                "bounds": {
+                  "min": [
+                    -0.37356,
+                    -0.0887,
+                    0.57759
+                  ],
+                  "max": [
+                    0.40371,
+                    0.29408,
+                    1.52949
+                  ],
+                  "size": [
+                    0.77727,
+                    0.38277,
+                    0.9519
+                  ],
+                  "center": [
+                    0.01508,
+                    0.10269,
+                    1.05354
+                  ]
+                },
+                "distanceFromBodyCenter": 0.18639,
+                "reasonable": true
+              }
+            ],
+            "bodyPartsReasonable": true
+          },
+          "passed": true
+        },
+        "depth": {
+          "sampleFrame": 32,
+          "restTorsoCenterZ": 1.09469,
+          "crouchTorsoCenterZ": 1.05354,
+          "torsoLowerDelta": 0.04115
+        },
+        "rootLocation": {
+          "x": {
+            "exists": true,
+            "min": 0.0,
+            "max": 0.0,
+            "start": 0.0,
+            "mid": 0.0,
+            "end": 0.0,
+            "keyCount": 61
+          },
+          "y": {
+            "exists": true,
+            "min": 0.0,
+            "max": 0.0,
+            "start": 0.0,
+            "mid": 0.0,
+            "end": 0.0,
+            "keyCount": 61
+          },
+          "z": {
+            "exists": true,
+            "min": 0.0,
+            "max": 0.0,
+            "start": 0.0,
+            "mid": 0.0,
+            "end": 0.0,
+            "keyCount": 61
+          }
+        },
+        "hipsLocation": {
+          "x": {
+            "exists": true,
+            "min": -4.62,
+            "max": 0.0,
+            "start": 0.0,
+            "mid": -4.62,
+            "end": -4.62,
+            "keyCount": 61
+          },
+          "y": {
+            "exists": true,
+            "min": -0.0,
+            "max": 0.0,
+            "start": -0.0,
+            "mid": 0.0,
+            "end": 0.0,
+            "keyCount": 61
+          },
+          "z": {
+            "exists": true,
+            "min": -0.0,
+            "max": -0.0,
+            "start": -0.0,
+            "mid": -0.0,
+            "end": -0.0,
+            "keyCount": 61
+          }
+        },
+        "animatedBoneCount": 80,
+        "fcurveCount": 809
+      }
+    }
+  ],
+  "exportedValidation": {
+    "importReport": {
+      "sourceActionName": "Socrates_MotusArmature_STAGE2_TEST.001|Scene",
+      "sourceFrameRange": [
+        2.0,
+        62.0
+      ],
+      "importedMeshesDeleted": [],
+      "importedArmaturesDeleted": [
+        {
+          "name": "Socrates_MotusArmature_STAGE2_TEST.001",
+          "boneCount": 80
+        }
+      ]
+    },
+    "validation": {
+      "clip": "proper_e_crouch_exported",
+      "minZ": -0.04901,
+      "minZFrame": 17,
+      "maxOfMinZ": -0.00282,
+      "maxOfMinZFrame": 2,
+      "minZOk": true,
+      "maxOfMinZOk": true,
+      "noFloating": true,
+      "noSinking": true,
+      "deformationReportAtWorstMinZ": {
+        "bounds": {
+          "min": [
+            -0.93287,
+            -0.13243,
+            -0.04901
+          ],
+          "max": [
+            0.93287,
+            0.29408,
+            1.78709
+          ],
+          "size": [
+            1.86574,
+            0.4265,
+            1.8361
+          ],
+          "center": [
+            -0.0,
+            0.08082,
+            0.86904
+          ]
+        },
+        "meshExploded": false,
+        "robeStretchedAcrossScene": false,
+        "bodyParts": [
+          {
+            "name": "head",
+            "vertexCount": 8762,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.16462,
+                -0.08787,
+                1.4038
+              ],
+              "max": [
+                0.15741,
+                0.26954,
+                1.78709
+              ],
+              "size": [
+                0.32202,
+                0.35741,
+                0.38329
+              ],
+              "center": [
+                -0.00361,
+                0.09084,
+                1.59545
+              ]
+            },
+            "distanceFromBodyCenter": 0.72648,
+            "reasonable": true
+          },
+          {
+            "name": "leftArm",
+            "vertexCount": 12343,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.05428,
+                -0.0552,
+                1.08173
+              ],
+              "max": [
+                0.86379,
+                0.29118,
+                1.59515
+              ],
+              "size": [
+                0.91807,
+                0.34638,
+                0.51342
+              ],
+              "center": [
+                0.40476,
+                0.11799,
+                1.33844
+              ]
+            },
+            "distanceFromBodyCenter": 0.62092,
+            "reasonable": true
+          },
+          {
+            "name": "rightArm",
+            "vertexCount": 8191,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.83233,
+                -0.05548,
+                1.15297
+              ],
+              "max": [
+                -0.01545,
+                0.27636,
+                1.555
+              ],
+              "size": [
+                0.81688,
+                0.33183,
+                0.40204
+              ],
+              "center": [
+                -0.42389,
+                0.11044,
+                1.35399
+              ]
+            },
+            "distanceFromBodyCenter": 0.64477,
+            "reasonable": true
+          },
+          {
+            "name": "leftLeg",
+            "vertexCount": 19378,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.21852,
+                -0.13197,
+                -0.04901
+              ],
+              "max": [
+                0.29361,
+                0.28806,
+                1.34609
+              ],
+              "size": [
+                0.51214,
+                0.42003,
+                1.3951
+              ],
+              "center": [
+                0.03754,
+                0.07805,
+                0.64854
+              ]
+            },
+            "distanceFromBodyCenter": 0.22369,
+            "reasonable": true
+          },
+          {
+            "name": "rightLeg",
+            "vertexCount": 16637,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.24771,
+                -0.12866,
+                -0.0489
+              ],
+              "max": [
+                0.12058,
+                0.2862,
+                1.26007
+              ],
+              "size": [
+                0.3683,
+                0.41486,
+                1.30897
+              ],
+              "center": [
+                -0.06357,
+                0.07877,
+                0.60558
+              ]
+            },
+            "distanceFromBodyCenter": 0.27103,
+            "reasonable": true
+          },
+          {
+            "name": "torso",
+            "vertexCount": 25066,
+            "present": true,
+            "bounds": {
+              "min": [
+                -0.37356,
+                -0.0887,
+                0.57759
+              ],
+              "max": [
+                0.40371,
+                0.29408,
+                1.52949
+              ],
+              "size": [
+                0.77727,
+                0.38277,
+                0.9519
+              ],
+              "center": [
+                0.01508,
+                0.10269,
+                1.05354
+              ]
+            },
+            "distanceFromBodyCenter": 0.18639,
+            "reasonable": true
+          }
+        ],
+        "bodyPartsReasonable": true
+      },
+      "passed": true
+    },
+    "depth": {
+      "sampleFrame": 32,
+      "restTorsoCenterZ": 1.09469,
+      "crouchTorsoCenterZ": 1.05354,
+      "torsoLowerDelta": 0.04115
+    },
+    "rootLocation": {
+      "x": {
+        "exists": true,
+        "min": 0.0,
+        "max": 0.0,
+        "start": 0.0,
+        "mid": 0.0,
+        "end": 0.0,
+        "keyCount": 61
+      },
+      "y": {
+        "exists": true,
+        "min": 0.0,
+        "max": 0.0,
+        "start": 0.0,
+        "mid": 0.0,
+        "end": 0.0,
+        "keyCount": 61
+      },
+      "z": {
+        "exists": true,
+        "min": 0.0,
+        "max": 0.0,
+        "start": 0.0,
+        "mid": 0.0,
+        "end": 0.0,
+        "keyCount": 61
+      }
+    },
+    "hipsLocation": {
+      "x": {
+        "exists": true,
+        "min": -4.62,
+        "max": 0.0,
+        "start": 0.0,
+        "mid": -4.62,
+        "end": -4.62,
+        "keyCount": 61
+      },
+      "y": {
+        "exists": true,
+        "min": -0.0,
+        "max": 0.0,
+        "start": -0.0,
+        "mid": 0.0,
+        "end": 0.0,
+        "keyCount": 61
+      },
+      "z": {
+        "exists": true,
+        "min": -0.0,
+        "max": -0.0,
+        "start": -0.0,
+        "mid": -0.0,
+        "end": -0.0,
+        "keyCount": 61
+      }
+    },
+    "animatedBoneCount": 80,
+    "fcurveCount": 809
+  },
+  "rigReport": {
+    "meshCount": 1,
+    "armatureCount": 1,
+    "boneCount": 80,
+    "meshVisible": true,
+    "armatureModifier": true,
+    "armatureModifierTarget": "Socrates_MotusArmature_STAGE2_TEST",
+    "vertexGroupCount": 65,
+    "weightedMotusVertexGroupCount": 65
+  },
+  "textureReport": {
+    "seen": [
+      "texture_diffuse.png",
+      "texture_metallic.png",
+      "texture_normal.png",
+      "texture_roughness.png"
+    ],
+    "expected": [
+      "texture_diffuse.png",
+      "texture_metallic.png",
+      "texture_normal.png",
+      "texture_roughness.png"
+    ],
+    "allExpectedSeen": true,
+    "connected": {
+      "texture_normal.png": true,
+      "texture_metallic.png": true,
+      "texture_diffuse.png": true,
+      "texture_roughness.png": true
+    },
+    "allExpectedConnected": true
+  },
+  "render": "C:\\Users\\ujjaw\\Music\\multiply vs 1 anti gravity ver\\multiply vs 1\\New folder\\assets\\characters\\character-04\\validation\\stage5a\\socrates_proper_e_crouch.png",
+  "passed": true
+}
