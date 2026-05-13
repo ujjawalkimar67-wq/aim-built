@@ -20,9 +20,14 @@
 
 /* Reference-style main settings reskin. Excludes the compact camera preview panel. */
 #settings-menu:not(.camera-preview-panel) {
-  width: min(88vw, 1440px);
-  height: min(88vh, 840px);
-  max-height: calc(100dvh - 48px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 1500px);
+  height: min(86vh, 900px);
+  max-width: 96vw;
+  max-height: 92vh;
+  min-height: 0;
   padding: 0;
   overflow: hidden;
   border: 1px solid rgba(188, 196, 188, 0.82);
@@ -64,6 +69,8 @@ body.home-settings-view-open .home-settings-shell {
 #settings-menu:not(.camera-preview-panel) .settings-root,
 #settings-menu:not(.camera-preview-panel) .settings-shell {
   display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -77,10 +84,11 @@ body.home-settings-view-open .home-settings-shell {
 #settings-menu:not(.camera-preview-panel) .settings-shell-header {
   position: relative;
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
-  justify-content: center;
-  min-height: 72px;
-  padding: 0 340px;
+  justify-content: flex-start;
+  min-height: clamp(48px, 8vh, 72px);
+  padding: 0 clamp(260px, 28vw, 340px) 0 clamp(16px, 3vw, 32px);
   border: 0;
   border-bottom: 4px solid rgba(30, 104, 54, 0.9);
   border-radius: 3px 3px 0 0;
@@ -90,17 +98,17 @@ body.home-settings-view-open .home-settings-shell {
 
 #settings-menu:not(.camera-preview-panel) .settings-title-block {
   min-width: 0;
-  text-align: center;
+  text-align: left;
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-title-block h2 {
   margin: 0;
   color: #171917;
-  font-size: 26px;
+  font-size: clamp(18px, 2vw, 26px);
   font-weight: 900;
   line-height: 1;
   letter-spacing: 0;
-  text-align: center;
+  text-align: left;
   text-transform: uppercase;
 }
 
@@ -110,27 +118,27 @@ body.home-settings-view-open .home-settings-shell {
 
 #settings-menu:not(.camera-preview-panel) .settings-shell-header-actions {
   position: absolute;
-  right: 20px;
+  right: clamp(8px, 1.5vw, 20px);
   top: 50%;
   display: flex;
   width: auto;
   align-items: center;
-  gap: 11px;
+  gap: clamp(4px, 1vw, 11px);
   transform: translateY(-50%);
 }
 
 #settings-menu:not(.camera-preview-panel) #settings-home-button,
 #settings-menu:not(.camera-preview-panel) #settings-fullscreen-button,
 #settings-menu:not(.camera-preview-panel) #settings-menu-close-button {
-  min-width: 96px;
+  min-width: clamp(54px, 6vw, 96px);
   min-height: 0;
-  height: 46px;
-  padding: 0 24px;
+  height: clamp(34px, 4.5vh, 46px);
+  padding: 0 clamp(8px, 1.5vw, 24px);
   border: 1px solid rgba(22, 28, 23, 0.28);
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.88);
   color: #161a17;
-  font-size: 16px;
+  font-size: clamp(12px, 1.2vw, 16px);
   font-weight: 800;
   letter-spacing: 0;
   box-shadow:
@@ -139,12 +147,12 @@ body.home-settings-view-open .home-settings-shell {
 }
 
 #settings-menu:not(.camera-preview-panel) #settings-fullscreen-button {
-  min-width: 132px;
+  min-width: clamp(70px, 8vw, 132px);
 }
 
 #settings-menu:not(.camera-preview-panel) #settings-menu-close-button {
-  width: 58px;
-  min-width: 58px;
+  width: clamp(40px, 4vw, 58px);
+  min-width: clamp(40px, 4vw, 58px);
   padding: 0;
 }
 
@@ -161,20 +169,22 @@ body.home-settings-view-open .home-settings-shell {
 
 #settings-menu:not(.camera-preview-panel) .settings-main,
 #settings-menu:not(.camera-preview-panel) .settings-shell-body {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   padding: 10px;
   overflow: hidden;
   background: #060907;
+  display: flex;
+  flex-direction: column;
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-content,
 #settings-menu:not(.camera-preview-panel) .settings-tabs-content,
 #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tabs-content {
   display: grid;
-  grid-template-columns: minmax(300px, 29%) minmax(0, 1fr);
-  grid-auto-rows: min-content;
-  column-gap: 10px;
+  grid-template-columns: clamp(180px, 26%, 340px) minmax(0, 1fr);
+  column-gap: clamp(12px, 2vw, 28px);
   row-gap: 0;
   width: 100%;
   height: 100%;
@@ -182,10 +192,15 @@ body.home-settings-view-open .home-settings-shell {
   max-height: none;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  pointer-events: auto;
+  z-index: 10;
   border: 0;
   background: transparent;
   scrollbar-gutter: auto;
+  touch-action: pan-y;
+  align-items: start;
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-accordion-section {
@@ -197,22 +212,23 @@ body.home-settings-view-open .home-settings-shell {
   grid-column: 1;
   width: 100%;
   min-width: 0;
-  min-height: 58px;
+  min-height: clamp(44px, 6.5vh, 58px);
   margin: 0;
-  padding: 0 18px;
+  padding: 0 clamp(8px, 1.5vw, 18px);
   border: 0;
   border-right: 1px solid rgba(112, 121, 114, 0.62);
   border-bottom: 1px solid rgba(112, 121, 114, 0.48);
   border-radius: 0;
   background: linear-gradient(180deg, rgba(15, 20, 18, 0.98), rgba(10, 15, 13, 0.98));
   color: #f2f5f1;
-  font-size: 22px;
+  font-size: clamp(14px, 1.6vw, 22px);
   font-weight: 500;
   line-height: 1.1;
   letter-spacing: 0;
   text-align: left;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
   box-shadow: none;
+  position: relative;
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-button:first-child,
@@ -246,16 +262,24 @@ body.home-settings-view-open .home-settings-shell {
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel,
 #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel {
   grid-column: 2;
-  grid-row: 1 / span 12;
+  grid-row: 1 / span 40;
+  position: sticky;
+  top: 0;
+  z-index: 5;
   width: 100%;
-  height: 100%;
+  height: calc(min(86vh, 900px) - 140px);
   min-height: 0;
-  max-height: none;
+  max-height: 100%;
   margin: 0;
-  padding: 12px 16px 54px;
+  padding: 12px 16px 24px;
+  box-sizing: border-box;
   overflow-x: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.75) rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(112, 121, 114, 0.72);
   border-radius: 3px;
   background:
@@ -266,6 +290,7 @@ body.home-settings-view-open .home-settings-shell {
     inset 0 0 30px rgba(0, 0, 0, 0.32);
   visibility: visible;
   opacity: 1;
+  inset: auto;
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel:not(.is-active),
@@ -280,20 +305,37 @@ body.home-settings-view-open .home-settings-shell {
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.25);
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(112, 121, 114, 0.8);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel.settings-scroll-hint-active::before {
+  content: "";
+  position: sticky;
+  top: 8px;
+  right: 2px;
+  z-index: 4;
+  display: block;
+  float: right;
+  width: 4px;
+  height: 44px;
+  margin: 0 2px -44px auto;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28), 0 0 10px rgba(255, 255, 255, 0.18);
+  pointer-events: none;
 }
 
 #settings-menu:not(.camera-preview-panel) #settings-panel-graphics .settings-panel-copy,
-#settings-menu:not(.camera-preview-panel) #graphics-settings-section > h3,
+#settings-menu:not(.camera-preview-panel) #graphics-settings-section>h3,
 #settings-menu:not(.camera-preview-panel) #graphics-settings-subtitle {
   display: none;
 }
@@ -338,7 +380,7 @@ body.home-settings-view-open .home-settings-shell {
   margin-top: 12px;
 }
 
-#settings-menu:not(.camera-preview-panel) .settings-card + .settings-card {
+#settings-menu:not(.camera-preview-panel) .settings-card+.settings-card {
   margin-top: 0;
 }
 
@@ -380,9 +422,9 @@ body.home-settings-view-open .home-settings-shell {
   box-shadow: none;
 }
 
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span {
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field>span:not(.menu-field-split),
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check>span,
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>span {
   grid-column: 1;
   color: #f3f5f2;
   font-size: 22px;
@@ -397,7 +439,7 @@ body.home-settings-view-open .home-settings-shell {
   display: contents;
 }
 
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split>span {
   grid-column: 1;
   color: #f3f5f2;
   font-size: 20px;
@@ -409,7 +451,7 @@ body.home-settings-view-open .home-settings-shell {
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>strong {
   grid-column: 3;
   justify-self: end;
   min-width: 54px;
@@ -475,7 +517,7 @@ body.home-settings-view-open .home-settings-shell {
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field select,
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field input:not([type="range"]):not([type="checkbox"]),
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-container + select {
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-container+select {
   grid-column: 2 / 4;
   justify-self: end;
   width: min(260px, 100%);
@@ -621,6 +663,7 @@ body.home-settings-view-open .home-settings-shell {
 }
 
 @media (max-width: 980px) and (min-width: 761px) {
+
   #settings-menu:not(.camera-preview-panel) .settings-header,
   #settings-menu:not(.camera-preview-panel) .settings-shell-header {
     min-height: 64px;
@@ -668,27 +711,32 @@ body.home-settings-view-open .home-settings-shell {
     font-size: 17px;
   }
 
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field>span:not(.menu-field-split),
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split>span {
     font-size: 18px;
   }
 
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>strong {
     font-size: 17px;
   }
 }
 
 @media (max-width: 760px) {
   #settings-menu:not(.camera-preview-panel) {
+    display: flex;
+    flex-direction: column;
     width: calc(100vw - 14px);
     width: calc(100dvw - 14px);
-    height: min(88vh, 740px);
-    height: min(88dvh, 740px);
-    max-height: calc(100dvh - 14px);
+    height: 88vh;
+    height: 88dvh;
+    max-height: 88vh;
+    max-height: 88dvh;
+    min-height: 0;
+    overflow: hidden;
   }
 
   #settings-menu.home-page-settings-panel:not(.camera-preview-panel) {
@@ -723,7 +771,13 @@ body.home-settings-view-open .home-settings-shell {
 
   #settings-menu:not(.camera-preview-panel) #settings-home-button,
   #settings-menu:not(.camera-preview-panel) #settings-fullscreen-button {
-    display: none;
+    display: inline-flex;
+    min-width: 54px;
+    height: 34px;
+    padding: 0 8px;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
   }
 
   #settings-menu:not(.camera-preview-panel) .settings-main,
@@ -747,7 +801,7 @@ body.home-settings-view-open .home-settings-shell {
 
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel,
   #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel {
-    padding: 6px 8px 58px;
+    padding: 6px 8px 16px;
   }
 
   #settings-menu:not(.camera-preview-panel) .settings-card h4,
@@ -772,10 +826,10 @@ body.home-settings-view-open .home-settings-shell {
     padding: 8px 2px;
   }
 
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field>span:not(.menu-field-split),
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split>span {
     grid-column: 1 / -1;
     font-size: 14px;
   }
@@ -787,7 +841,7 @@ body.home-settings-view-open .home-settings-shell {
 
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>strong {
     grid-column: 2;
     font-size: 13px;
   }
@@ -812,9 +866,28 @@ body.home-settings-view-open .home-settings-shell {
 
   #settings-menu:not(.camera-preview-panel) .settings-footer,
   #settings-menu:not(.camera-preview-panel) .settings-shell-footer {
-    min-height: 42px;
-    padding: 6px;
+    display: none !important;
+    min-height: 0;
+    height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-footer,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-shell-footer {
+  display: none !important;
+  min-height: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel,
+body.device-mode-phone #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel {
+  padding-bottom: 16px;
 }
 
 /* Settings size polish pass: larger panel and stronger white top controls. */
@@ -939,16 +1012,16 @@ body.home-settings-view-open .home-settings-shell {
   padding: 9px 8px;
 }
 
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span,
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field>span:not(.menu-field-split),
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check>span,
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>span,
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split>span {
   font-size: 22px;
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>strong {
   font-size: 20px;
 }
 
@@ -966,6 +1039,7 @@ body.home-settings-view-open .home-settings-shell {
 }
 
 @media (max-width: 980px) and (min-width: 761px) {
+
   #settings-menu:not(.camera-preview-panel) .settings-header,
   #settings-menu:not(.camera-preview-panel) .settings-shell-header {
     min-height: 64px;
@@ -1013,21 +1087,21 @@ body.home-settings-view-open .home-settings-shell {
     font-size: 17px;
   }
 
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field>span:not(.menu-field-split),
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split>span {
     font-size: 18px;
   }
 
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>strong {
     font-size: 17px;
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (max-height: 500px) {
   body.home-settings-view-open #home-settings-view {
     width: 100%;
     height: 100%;
@@ -1042,6 +1116,354 @@ body.home-settings-view-open .home-settings-shell {
   #settings-menu:not(.camera-preview-panel) .settings-shell-header {
     padding: 0 44px;
   }
+
+  /* Comprehensive mobile landscape settings width and uncramped panel override */
+  #settings-menu:not(.camera-preview-panel) {
+    width: 96vw !important;
+    max-width: 96vw !important;
+    height: 88vh !important;
+    height: 88dvh !important;
+    max-height: 88vh !important;
+    max-height: 88dvh !important;
+    box-sizing: border-box !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-main,
+  #settings-menu:not(.camera-preview-panel) .settings-shell-body {
+    position: relative !important;
+    display: block !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-content,
+  #settings-menu:not(.camera-preview-panel) .settings-tabs-content,
+  #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tabs-content {
+    display: block !important;
+    width: clamp(140px, 28vw, 260px) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    overscroll-behavior: contain !important;
+    border-right: 1px solid rgba(112, 121, 114, 0.4) !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(255, 255, 255, 0.65) rgba(0, 0, 0, 0.25) !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-content::-webkit-scrollbar,
+  #settings-menu:not(.camera-preview-panel) .settings-tabs-content::-webkit-scrollbar {
+    width: 5px !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-content::-webkit-scrollbar-thumb,
+  #settings-menu:not(.camera-preview-panel) .settings-tabs-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.65) !important;
+    border-radius: 999px !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-content::-webkit-scrollbar-track,
+  #settings-menu:not(.camera-preview-panel) .settings-tabs-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.25) !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-button,
+  #settings-menu:not(.camera-preview-panel) .settings-accordion-button {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 48px !important;
+    box-sizing: border-box !important;
+    margin: 0 0 2px 0 !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel.is-active,
+  #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel.is-active {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: clamp(140px, 28vw, 260px) !important;
+    width: auto !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+    padding: 16px 20px 20px 20px !important;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-card h4,
+  #settings-menu:not(.camera-preview-panel) .mobile-settings-card h4,
+  #settings-menu:not(.camera-preview-panel) #mobile-controls-settings-section h3,
+  #settings-menu:not(.camera-preview-panel) #mobile-layout-settings-section h3,
+  #settings-menu:not(.camera-preview-panel) #lan-multiplayer-menu h3 {
+    margin-right: -20px !important;
+    margin-left: -20px !important;
+    padding: 12px 20px !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-empty-state,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .lan-status-text {
+    display: grid !important;
+    grid-template-columns: minmax(min(150px, 100%), 0.9fr) minmax(min(180px, 100%), 1.3fr) !important;
+    gap: 12px !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 8px 0 !important;
+    margin: 0 0 8px 0 !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    justify-self: stretch !important;
+    text-align: left !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check input[type="checkbox"] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: end !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-container {
+    display: contents !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel input[type="range"] {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    min-width: min(160px, 100%) !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 4px !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: end !important;
+    font-size: 14px !important;
+    min-width: auto !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field select,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field input:not([type="range"]):not([type="checkbox"]) {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: stretch !important;
+    max-width: 100% !important;
+    min-width: min(120px, 100%) !important;
+    width: 100% !important;
+    font-size: 13px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-footer,
+  #settings-menu:not(.camera-preview-panel) .settings-shell-footer {
+    display: none !important;
+  }
+}
+
+/* Also apply robust uncramping rules when body.device-mode-phone is active */
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) {
+  width: 96vw !important;
+  max-width: 96vw !important;
+  height: 88vh !important;
+  height: 88dvh !important;
+  max-height: 88vh !important;
+  max-height: 88dvh !important;
+  box-sizing: border-box !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-main,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-shell-body {
+  position: relative !important;
+  display: block !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-content,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tabs-content,
+body.device-mode-phone #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tabs-content {
+  display: block !important;
+  width: clamp(140px, 28vw, 260px) !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  overscroll-behavior: contain !important;
+  border-right: 1px solid rgba(112, 121, 114, 0.4) !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.65) rgba(0, 0, 0, 0.25) !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-content::-webkit-scrollbar,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tabs-content::-webkit-scrollbar {
+  width: 5px !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-content::-webkit-scrollbar-thumb,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tabs-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border-radius: 999px !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-content::-webkit-scrollbar-track,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tabs-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-button,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-accordion-button {
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 48px !important;
+  box-sizing: border-box !important;
+  margin: 0 0 2px 0 !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel.is-active,
+body.device-mode-phone #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel.is-active {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: clamp(140px, 28vw, 260px) !important;
+  width: auto !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  padding: 16px 20px 20px 20px !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-card h4,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .mobile-settings-card h4,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) #mobile-controls-settings-section h3,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) #mobile-layout-settings-section h3,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) #lan-multiplayer-menu h3 {
+  margin-right: -20px !important;
+  margin-left: -20px !important;
+  padding: 12px 20px !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-empty-state,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .lan-status-text {
+  display: grid !important;
+  grid-template-columns: minmax(min(150px, 100%), 0.9fr) minmax(min(180px, 100%), 1.3fr) !important;
+  gap: 12px !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 8px 0 !important;
+  margin: 0 0 8px 0 !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  justify-self: stretch !important;
+  text-align: left !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check input[type="checkbox"] {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-container {
+  display: contents !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel input[type="range"] {
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+  width: 100% !important;
+  min-width: min(160px, 100%) !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin-top: 4px !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  font-size: 14px !important;
+  min-width: auto !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field select,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field input:not([type="range"]):not([type="checkbox"]) {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: stretch !important;
+  max-width: 100% !important;
+  min-width: min(120px, 100%) !important;
+  width: 100% !important;
+  font-size: 13px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-footer,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-shell-footer {
+  display: none !important;
 }
 
 * {
@@ -1847,7 +2269,8 @@ body.main-menu-open #hud.settings-open #settings-menu .home-camera-preview-entry
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  display: none; /* Hidden by default */
+  display: none;
+  /* Hidden by default */
   flex-direction: column;
   align-items: center;
   gap: 8px;
@@ -4342,10 +4765,12 @@ text-transform: uppercase;
   border-radius: 50%;
   transform: scale(var(--scope-size-scale, 1));
   /* Thick Optic Housing Frame */
-  box-shadow: 
-    0 0 0 35px #111,         /* Outer heavy housing */
-    inset 0 0 0 10px #222,   /* Inner lens rim */
-    0 0 80px rgba(0,0,0,0.9);
+  box-shadow:
+    0 0 0 35px #111,
+    /* Outer heavy housing */
+    inset 0 0 0 10px #222,
+    /* Inner lens rim */
+    0 0 80px rgba(0, 0, 0, 0.9);
   border: 5px solid #2a2a2a;
 }
 
@@ -4357,7 +4782,7 @@ text-transform: uppercase;
   overflow: hidden;
   /* Subtle glass lens effect */
   background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
-  box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
 }
 
 .scope-reticle {
@@ -4369,7 +4794,8 @@ text-transform: uppercase;
 
 .reticle-line {
   position: absolute;
-  background: var(--scope-crosshair-color, #ffffff); /* Custom Scope Color */
+  background: var(--scope-crosshair-color, #ffffff);
+  /* Custom Scope Color */
   box-shadow: 0 0 4px var(--scope-crosshair-color, #ffffff);
   opacity: 0.8;
 }
@@ -4407,7 +4833,7 @@ text-transform: uppercase;
   height: 40px;
   border-radius: 6px 6px 0 0;
   background: linear-gradient(to bottom, #222, #111);
-  box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+  box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
 }
 
 .scope-bottom {
@@ -4416,8 +4842,9 @@ text-transform: uppercase;
   height: 50px;
   border-radius: 0 0 10px 10px;
   background: linear-gradient(to top, #222, #111);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
 }
+
 /* Aim Training Stats HUD */
 #aim-training-stats-hud {
   position: fixed;
@@ -5282,9 +5709,12 @@ text-transform: uppercase;
 
 /* Final cascade position for the reference-style main settings reskin. */
 #settings-menu:not(.camera-preview-panel) {
+  display: flex;
+  flex-direction: column;
   width: min(88vw, 1440px);
   height: min(88vh, 840px);
   max-height: calc(100dvh - 48px);
+  min-height: 0;
   padding: 0;
   overflow: hidden;
   border: 1px solid rgba(188, 196, 188, 0.82);
@@ -5326,6 +5756,8 @@ body.home-settings-view-open .home-settings-shell {
 #settings-menu:not(.camera-preview-panel) .settings-root,
 #settings-menu:not(.camera-preview-panel) .settings-shell {
   display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -5435,7 +5867,9 @@ body.home-settings-view-open .home-settings-shell {
 #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tabs-content {
   display: grid;
   grid-template-columns: minmax(300px, 29%) minmax(0, 1fr);
-  grid-auto-rows: min-content;
+  grid-template-rows: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  align-items: stretch;
   column-gap: 10px;
   row-gap: 0;
   width: 100%;
@@ -5506,8 +5940,10 @@ body.home-settings-view-open .home-settings-shell {
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel,
 #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel {
+  position: relative;
   grid-column: 2;
   grid-row: 1 / span 12;
+  flex: 1 1 auto;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -5515,8 +5951,12 @@ body.home-settings-view-open .home-settings-shell {
   margin: 0;
   padding: 12px 16px 54px;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.75) rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(112, 121, 114, 0.72);
   border-radius: 3px;
   background:
@@ -5541,20 +5981,37 @@ body.home-settings-view-open .home-settings-shell {
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.25);
 }
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(112, 121, 114, 0.8);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel.settings-scroll-hint-active::before {
+  content: "";
+  position: sticky;
+  top: 8px;
+  right: 2px;
+  z-index: 4;
+  display: block;
+  float: right;
+  width: 4px;
+  height: 44px;
+  margin: 0 2px -44px auto;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28), 0 0 10px rgba(255, 255, 255, 0.18);
+  pointer-events: none;
 }
 
 #settings-menu:not(.camera-preview-panel) #settings-panel-graphics .settings-panel-copy,
-#settings-menu:not(.camera-preview-panel) #graphics-settings-section > h3,
+#settings-menu:not(.camera-preview-panel) #graphics-settings-section>h3,
 #settings-menu:not(.camera-preview-panel) #graphics-settings-subtitle {
   display: none;
 }
@@ -5599,7 +6056,7 @@ body.home-settings-view-open .home-settings-shell {
   margin-top: 12px;
 }
 
-#settings-menu:not(.camera-preview-panel) .settings-card + .settings-card {
+#settings-menu:not(.camera-preview-panel) .settings-card+.settings-card {
   margin-top: 0;
 }
 
@@ -5641,10 +6098,10 @@ body.home-settings-view-open .home-settings-shell {
   box-shadow: none;
 }
 
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span,
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field>span:not(.menu-field-split),
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check>span,
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>span,
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split>span {
   grid-column: 1;
   color: #f3f5f2;
   font-size: 22px;
@@ -5661,7 +6118,7 @@ body.home-settings-view-open .home-settings-shell {
 
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
 #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
-#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+#settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>strong {
   grid-column: 3;
   justify-self: end;
   min-width: 54px;
@@ -5872,6 +6329,7 @@ body.home-settings-view-open .home-settings-shell {
 }
 
 @media (max-width: 980px) and (min-width: 761px) {
+
   #settings-menu:not(.camera-preview-panel) .settings-header,
   #settings-menu:not(.camera-preview-panel) .settings-shell-header {
     min-height: 64px;
@@ -5906,12 +6364,6 @@ body.home-settings-view-open .home-settings-shell {
     padding: 0;
   }
 
-  #settings-menu:not(.camera-preview-panel) .settings-content,
-  #settings-menu:not(.camera-preview-panel) .settings-tabs-content,
-  #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tabs-content {
-    grid-template-columns: minmax(220px, 32%) minmax(0, 1fr);
-  }
-
   #settings-menu:not(.camera-preview-panel) .settings-tab-button,
   #settings-menu:not(.camera-preview-panel) .settings-accordion-button {
     min-height: 50px;
@@ -5919,27 +6371,32 @@ body.home-settings-view-open .home-settings-shell {
     font-size: 17px;
   }
 
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field>span:not(.menu-field-split),
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split>span {
     font-size: 18px;
   }
 
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>strong {
     font-size: 17px;
   }
 }
 
 @media (max-width: 760px) {
   #settings-menu:not(.camera-preview-panel) {
+    display: flex;
+    flex-direction: column;
     width: calc(100vw - 14px);
     width: calc(100dvw - 14px);
-    height: min(88vh, 740px);
-    height: min(88dvh, 740px);
-    max-height: calc(100dvh - 14px);
+    height: 88vh;
+    height: 88dvh;
+    max-height: 88vh;
+    max-height: 88dvh;
+    min-height: 0;
+    overflow: hidden;
   }
 
   #settings-menu.home-page-settings-panel:not(.camera-preview-panel) {
@@ -5985,8 +6442,9 @@ body.home-settings-view-open .home-settings-shell {
   #settings-menu:not(.camera-preview-panel) .settings-content,
   #settings-menu:not(.camera-preview-panel) .settings-tabs-content,
   #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tabs-content {
-    grid-template-columns: minmax(126px, 35%) minmax(0, 1fr);
-    column-gap: 6px;
+    grid-template-columns: clamp(140px, 28vw, 260px) minmax(0, 1fr);
+    gap: 8px;
+    width: 100%;
   }
 
   #settings-menu:not(.camera-preview-panel) .settings-tab-button,
@@ -5998,7 +6456,10 @@ body.home-settings-view-open .home-settings-shell {
 
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel,
   #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel {
-    padding: 6px 8px 58px;
+    height: calc(88vh - 72px);
+    height: calc(88dvh - 72px);
+    padding: 6px 8px 16px;
+    inset: auto;
   }
 
   #settings-menu:not(.camera-preview-panel) .settings-card h4,
@@ -6023,10 +6484,10 @@ body.home-settings-view-open .home-settings-shell {
     padding: 8px 2px;
   }
 
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field > span:not(.menu-field-split),
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > span,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split > span {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field>span:not(.menu-field-split),
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-check>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>span,
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-split>span {
     grid-column: 1 / -1;
     font-size: 14px;
   }
@@ -6038,7 +6499,7 @@ body.home-settings-view-open .home-settings-shell {
 
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-field-value,
   #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-value,
-  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row > strong {
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel .settings-readout-row>strong {
     grid-column: 2;
     font-size: 13px;
   }
@@ -6065,5 +6526,145 @@ body.home-settings-view-open .home-settings-shell {
   #settings-menu:not(.camera-preview-panel) .settings-shell-footer {
     min-height: 42px;
     padding: 6px;
+  }
+}
+
+/* ============================================================
+   MOBILE SETTINGS SCROLL FIX 001
+   Root cause: #game canvas has touch-action: none which kills
+   all touch scroll inside overlay panels on phone mode.
+   Fix: Give the settings panel explicit touch-action: pan-y so
+   the browser allows vertical swipe scroll inside it.
+   Range sliders get touch-action: none (need horizontal drag).
+   Buttons/checkboxes/selects get touch-action: manipulation.
+   ============================================================ */
+
+#hud.settings-open #settings-menu:not(.camera-preview-panel) {
+  touch-action: pan-y;
+}
+
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-root,
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-shell,
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-main,
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-shell-body,
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-content,
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tabs-content {
+  touch-action: pan-y;
+}
+
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-panel,
+#hud.settings-open #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior-y: contain;
+}
+
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-panel label {
+  touch-action: pan-y;
+}
+
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-button,
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-accordion-button,
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-panel button,
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-panel select,
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-panel input[type="checkbox"],
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-panel input:not([type="range"]) {
+  touch-action: manipulation;
+}
+
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-panel input[type="range"],
+#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-panel .menu-slider-container input[type="range"] {
+  touch-action: none;
+}
+
+#home-settings-view .settings-tab-panel {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+
+#home-settings-view .settings-tab-panel label {
+  touch-action: pan-y;
+}
+
+#home-settings-view .settings-tab-panel input[type="range"] {
+  touch-action: none;
+}
+
+#home-settings-view .settings-tab-panel button,
+#home-settings-view .settings-tab-panel select,
+#home-settings-view .settings-tab-panel input[type="checkbox"] {
+  touch-action: manipulation;
+}
+
+/* END MOBILE SETTINGS SCROLL FIX 001 */
+
+/* SETTINGS FOOTER REMOVE PHONE 001 */
+@media (max-width: 760px) {
+
+  #settings-menu:not(.camera-preview-panel) #settings-home-button,
+  #settings-menu:not(.camera-preview-panel) #settings-fullscreen-button {
+    display: inline-flex !important;
+    min-width: 54px;
+    height: 34px;
+    padding: 0 8px;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-panel,
+  #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel {
+    padding-bottom: 16px;
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-footer,
+  #settings-menu:not(.camera-preview-panel) .settings-shell-footer {
+    display: none !important;
+    min-height: 0;
+    height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-footer,
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-shell-footer {
+  display: none !important;
+  min-height: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+body.device-mode-phone #settings-menu:not(.camera-preview-panel) .settings-tab-panel,
+body.device-mode-phone #settings-menu.home-page-settings-panel:not(.camera-preview-panel) .settings-tab-panel {
+  padding-bottom: 16px;
+}
+
+/* ============================================================
+   SETTINGS LEFT MENU FULLSCREEN SPACING FIX 012
+   Goal: Allow left category rows to breathe proportionally
+   when rendered on high-resolution/fullscreen desktop viewports.
+   ============================================================ */
+@media (min-width: 900px) and (min-height: 720px) {
+  #settings-menu:not(.camera-preview-panel) .settings-content,
+  #settings-menu:not(.camera-preview-panel) .settings-tabs-content {
+    row-gap: clamp(2px, 0.4vh, 8px);
+  }
+
+  #settings-menu:not(.camera-preview-panel) .settings-tab-button,
+  #settings-menu:not(.camera-preview-panel) .settings-accordion-button {
+    min-height: clamp(42px, 5.2vh, 62px);
+    padding-top: clamp(10px, 1.2vh, 18px);
+    padding-bottom: clamp(10px, 1.2vh, 18px);
   }
 }

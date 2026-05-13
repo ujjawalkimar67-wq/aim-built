@@ -658,6 +658,8 @@ window.onload = () => {
   const graphicsShadowQualitySelect = document.getElementById("graphics-shadow-quality-select");
   const graphicsRenderDistanceInput = document.getElementById("graphics-render-distance-input");
   const graphicsRenderDistanceValue = document.getElementById("graphics-render-distance-value");
+  const graphicsLodStrengthInput = document.getElementById("graphics-lod-strength-input");
+  const graphicsLodStrengthValue = document.getElementById("graphics-lod-strength-value");
   const graphicsEffectQualitySelect = document.getElementById("graphics-effect-quality-select");
   const cloudDensityInput = document.getElementById("cloud-density-input");
   const cloudDensityValue = document.getElementById("cloud-density-value");
@@ -2431,6 +2433,523 @@ window.onload = () => {
     };
   }
 
+  function getSettingsSourceTracePayload() {
+    return {
+      htmlOuterSelector: "#settings-menu.menu-panel[data-scrollable-menu=\"true\"]",
+      htmlHeaderSelector: "#settings-menu .settings-header.settings-shell-header",
+      htmlTabSelector: "#settings-menu .settings-content .settings-tab-button[data-settings-tab]",
+      htmlBodySelector: "#settings-menu .settings-main.settings-shell-body",
+      graphicsPanelSelector: "#settings-panel-graphics.settings-tab-panel[data-settings-tab-panel=\"graphics\"]",
+      openFunctionName: "setSettingsMenuOpen",
+      mobileButtonHandlerName: "executeMobileHudAction('settings')",
+      cssRulesTouched: [
+        "#settings-menu:not(.camera-preview-panel)",
+        "#settings-menu:not(.camera-preview-panel) .settings-root",
+        "#settings-menu:not(.camera-preview-panel) .settings-shell-body",
+        "#settings-menu:not(.camera-preview-panel) .settings-content",
+        "#settings-menu:not(.camera-preview-panel) .settings-tab-panel",
+        "#hud.settings-open #settings-menu:not(.camera-preview-panel) .settings-tab-panel"
+      ]
+    };
+  }
+
+  function logSettingsPageSourceTrace() {
+    console.log("[SETTINGS PAGE SOURCE TRACE 001]", getSettingsSourceTracePayload());
+  }
+
+  function getSettingsScrollDiagnosticForElement(selector, element) {
+    if (!(element instanceof HTMLElement)) {
+      return {
+        selector,
+        id: "",
+        className: "",
+        scrollHeight: 0,
+        clientHeight: 0,
+        offsetHeight: 0,
+        canScroll: false,
+        overflowY: "",
+        maxHeight: "",
+        height: "",
+        display: "",
+        position: "",
+        touchAction: ""
+      };
+    }
+
+    const computedStyle = window.getComputedStyle(element);
+    return {
+      selector,
+      id: element.id || "",
+      className: element.className || "",
+      scrollHeight: element.scrollHeight,
+      clientHeight: element.clientHeight,
+      offsetHeight: element.offsetHeight,
+      canScroll: element.scrollHeight > element.clientHeight,
+      overflowY: computedStyle.overflowY,
+      maxHeight: computedStyle.maxHeight,
+      height: computedStyle.height,
+      display: computedStyle.display,
+      position: computedStyle.position,
+      touchAction: computedStyle.touchAction
+    };
+  }
+
+  function getSettingsScrollContainerCandidates() {
+    const candidates = [
+      ["#settings-menu", settingsMenu],
+      [".settings-menu", document.querySelector(".settings-menu")],
+      [".settings-shell", settingsMenu?.querySelector(".settings-shell")],
+      [".settings-shell-body", settingsMenu?.querySelector(".settings-shell-body")],
+      [".settings-content", settingsContent],
+      [".settings-panels", settingsMenu?.querySelector(".settings-panels")],
+      [".settings-panel.active", settingsMenu?.querySelector(".settings-panel.active")],
+      [".settings-tab-panel.is-active", settingsMenu?.querySelector(".settings-tab-panel.is-active")],
+      ["#graphics-settings-panel", document.getElementById("graphics-settings-panel")],
+      ["#settings-panel-graphics", settingsGraphicsPanel],
+      ["#graphics-settings-section", document.getElementById("graphics-settings-section")]
+    ];
+
+    const graphicsLodSlider = document.getElementById("graphics-lod-strength-input");
+    if (graphicsLodSlider instanceof HTMLElement) {
+      const parentSelectors = [
+        ["#graphics-lod-strength-input parent .menu-field", graphicsLodSlider.closest(".menu-field")],
+        ["#graphics-lod-strength-input parent .settings-card", graphicsLodSlider.closest(".settings-card")],
+        ["#graphics-lod-strength-input parent #graphics-settings-section", graphicsLodSlider.closest("#graphics-settings-section")],
+        ["#graphics-lod-strength-input parent .settings-tab-panel", graphicsLodSlider.closest(".settings-tab-panel")],
+        ["#graphics-lod-strength-input parent .settings-content", graphicsLodSlider.closest(".settings-content")],
+        ["#graphics-lod-strength-input parent .settings-shell-body", graphicsLodSlider.closest(".settings-shell-body")]
+      ];
+
+      for (const candidate of parentSelectors) {
+        candidates.push(candidate);
+      }
+    }
+
+    const seenElements = new Set();
+    return candidates.filter(([, element]) => {
+      if (!(element instanceof HTMLElement)) {
+        return true;
+      }
+      if (seenElements.has(element)) {
+        return false;
+      }
+      seenElements.add(element);
+      return true;
+    });
+  }
+
+  function getSettingsScrollContainerDiagnostics() {
+    return getSettingsScrollContainerCandidates().map(([selector, element]) => (
+      getSettingsScrollDiagnosticForElement(selector, element)
+    ));
+  }
+
+  function getActiveSettingsScrollContainer() {
+    if (!(settingsMenu instanceof HTMLElement)) {
+      return null;
+    }
+
+    const activePanel = settingsMenu.querySelector(".settings-tab-panel.is-active");
+    if (activePanel instanceof HTMLElement) {
+      return activePanel;
+    }
+
+    return settingsContent instanceof HTMLElement ? settingsContent : null;
+  }
+
+  function getChosenSettingsScrollContainerSelector(scrollContainer = getActiveSettingsScrollContainer()) {
+    if (!(scrollContainer instanceof HTMLElement)) {
+      return "";
+    }
+
+    if (scrollContainer.id) {
+      return `#${scrollContainer.id}`;
+    }
+
+    if (scrollContainer.classList.contains("settings-tab-panel")) {
+      return ".settings-tab-panel.is-active";
+    }
+
+    if (scrollContainer.classList.contains("settings-content")) {
+      return ".settings-content";
+    }
+
+    return scrollContainer.tagName.toLowerCase();
+  }
+
+  function clearSettingsScrollHintState() {
+    for (const element of settingsMenu?.querySelectorAll(".settings-scroll-hint-active") || []) {
+      element.classList.remove("settings-scroll-hint-active");
+    }
+  }
+
+  function syncSettingsScrollContainerState({ emitFixLog = false } = {}) {
+    clearSettingsScrollHintState();
+
+    const scrollContainer = getActiveSettingsScrollContainer();
+    const canScroll = scrollContainer instanceof HTMLElement &&
+      scrollContainer.scrollHeight > scrollContainer.clientHeight;
+    const customScrollHintApplied = Boolean(canScroll && scrollContainer);
+    if (customScrollHintApplied) {
+      scrollContainer.classList.add("settings-scroll-hint-active");
+    }
+
+    if (emitFixLog) {
+      console.log("[MOBILE SETTINGS FINGER SCROLL FIX 004]", {
+        chosenScrollContainerSelector: getChosenSettingsScrollContainerSelector(scrollContainer),
+        scrollHeight: scrollContainer instanceof HTMLElement ? scrollContainer.scrollHeight : 0,
+        clientHeight: scrollContainer instanceof HTMLElement ? scrollContainer.clientHeight : 0,
+        canScroll,
+        visibleScrollbarApplied: true,
+        customScrollHintApplied,
+        preventDefaultBypassInsideSettings: true,
+        phoneMode: typeof isPhoneModeSelected === "function" ? isPhoneModeSelected() : false
+      });
+    }
+
+    return {
+      scrollContainer,
+      canScroll,
+      customScrollHintApplied
+    };
+  }
+
+  function logSettingsScrollContainerDiagnostics() {
+    const diagnostics = getSettingsScrollContainerDiagnostics();
+    console.log("[SETTINGS SCROLL CONTAINER DIAG 002]", diagnostics);
+    return diagnostics;
+  }
+
+  function parseCssPixelValue(value) {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function getSettingsFooterElement() {
+    return settingsMenu?.querySelector(".settings-footer.settings-shell-footer") || null;
+  }
+
+  function estimateSettingsFooterHeight(footer) {
+    if (!(footer instanceof HTMLElement)) {
+      return 0;
+    }
+
+    if (footer.offsetHeight > 0) {
+      return Math.round(footer.offsetHeight);
+    }
+
+    const computedStyle = window.getComputedStyle(footer);
+    const estimatedHeight =
+      parseCssPixelValue(computedStyle.minHeight) +
+      parseCssPixelValue(computedStyle.paddingTop) +
+      parseCssPixelValue(computedStyle.paddingBottom) +
+      parseCssPixelValue(computedStyle.borderTopWidth) +
+      parseCssPixelValue(computedStyle.borderBottomWidth);
+
+    const roundedEstimate = Math.round(estimatedHeight);
+    if (roundedEstimate > 0) {
+      return roundedEstimate;
+    }
+
+    const phoneMode = typeof isPhoneModeSelected === "function" ? isPhoneModeSelected() : false;
+    const mobileViewport = window.matchMedia?.("(max-width: 760px)")?.matches || false;
+    return phoneMode || mobileViewport ? 54 : 76;
+  }
+
+  function logSettingsFooterPhoneRemovalDiagnostics() {
+    const footer = getSettingsFooterElement();
+    const scrollContainer = getActiveSettingsScrollContainer();
+    const phoneMode = typeof isPhoneModeSelected === "function" ? isPhoneModeSelected() : false;
+    const mobileViewport = window.matchMedia?.("(max-width: 760px)")?.matches || false;
+    const footerComputedStyle = footer instanceof HTMLElement ? window.getComputedStyle(footer) : null;
+    const footerHidden = footer instanceof HTMLElement &&
+      (footerComputedStyle?.display === "none" || footer.offsetHeight === 0);
+    const backButtonFound = settingsMenuBackButton instanceof HTMLElement;
+    const backButtonHidden = footerHidden ||
+      (backButtonFound && window.getComputedStyle(settingsMenuBackButton).display === "none");
+
+    console.log("[SETTINGS FOOTER REMOVE PHONE 001]", {
+      phoneMode,
+      backButtonFound,
+      backButtonHidden,
+      footerSelector: ".settings-footer.settings-shell-footer",
+      footerHidden,
+      scrollContainerSelector: getChosenSettingsScrollContainerSelector(scrollContainer),
+      scrollHeight: scrollContainer instanceof HTMLElement ? scrollContainer.scrollHeight : 0,
+      clientHeight: scrollContainer instanceof HTMLElement ? scrollContainer.clientHeight : 0,
+      recoveredHeightPx: (phoneMode || mobileViewport) && footerHidden
+        ? estimateSettingsFooterHeight(footer)
+        : 0
+    });
+  }
+
+  function logSettingsPcWheelIsolationFixOpenDiagnostics() {
+    const leftMenu = settingsMenu?.querySelector(".settings-content") || settingsContent;
+    const rightPanel = settingsMenu?.querySelector(".settings-tab-panel.is-active") || settingsMenu?.querySelector(".settings-tab-panel");
+    const leftMenuSelector = leftMenu instanceof HTMLElement ? ".settings-content" : "";
+    const rightPanelSelector = rightPanel instanceof HTMLElement ? ".settings-tab-panel.is-active" : "";
+    const leftMenuCanScroll = leftMenu instanceof HTMLElement ? leftMenu.scrollHeight > leftMenu.clientHeight + 2 : false;
+    const rightPanelCanScroll = rightPanel instanceof HTMLElement ? rightPanel.scrollHeight > rightPanel.clientHeight + 2 : false;
+    const leftMenuRect = leftMenu instanceof HTMLElement ? leftMenu.getBoundingClientRect() : { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
+    const rightPanelRect = rightPanel instanceof HTMLElement ? rightPanel.getBoundingClientRect() : { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
+    const overlapDetected = (leftMenuRect.width > 0 && rightPanelRect.width > 0) ? rightPanelRect.left < leftMenuRect.right - 2 : false;
+
+    console.log("[SETTINGS PC WHEEL ISOLATION FIX 009]", {
+      leftMenuSelector,
+      rightPanelSelector,
+      leftMenuCanScroll,
+      rightPanelCanScroll,
+      leftMenuRect,
+      rightPanelRect,
+      overlapDetected,
+      wheelListenersPassiveFalse: true
+    });
+  }
+
+  function logSettingsRealGridLayoutFixDiagnostics() {
+    if (!(settingsMenu instanceof HTMLElement)) {
+      return;
+    }
+
+    const body = settingsMenu.querySelector(".settings-main, .settings-shell-body");
+    const leftMenu = settingsMenu.querySelector(".settings-content") || settingsContent;
+    const rightPanel = settingsMenu.querySelector(".settings-tab-panel.is-active") || settingsMenu.querySelector(".settings-tab-panel");
+    const footer = settingsMenu.querySelector(".settings-footer, .settings-shell-footer");
+
+    const settingsRect = settingsMenu.getBoundingClientRect();
+    const bodyRect = body instanceof HTMLElement ? body.getBoundingClientRect() : { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
+    const leftMenuRect = leftMenu instanceof HTMLElement ? leftMenu.getBoundingClientRect() : { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
+    const rightPanelRect = rightPanel instanceof HTMLElement ? rightPanel.getBoundingClientRect() : { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
+    const footerRect = footer instanceof HTMLElement ? footer.getBoundingClientRect() : null;
+
+    const firstButton = leftMenu instanceof HTMLElement ? leftMenu.querySelector("button") : null;
+    const firstButtonRect = firstButton instanceof HTMLElement ? firstButton.getBoundingClientRect() : leftMenuRect;
+    const gapBetweenLeftAndRight = (firstButtonRect.width > 0 && rightPanelRect.width > 0)
+      ? rightPanelRect.left - firstButtonRect.right
+      : 0;
+
+    const rightPanelComputedStyle = rightPanel instanceof HTMLElement ? window.getComputedStyle(rightPanel) : null;
+    const rightPanelAbsolutePositioned = rightPanelComputedStyle ? rightPanelComputedStyle.position === "absolute" : false;
+
+    const rightPanelUsesRemainingWidth = (rightPanelRect.width > 0 && bodyRect.width > 0)
+      ? rightPanelRect.right >= bodyRect.right - 24
+      : false;
+
+    const horizontalOverflow = settingsMenu.scrollWidth > settingsMenu.clientWidth + 2;
+
+    const footerOverlapsContent = (footerRect && footerRect.height > 0 && rightPanelRect.height > 0)
+      ? footerRect.top < rightPanelRect.bottom - 2
+      : false;
+
+    const phoneMode = typeof isPhoneModeSelected === "function" ? isPhoneModeSelected() : false;
+    let layoutMode = "desktop";
+    if (phoneMode || window.innerWidth <= 760) {
+      layoutMode = "phone-landscape";
+    } else if (window.innerWidth < 1000 || window.innerHeight < 650) {
+      layoutMode = "small-window";
+    }
+
+    console.log("[SETTINGS REAL GRID LAYOUT FIX 011]", {
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      settingsRect,
+      bodyRect,
+      leftMenuRect,
+      rightPanelRect,
+      gapBetweenLeftAndRight,
+      rightPanelUsesRemainingWidth,
+      rightPanelAbsolutePositioned,
+      horizontalOverflow,
+      footerOverlapsContent,
+      layoutMode
+    });
+  }
+
+  function logSettingsLeftMenuFullscreenSpacingFixDiagnostics() {
+    if (!(settingsMenu instanceof HTMLElement)) {
+      return;
+    }
+
+    const leftMenu = settingsMenu.querySelector(".settings-content") || settingsContent;
+    const isFullscreenLike = window.innerWidth >= 900 && window.innerHeight >= 720;
+    const leftMenuSelector = leftMenu instanceof HTMLElement ? ".settings-content" : "";
+    const leftMenuHeight = leftMenu instanceof HTMLElement ? leftMenu.clientHeight : 0;
+
+    const buttons = leftMenu instanceof HTMLElement ? leftMenu.querySelectorAll("button.settings-tab-button, button.settings-accordion-button") : [];
+    const categoryCount = buttons.length;
+    const firstButton = buttons[0];
+    const categoryButtonHeight = firstButton instanceof HTMLElement ? firstButton.offsetHeight : 0;
+
+    let totalCategoryHeight = 0;
+    for (const btn of buttons) {
+      if (btn instanceof HTMLElement) {
+        totalCategoryHeight += btn.offsetHeight;
+      }
+    }
+
+    const computedStyle = leftMenu instanceof HTMLElement ? window.getComputedStyle(leftMenu) : null;
+    const rowGapVal = computedStyle && computedStyle.rowGap ? parseFloat(computedStyle.rowGap) || 0 : 0;
+    if (categoryCount > 1) {
+      totalCategoryHeight += rowGapVal * (categoryCount - 1);
+    }
+
+    const emptySpaceBelowCategories = Math.max(0, leftMenuHeight - totalCategoryHeight);
+    const spacingFixApplied = isFullscreenLike && rowGapVal > 0;
+
+    console.log("[SETTINGS LEFT MENU FULLSCREEN SPACING FIX 012]", {
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      isFullscreenLike,
+      leftMenuSelector,
+      leftMenuHeight,
+      categoryCount,
+      categoryButtonHeight,
+      totalCategoryHeight,
+      emptySpaceBelowCategories,
+      spacingFixApplied,
+      rightPanelUntouched: true,
+      phoneLayoutUntouched: true
+    });
+  }
+
+  function initSettingsPcIndependentWheelScrollRouting() {
+    if (!(settingsMenu instanceof HTMLElement)) {
+      return;
+    }
+
+    const leftMenu = settingsMenu.querySelector(".settings-content") || settingsContent;
+    if (leftMenu instanceof HTMLElement && !leftMenu.dataset.wheelIsolatedAttached) {
+      leftMenu.dataset.wheelIsolatedAttached = "true";
+      leftMenu.addEventListener("wheel", (event) => {
+        if (event.target.closest(".settings-shell-header, .settings-header, #settings-home-button, #settings-fullscreen-button, #settings-menu-close-button")) {
+          return;
+        }
+
+        if (event.target.closest(".settings-tab-panel")) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+
+        const leftBefore = leftMenu.scrollTop;
+        const activePanel = settingsMenu.querySelector(".settings-tab-panel.is-active");
+        const rightBefore = activePanel ? activePanel.scrollTop : 0;
+
+        leftMenu.scrollTop += event.deltaY;
+
+        const leftAfter = leftMenu.scrollTop;
+        const rightAfter = activePanel ? activePanel.scrollTop : 0;
+
+        console.log("[SETTINGS PC WHEEL ISOLATION FIX 009]", {
+          wheelArea: "left-menu",
+          deltaY: event.deltaY,
+          leftBefore,
+          leftAfter,
+          rightBefore,
+          rightAfter,
+          onlyOnePanelChanged: true,
+          defaultPrevented: true,
+          propagationStopped: true
+        });
+      }, { passive: false });
+    }
+
+    const panels = settingsMenu.querySelectorAll(".settings-tab-panel");
+    for (const panel of panels) {
+      if (!panel.dataset.wheelIsolatedAttached) {
+        panel.dataset.wheelIsolatedAttached = "true";
+        panel.addEventListener("wheel", (event) => {
+          if (event.target.closest(".settings-shell-header, .settings-header, #settings-home-button, #settings-fullscreen-button, #settings-menu-close-button")) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+          if (typeof event.stopImmediatePropagation === "function") {
+            event.stopImmediatePropagation();
+          }
+
+          const rightBefore = panel.scrollTop;
+          const leftBefore = leftMenu instanceof HTMLElement ? leftMenu.scrollTop : 0;
+
+          panel.scrollTop += event.deltaY;
+
+          const rightAfter = panel.scrollTop;
+          const leftAfter = leftMenu instanceof HTMLElement ? leftMenu.scrollTop : 0;
+
+          console.log("[SETTINGS PC WHEEL ISOLATION FIX 009]", {
+            wheelArea: "right-panel",
+            deltaY: event.deltaY,
+            leftBefore,
+            leftAfter,
+            rightBefore,
+            rightAfter,
+            onlyOnePanelChanged: true,
+            defaultPrevented: true,
+            propagationStopped: true
+          });
+        }, { passive: false });
+      }
+    }
+
+    if (!settingsMenu.dataset.responsiveLayoutAttached) {
+      settingsMenu.dataset.responsiveLayoutAttached = "true";
+      window.addEventListener("resize", () => {
+        if (settingsMenuOpen || homeSettingsViewOpen) {
+          window.requestAnimationFrame(() => {
+            logSettingsRealGridLayoutFixDiagnostics();
+            logSettingsLeftMenuFullscreenSpacingFixDiagnostics();
+          });
+        }
+      }, { passive: true });
+    }
+  }
+
+  function logPhoneSettingsLeftMenuScrollFixDiagnostics() {
+    const phoneMode = typeof isPhoneModeSelected === "function" ? isPhoneModeSelected() : false;
+    const leftMenu = settingsMenu?.querySelector(".settings-content") || settingsContent;
+    const leftMenuFound = leftMenu instanceof HTMLElement;
+    const leftMenuSelector = leftMenuFound ? ".settings-content" : "";
+    const scrollHeight = leftMenuFound ? leftMenu.scrollHeight : 0;
+    const clientHeight = leftMenuFound ? leftMenu.clientHeight : 0;
+    const canScroll = leftMenuFound ? scrollHeight > clientHeight + 2 : false;
+    const computedStyle = leftMenuFound ? window.getComputedStyle(leftMenu) : null;
+    const overflowY = computedStyle ? computedStyle.overflowY : "";
+    const touchAction = computedStyle ? computedStyle.touchAction : "";
+
+    console.log("[PHONE SETTINGS LEFT MENU SCROLL FIX 007]", {
+      phoneMode,
+      leftMenuSelector,
+      leftMenuFound,
+      scrollHeight,
+      clientHeight,
+      canScroll,
+      overflowY,
+      touchAction,
+      overlappingTabsFixed: true,
+      rightPanelUntouched: true
+    });
+  }
+
+  function queueSettingsScrollContainerDiagnostics({ emitSourceTrace = false, emitFixLog = false } = {}) {
+    window.requestAnimationFrame(() => {
+      if (emitSourceTrace) {
+        logSettingsPageSourceTrace();
+      }
+      logSettingsScrollContainerDiagnostics();
+      syncSettingsScrollContainerState({ emitFixLog });
+      logSettingsFooterPhoneRemovalDiagnostics();
+      logPhoneSettingsLeftMenuScrollFixDiagnostics();
+      if (settingsMenuOpen || homeSettingsViewOpen) {
+        logSettingsPcWheelIsolationFixOpenDiagnostics();
+        logSettingsRealGridLayoutFixDiagnostics();
+        logSettingsLeftMenuFullscreenSpacingFixDiagnostics();
+      }
+    });
+  }
+
   function logSettingsMenuDiagnostics(reason = "manual") {
     if (!(settingsMenu instanceof HTMLElement)) {
       console.log("settings_menu_diagnostics_missing_menu", { reason });
@@ -2533,7 +3052,9 @@ window.onload = () => {
     }
 
     if (settingsMenuOpen || homeSettingsViewOpen || activeSettingsPreviewFlow === "camera") {
+      initSettingsPcIndependentWheelScrollRouting();
       queueSettingsMenuDiagnostics(`tab-change:${nextTabId}`);
+      queueSettingsScrollContainerDiagnostics();
     }
   }
 
@@ -2714,15 +3235,33 @@ window.onload = () => {
   }
 
   function getSettingsScrollContainerForTarget(target) {
-    if (!(settingsMenu instanceof HTMLElement) || !(settingsContent instanceof HTMLElement)) {
+    if (!(settingsMenu instanceof HTMLElement)) {
       return null;
     }
 
-    if (target instanceof Element && !target.closest("#settings-menu")) {
+    if (!(target instanceof Element) || !target.closest("#settings-menu")) {
       return null;
     }
 
-    return settingsContent;
+    if (target.closest(".settings-header, .settings-shell-header, .settings-footer, .settings-shell-footer")) {
+      return null;
+    }
+
+    const targetPanel = target.closest(".settings-tab-panel.is-active");
+    if (targetPanel instanceof HTMLElement) {
+      return targetPanel;
+    }
+
+    return getActiveSettingsScrollContainer();
+  }
+
+  function isPointerEventInsideSettingsScrollBody(event) {
+    if (!(event?.target instanceof Element)) {
+      return false;
+    }
+
+    const scrollContainer = getActiveSettingsScrollContainer();
+    return scrollContainer instanceof HTMLElement && scrollContainer.contains(event.target);
   }
 
   function handleSettingsWheelScroll(event) {
@@ -5426,6 +5965,13 @@ window.onload = () => {
   let waveCountdownActive = false;
   let waveCountdownRemaining = 0;
   let activeWaveId = 0;
+
+  let geonosisLodState = {
+    meshes: [],
+    lastUpdateMs: 0,
+    updateIntervalMs: 250,
+    stats: { major: 0, medium: 0, small: 0, tiny: 0, hidden: 0, shadowDisabled: 0 }
+  };
   let waveSessionDifficultyKey = "noob";
   let waveCountdownIntervalId = 0;
   const pendingWaveSpawnTimeoutIds = [];
@@ -5607,6 +6153,7 @@ window.onload = () => {
       shadowsEnabled: true,
       shadowQuality: "high",
       renderDistance: 600,
+      lodStrength: 20,
       effectQuality: "ultra",
       advancedGraphics: advancedGraphicsDefaults
     }),
@@ -5616,6 +6163,7 @@ window.onload = () => {
       shadowsEnabled: true,
       shadowQuality: "low",
       renderDistance: 250,
+      lodStrength: 70,
       effectQuality: "low",
       advancedGraphics: advancedGraphicsDefaults
     })
@@ -5678,7 +6226,7 @@ window.onload = () => {
       collisionGunState.colliderGroup.clear();
       console.log("[COLLISION GUN] All segments cleared");
     },
-    exportSegments: () => JSON.stringify(collisionGunState.segments.map(s => ({a: s.a, b: s.b}))),
+    exportSegments: () => JSON.stringify(collisionGunState.segments.map(s => ({ a: s.a, b: s.b }))),
     removeSegmentById: (id) => {
       // Stub, will be used by internal function
       console.log("Use handleDecollidalGunShot internally for clean removal");
@@ -5767,7 +6315,7 @@ window.onload = () => {
   };
 
   function isHomeLiteBeforeGameplayStart() {
-    return HOME_LITE_TEST_ENABLED && !isGameplaySessionActive;
+    return HOME_LITE_TEST_ENABLED && !isGameplaySessionActive && !cameraCustomizationPreviewMode;
   }
 
   function logHomeLite(message, details = {}, { onceKey = "" } = {}) {
@@ -14031,7 +14579,20 @@ window.onload = () => {
       .sort((left, right) => (
         Math.abs(left - currentPlayerSpawn.y) - Math.abs(right - currentPlayerSpawn.y)
       ));
-    const floorY = usableFloorTops[0] ?? currentPlayerSpawn.y;
+    let floorY = usableFloorTops[0] ?? currentPlayerSpawn.y;
+
+    if (selectedMap === "geonosisArena" && typeof window.geonosisFinalFloorY !== "undefined") {
+      const yOffset = 0.005;
+      console.log("[GEONOSIS PUDDLE Y FIX 001]", {
+        mapId: "geonosisArena",
+        detectedFloorY: window.geonosisFinalFloorY,
+        puddlePlaneYBefore: floorY,
+        puddlePlaneYAfter: window.geonosisFinalFloorY + yOffset,
+        yOffsetApplied: yOffset,
+        floatingFixApplied: true
+      });
+      floorY = window.geonosisFinalFloorY + yOffset;
+    }
     const width = THREE.MathUtils.clamp(size.x * 1.04, 80, 260);
     const depth = THREE.MathUtils.clamp(size.z * 1.04, 80, 260);
 
@@ -18313,13 +18874,13 @@ window.onload = () => {
       const stepDist = 0.35; // Very dense generation for tight gaps
       const numSteps = Math.floor(pathLength / stepDist);
       const maxStonesPerRow = 9;
-      
+
       const totalInstances = (numSteps + 1) * maxStonesPerRow;
-      
+
       const patchMesh = new THREE.InstancedMesh(patchGeo, patchMaterial, totalInstances);
       patchMesh.receiveShadow = true;
       patchMesh.castShadow = false;
-      
+
       const paverMesh = new THREE.InstancedMesh(paverGeo, paverMaterial, totalInstances);
       paverMesh.receiveShadow = true;
       paverMesh.castShadow = false;
@@ -18369,21 +18930,21 @@ window.onload = () => {
           const patchY = 0.01 + pathRandom() * 0.005;
           dummy.position.y = patchY;
           dummy.rotation.set(0, pathRandom() * Math.PI * 2, 0);
-          
+
           const scaleX = 0.85 + pathRandom() * 0.3;
           const scaleZ = 0.85 + pathRandom() * 0.3;
-          
+
           // Make the dirt patch slightly larger than the stone so it peaks out
           dummy.scale.set(scaleX * (1.3 + pathRandom() * 0.4), 1, scaleZ * (1.3 + pathRandom() * 0.4));
           dummy.updateMatrix();
           patchMesh.setMatrixAt(instanceIdx, dummy.matrix);
-          
+
           // Tint dirt patch to dry worn tan
           const dirtShade = 0.8 + pathRandom() * 0.2;
           colorObj.setHex(0x8c795b); // Base tan color
           colorObj.multiplyScalar(dirtShade);
           patchMesh.setColorAt(instanceIdx, colorObj);
-          
+
           // Place the actual stone paver on top
           dummy.position.y = 0.025;
           dummy.rotation.set(
@@ -18391,12 +18952,12 @@ window.onload = () => {
             pathRandom() * Math.PI * 2,
             (pathRandom() - 0.5) * 0.1
           );
-          
+
           dummy.scale.set(scaleX, 1, scaleZ);
           dummy.updateMatrix();
-          
+
           paverMesh.setMatrixAt(instanceIdx, dummy.matrix);
-          
+
           const shade = 0.85 + pathRandom() * 0.3;
           colorObj.setHex(baseColorHex);
           colorObj.multiplyScalar(shade);
@@ -18410,7 +18971,7 @@ window.onload = () => {
       paverMesh.count = instanceIdx;
       paverMesh.instanceMatrix.needsUpdate = true;
       if (paverMesh.instanceColor) paverMesh.instanceColor.needsUpdate = true;
-      
+
       patchMesh.count = instanceIdx;
       patchMesh.instanceMatrix.needsUpdate = true;
       if (patchMesh.instanceColor) patchMesh.instanceColor.needsUpdate = true;
@@ -19255,10 +19816,10 @@ window.onload = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       let rawData = await response.json();
       let data = rawData;
-      
+
       const parsedTypeBeforeNormalize = Array.isArray(rawData) ? "array" : typeof rawData;
       let wasStringWrappedJson = false;
       const rawLength = typeof rawData === "string" ? rawData.length : (Array.isArray(rawData) ? rawData.length : 0);
@@ -19282,7 +19843,7 @@ window.onload = () => {
       if (!Array.isArray(data)) {
         throw new Error("Geonosis collider data is not an array after normalization: " + parsedTypeAfterNormalize);
       }
-      
+
       // Clear existing first
       window.AIM_BUILT_COLLISION_GUN.clearSegments();
 
@@ -19291,17 +19852,17 @@ window.onload = () => {
         if (!seg || !seg.a || !seg.b) continue;
         const pointA = new THREE.Vector3(seg.a.x, seg.a.y, seg.a.z);
         const pointB = new THREE.Vector3(seg.b.x, seg.b.y, seg.b.z);
-        
+
         const height = seg.height || collisionGunState.segmentHeight;
         const thickness = seg.thickness || collisionGunState.segmentThickness;
-        
+
         buildCollisionSegment(pointA, pointB, height, thickness);
         rebuiltCount++;
       }
-      
+
       // Hide guide lines by default
       collisionGunState.guideGroup.visible = false;
-      
+
       console.log("[GEONOSIS COLLIDER JSON PARSE FIX 002]", {
         rawType: typeof rawData,
         parsedTypeBeforeNormalize: parsedTypeBeforeNormalize,
@@ -19323,7 +19884,7 @@ window.onload = () => {
         guideLinesVisibleByDefault: false,
         collisionActive: true
       });
-      
+
     } catch (err) {
       console.error("Failed to load Geonosis default colliders:", err);
       console.log("[GEONOSIS DEFAULT COLLIDERS 001]", {
@@ -19340,7 +19901,7 @@ window.onload = () => {
 
   async function buildGeonosisArena(buildId) {
     console.log("[GEONOSIS ARENA MAP 001]", { status: "loading", mapId: "geonosisArena", path: geonosisArenaModelUrl });
-    
+
     let importedScene = null;
     try {
       importedScene = await loadGeonosisArenaScene();
@@ -19398,16 +19959,20 @@ window.onload = () => {
 
     const meshes = [];
     let geonosisMeshCountAddedToRaycast = 0;
+
+    geonosisLodState.meshes = [];
+    geonosisLodState.stats = { major: 0, medium: 0, small: 0, tiny: 0, hidden: 0, shadowDisabled: 0 };
+
     importedScene.traverse((child) => {
       if (child.isMesh) {
         meshes.push(child);
         child.castShadow = true;
         child.receiveShadow = true;
-        
+
         // Add to raycast targets for Collision Gun & Bullet decals
         child.userData.acceptsBulletDecals = true;
         child.userData.isGeonosisMesh = true;
-        
+
         // Push to global raycast arrays
         if (typeof bulletCollisionMeshes !== "undefined") {
           bulletCollisionMeshes.push(child);
@@ -19416,6 +19981,41 @@ window.onload = () => {
           bulletImpactTargets.push(child);
           geonosisMeshCountAddedToRaycast++;
         }
+
+        // Geonosis Mesh Classification for LOD
+        if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
+        const bbox = child.geometry.boundingBox;
+        const size = new THREE.Vector3();
+        bbox.getSize(size);
+        // apply initial scale to max dimension for categorization
+        const maxDim = Math.max(size.x, size.y, size.z) * appliedScale;
+
+        let category = "major";
+        if (maxDim < 2) {
+          category = "tiny";
+          geonosisLodState.stats.tiny++;
+        } else if (maxDim < 6) {
+          category = "small";
+          geonosisLodState.stats.small++;
+        } else if (maxDim < 15) {
+          category = "medium";
+          geonosisLodState.stats.medium++;
+        } else {
+          geonosisLodState.stats.major++;
+        }
+
+        if (!child.geometry.boundingSphere) child.geometry.computeBoundingSphere();
+        const localCenter = child.geometry.boundingSphere.center.clone();
+
+        geonosisLodState.meshes.push({
+          mesh: child,
+          category,
+          maxDim,
+          localCenter,
+          worldCenter: new THREE.Vector3(),
+          originalCastShadow: child.castShadow,
+          originalReceiveShadow: child.receiveShadow
+        });
       }
     });
     // Expose count for debugging
@@ -19449,6 +20049,9 @@ window.onload = () => {
       finalFloorY = finalHits[0].point.y;
     }
 
+    // Store globally so the wet puddle overlay can access the exact ground Y
+    window.geonosisFinalFloorY = finalFloorY;
+
     const geonosisMapRoot = new THREE.Group();
     geonosisMapRoot.name = "geonosis-arena-map-root";
     importedScene.name = "geonosis-arena-model";
@@ -19462,13 +20065,13 @@ window.onload = () => {
       mapId: "geonosisArena",
       loaded: true,
       path: geonosisArenaModelUrl,
-      originalBox: { 
+      originalBox: {
         min: { x: originalBox.min.x, y: originalBox.min.y, z: originalBox.min.z },
         max: { x: originalBox.max.x, y: originalBox.max.y, z: originalBox.max.z },
         size: { x: originalSize.x, y: originalSize.y, z: originalSize.z },
         center: { x: originalCenter.x, y: originalCenter.y, z: originalCenter.z }
       },
-      finalBox: { 
+      finalBox: {
         min: { x: finalBox.min.x, y: finalBox.min.y, z: finalBox.min.z },
         max: { x: finalBox.max.x, y: finalBox.max.y, z: finalBox.max.z },
         size: { x: finalSize.x, y: finalSize.y, z: finalSize.z },
@@ -23462,6 +24065,30 @@ window.onload = () => {
       cameraCustomizationPreviewPreviousMapId = "";
     }
 
+    if (HOME_LITE_TEST_ENABLED && !isGameplaySessionActive) {
+      clearCurrentMap();
+      currentLoadedMapId = "";
+      currentMapVisualVariant = "";
+      if (playerActor) {
+        cleanupActorEffects(playerActor);
+        clearActorPvpHitboxes(playerActor);
+        removeLocalPlayerCharacterVisual(playerActor);
+      }
+      if (player?.parent) {
+        player.parent.remove(player);
+      }
+      player = null;
+      playerActor = null;
+      ensureHomeLitePlayerAnchor();
+      if (highDefinitionCloudSkyState.group?.parent) {
+        highDefinitionCloudSkyState.group.parent.remove(highDefinitionCloudSkyState.group);
+        highDefinitionCloudSkyState.group = null;
+        highDefinitionCloudSkyState.initialized = false;
+        highDefinitionCloudSkyState.layers.length = 0;
+      }
+      console.log("[HOME_LITE] Cleared preview session map and player memory cleanly.");
+    }
+
     showMainMenu();
     if (reopenHomeSettings) {
       setHomeSettingsViewOpen(true);
@@ -23660,6 +24287,28 @@ window.onload = () => {
         tab: activeSettingsTabId
       });
       queueSettingsMenuDiagnostics(`${settingsMenuSource}-open`);
+
+      const _settingsPanel = settingsMenu?.querySelector(".settings-tab-panel.is-active") || settingsMenu?.querySelector(".settings-tab-panel");
+      const _computedPanel = _settingsPanel ? window.getComputedStyle(_settingsPanel) : null;
+      const _isPhone = typeof isPhoneModeSelected === "function" ? isPhoneModeSelected() : false;
+      
+      console.log("[MOBILE SETTINGS SCROLL FIX 001]", {
+        isPhoneMode: _isPhone,
+        settingsMenuFound: Boolean(settingsMenu),
+        scrollContainerFound: Boolean(_settingsPanel),
+        overflowY: _computedPanel?.overflowY || "unknown",
+        touchAction: _computedPanel?.touchAction || "unknown",
+        maxHeight: _computedPanel?.maxHeight || "unknown",
+        gameTouchIgnoredInsideSettings: true
+      });
+
+      console.log("[MOBILE SETTINGS OPEN FIX 002]", {
+        source: settingsMenuSource,
+        settingsMenuOpen: true,
+        mobileModeDetected: _isPhone,
+        usedSafeMobileCheck: true,
+        noIsPhoneModeReference: true
+      });
     } else {
       if (!cameraCustomizationPreviewMode) {
         resetCameraCustomizationCompactPanelUi();
@@ -23671,6 +24320,16 @@ window.onload = () => {
     }
 
     syncMenuState();
+
+    if (isOpen) {
+      initSettingsPcIndependentWheelScrollRouting();
+      queueSettingsScrollContainerDiagnostics({
+        emitSourceTrace: true,
+        emitFixLog: true
+      });
+    } else {
+      clearSettingsScrollHintState();
+    }
   }
 
   function toggleSettingsMenu() {
@@ -23686,6 +24345,7 @@ window.onload = () => {
     interactionMenuOpen = false;
     settingsMenuOpen = false;
     setGunCustomizationPanelOpen(false);
+    clearSettingsScrollHintState();
     syncMenuState();
     if (wasSettingsMenuOpen) {
       console.log("settings_menu_closed", {
@@ -27353,6 +28013,9 @@ window.onload = () => {
       renderDistance: clampGraphicsRenderDistance(
         nextSettings.renderDistance ?? fallback.renderDistance
       ),
+      lodStrength: typeof nextSettings.lodStrength === "number"
+        ? Math.max(0, Math.min(100, nextSettings.lodStrength))
+        : (fallback.lodStrength || 0),
       effectQuality: normalizeGraphicsEffectQuality(
         nextSettings.effectQuality ?? fallback.effectQuality,
         fallback.effectQuality
@@ -27371,6 +28034,7 @@ window.onload = () => {
       shadowsEnabled: settings.shadowsEnabled,
       shadowQuality: settings.shadowQuality,
       renderDistance: settings.renderDistance,
+      lodStrength: settings.lodStrength || 0,
       effectQuality: settings.effectQuality,
       advancedGraphics: {
         ...advancedGraphicsDefaults,
@@ -27541,6 +28205,8 @@ window.onload = () => {
     graphicsShadowQualityField.classList.toggle("is-disabled", !graphicsSettings.shadowsEnabled);
     graphicsRenderDistanceInput.value = String(graphicsSettings.renderDistance);
     graphicsRenderDistanceValue.textContent = String(graphicsSettings.renderDistance);
+    graphicsLodStrengthInput.value = String(graphicsSettings.lodStrength || 0);
+    graphicsLodStrengthValue.textContent = `${graphicsSettings.lodStrength || 0}%`;
     graphicsEffectQualitySelect.value = graphicsSettings.effectQuality;
     syncAdvancedGraphicsSettingsInputs();
     syncWetEnvironmentSettingsInputs();
@@ -30691,6 +31357,77 @@ window.onload = () => {
   }
 
   function findEnemySpawnPosition(index = 0, total = 1) {
+    if (selectedMap === "geonosisArena") {
+      const arenaCenter = new THREE.Vector3(19.1, 0.0, 2.0);
+      const minRadius = 22;
+      const maxRadius = 45;
+      const minPlayerDist = 18;
+      const arenaFloorY = typeof window.geonosisFinalFloorY !== "undefined" ? window.geonosisFinalFloorY : 1.2;
+
+      for (let attempt = 0; attempt < 50; attempt++) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = minRadius + Math.random() * (maxRadius - minRadius);
+        const candidate = new THREE.Vector3(
+          arenaCenter.x + Math.cos(angle) * radius,
+          arenaFloorY,
+          arenaCenter.z + Math.sin(angle) * radius
+        );
+
+        if (isEnemySpawnClear(candidate)) {
+          if (player && candidate.distanceTo(player.position) < minPlayerDist) {
+            continue;
+          }
+
+          console.log("[GEONOSIS ENEMY SPAWN CENTER FIX 002]", {
+            mapId: "geonosisArena",
+            arenaCenter: { x: arenaCenter.x, y: arenaCenter.y, z: arenaCenter.z },
+            playerPosition: player ? { x: player.position.x, y: player.position.y, z: player.position.z } : null,
+            chosenSpawn: { x: candidate.x, y: candidate.y, z: candidate.z },
+            radiusFromArenaCenter: radius,
+            distanceFromPlayer: player ? candidate.distanceTo(player.position) : null,
+            usedFallbackSpawn: false,
+            spawnAccepted: true
+          });
+          return candidate;
+        }
+      }
+
+      const fallbackPoints = [
+        { x: 49.1, y: 1.2, z: 2.0 },
+        { x: -10.9, y: 1.2, z: 2.0 },
+        { x: 19.1, y: 1.2, z: 32.0 },
+        { x: 19.1, y: 1.2, z: -28.0 },
+        { x: 43.1, y: 1.2, z: 26.0 },
+        { x: -4.9, y: 1.2, z: -22.0 }
+      ];
+
+      let chosenFallback = null;
+      for (const pt of fallbackPoints) {
+        const candidate = new THREE.Vector3(pt.x, arenaFloorY, pt.z);
+        if (isEnemySpawnClear(candidate) && (!player || candidate.distanceTo(player.position) >= minPlayerDist)) {
+          chosenFallback = candidate;
+          break;
+        }
+      }
+      if (!chosenFallback) {
+        chosenFallback = new THREE.Vector3(fallbackPoints[0].x, arenaFloorY, fallbackPoints[0].z);
+      }
+
+      const distToCenter = new THREE.Vector2(chosenFallback.x, chosenFallback.z).distanceTo(new THREE.Vector2(arenaCenter.x, arenaCenter.z));
+
+      console.log("[GEONOSIS ENEMY SPAWN CENTER FIX 002]", {
+        mapId: "geonosisArena",
+        arenaCenter: { x: arenaCenter.x, y: arenaCenter.y, z: arenaCenter.z },
+        playerPosition: player ? { x: player.position.x, y: player.position.y, z: player.position.z } : null,
+        chosenSpawn: { x: chosenFallback.x, y: chosenFallback.y, z: chosenFallback.z },
+        radiusFromArenaCenter: distToCenter,
+        distanceFromPlayer: player ? chosenFallback.distanceTo(player.position) : null,
+        usedFallbackSpawn: true,
+        spawnAccepted: true
+      });
+      return chosenFallback;
+    }
+
     for (let attempt = 0; attempt < enemySpawnPoints.length * 3; attempt += 1) {
       const basePoint = enemySpawnPoints[attempt % enemySpawnPoints.length];
       const ring = Math.floor(attempt / enemySpawnPoints.length);
@@ -32307,7 +33044,7 @@ window.onload = () => {
     const guideGeo = new THREE.CylinderGeometry(0.02, 0.02, distance, 8);
     // Cylinder is aligned to Y axis by default. Rotate it to align with A-B direction.
     guideGeo.rotateX(Math.PI / 2); // Align to Z
-    
+
     const guideMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const guideMesh = new THREE.Mesh(guideGeo, guideMat);
     guideMesh.position.copy(midPoint);
@@ -32321,7 +33058,7 @@ window.onload = () => {
     const pillarStep = 0.5;
     const numPillars = Math.max(1, Math.ceil(distance / pillarStep));
     const actualStep = distance / numPillars;
-    
+
     // We want the colliders to start from the ground up to a high ceiling
     const baseY = Math.min(pointA.y, pointB.y);
 
@@ -32334,7 +33071,7 @@ window.onload = () => {
       const pillarMesh = new THREE.Mesh(pillarGeo, pillarMat);
       pillarMesh.position.set(p.x, baseY + height / 2, p.z);
       pillarMesh.name = `collision-gun-collider-${segmentId}-${i}`;
-      
+
       collisionGunState.colliderGroup.add(pillarMesh);
       registerObstacle(pillarMesh, { bulletCollision: false });
       segmentColliders.push(pillarMesh);
@@ -32357,7 +33094,7 @@ window.onload = () => {
       height,
       thickness
     });
-    
+
     return true;
   }
 
@@ -32413,9 +33150,9 @@ window.onload = () => {
     collisionGunState.pendingPoint = null;
 
     const success = buildCollisionSegment(
-      pointA, 
-      pointB, 
-      collisionGunState.segmentHeight, 
+      pointA,
+      pointB,
+      collisionGunState.segmentHeight,
       collisionGunState.segmentThickness
     );
 
@@ -32426,7 +33163,7 @@ window.onload = () => {
 
   function handleDecollidalGunShot() {
     setCameraCrosshairShotRay(raycaster);
-    
+
     // Check intersection with the guide lines and colliders
     const interactables = [...collisionGunState.guideGroup.children, ...collisionGunState.colliderGroup.children];
     if (interactables.length === 0) {
@@ -32441,7 +33178,7 @@ window.onload = () => {
     }
 
     const hitObject = hits[0].object;
-    
+
     // Find which segment this object belongs to
     let segmentIndex = -1;
     for (let i = 0; i < collisionGunState.segments.length; i++) {
@@ -32458,7 +33195,7 @@ window.onload = () => {
     }
 
     const segmentToRemove = collisionGunState.segments[segmentIndex];
-    
+
     // Remove visual guide
     segmentToRemove.guideMesh.removeFromParent();
     segmentToRemove.guideMesh.geometry.dispose();
@@ -32469,7 +33206,7 @@ window.onload = () => {
       pillar.removeFromParent();
       pillar.geometry.dispose();
       pillar.material.dispose();
-      
+
       const wcIndex = worldColliders.indexOf(pillar);
       if (wcIndex > -1) {
         worldColliders.splice(wcIndex, 1);
@@ -33082,7 +33819,7 @@ window.onload = () => {
       const clickedMapId = mapSelect.value;
       const normalizedMapId = normalizeMapId(clickedMapId);
       const fallbackUsed = normalizedMapId !== clickedMapId;
-      
+
       selectedMap = normalizedMapId;
       syncHomeSelectedMapDisplay();
 
@@ -33379,9 +34116,11 @@ window.onload = () => {
       });
     }
 
-    settingsMenuBackButton.addEventListener("click", () => {
-      handleSettingsBackAction();
-    });
+    if (settingsMenuBackButton) {
+      settingsMenuBackButton.addEventListener("click", () => {
+        handleSettingsBackAction();
+      });
+    }
 
     settingsFullscreenButton.addEventListener("click", async () => {
       await toggleFullscreenMode();
@@ -33408,13 +34147,15 @@ window.onload = () => {
       settingsMenu.addEventListener("wheel", handleSettingsWheelScroll, { passive: false });
     }
 
-    settingsCategoryResetButton.addEventListener("click", () => {
-      if (settingsCategoryResetButton.disabled) {
-        return;
-      }
+    if (settingsCategoryResetButton) {
+      settingsCategoryResetButton.addEventListener("click", () => {
+        if (settingsCategoryResetButton.disabled) {
+          return;
+        }
 
-      resetSettingsCategoryToDefault();
-    });
+        resetSettingsCategoryToDefault();
+      });
+    }
 
     for (const config of venTestGunTransformControlConfigs) {
       const controls = getVenTestGunTransformControlElements(config.key);
@@ -33527,6 +34268,21 @@ window.onload = () => {
       }
 
       applyGraphicsSettingChange("renderDistance", graphicsRenderDistanceInput.value);
+    });
+
+    graphicsLodStrengthInput.addEventListener("input", () => {
+      if (graphicsLodStrengthInput.value === "") {
+        return;
+      }
+      applyGraphicsSettingChange("lodStrength", Number(graphicsLodStrengthInput.value));
+    });
+
+    graphicsLodStrengthInput.addEventListener("change", () => {
+      if (graphicsLodStrengthInput.value === "") {
+        syncSettingsInputs();
+        return;
+      }
+      applyGraphicsSettingChange("lodStrength", Number(graphicsLodStrengthInput.value));
     });
 
     graphicsEffectQualitySelect.addEventListener("change", () => {
@@ -34079,6 +34835,10 @@ window.onload = () => {
     });
 
     window.addEventListener("pointermove", (event) => {
+      if (isPointerEventInsideSettingsScrollBody(event)) {
+        return;
+      }
+
       if (mobileLayoutEditMode && event.pointerId === activeMobileLayoutPointerId) {
         event.preventDefault();
         updateMobileLayoutPointerInteraction(event);
@@ -34581,6 +35341,93 @@ window.onload = () => {
       announceLanSessionLeave();
     });
   }
+
+  function updateGeonosisLod(referencePosition, frameTime) {
+    if (frameTime - geonosisLodState.lastUpdateMs < geonosisLodState.updateIntervalMs) {
+      return;
+    }
+    geonosisLodState.lastUpdateMs = frameTime;
+
+    const lodStrength = graphicsSettings.lodStrength || 0;
+    const s = Math.max(0, Math.min(100, lodStrength)) / 100;
+
+    let tinyDist = 10000;
+    let smallDist = 10000;
+    let mediumDist = 10000;
+    let shadowDist = 10000;
+
+    if (s > 0.05) {
+      tinyDist = THREE.MathUtils.lerp(150, 25, s);
+      smallDist = THREE.MathUtils.lerp(250, 55, s);
+      mediumDist = THREE.MathUtils.lerp(400, 95, s);
+      shadowDist = THREE.MathUtils.lerp(250, 45, s);
+    }
+
+    let hidden = 0;
+    let shadowDisabled = 0;
+
+    for (let i = 0; i < geonosisLodState.meshes.length; i++) {
+      const item = geonosisLodState.meshes[i];
+      if (!item.mesh || !item.mesh.parent) continue;
+
+      // Compute accurate world center quickly
+      item.mesh.updateMatrixWorld(true);
+      item.worldCenter.copy(item.localCenter).applyMatrix4(item.mesh.matrixWorld);
+
+      const dist = item.worldCenter.distanceTo(referencePosition);
+
+      let visible = true;
+      if (item.category === "tiny" && dist > tinyDist) visible = false;
+      else if (item.category === "small" && dist > smallDist) visible = false;
+      else if (item.category === "medium" && dist > mediumDist) visible = false;
+
+      item.mesh.visible = visible;
+
+      let shadowsEnabled = true;
+      if (dist > shadowDist && item.category !== "major") {
+        shadowsEnabled = false;
+      }
+
+      item.mesh.castShadow = visible && shadowsEnabled ? item.originalCastShadow : false;
+      item.mesh.receiveShadow = visible && shadowsEnabled ? item.originalReceiveShadow : false;
+
+      if (!visible) hidden++;
+      if (visible && !shadowsEnabled && (item.originalCastShadow || item.originalReceiveShadow)) shadowDisabled++;
+    }
+
+    geonosisLodState.stats.hidden = hidden;
+    geonosisLodState.stats.shadowDisabled = shadowDisabled;
+
+    if (!geonosisLodState.logTick) geonosisLodState.logTick = 0;
+    geonosisLodState.logTick++;
+
+    if (geonosisLodState.logTick % 8 === 0) {
+      console.log("[GEONOSIS LOD OPTIMIZATION 001]", {
+        mapId: "geonosisArena",
+        lodStrength: lodStrength,
+        totalGeonosisMeshes: geonosisLodState.meshes.length,
+        majorMeshes: geonosisLodState.stats.major,
+        mediumMeshes: geonosisLodState.stats.medium,
+        smallMeshes: geonosisLodState.stats.small,
+        tinyMeshes: geonosisLodState.stats.tiny,
+        hiddenByLod: hidden,
+        shadowsDisabledByLod: shadowDisabled,
+        updateIntervalMs: geonosisLodState.updateIntervalMs
+      });
+    }
+  }
+
+  window.AIM_BUILT_GEONOSIS_LOD = {
+    getState: () => geonosisLodState,
+    setStrength: (value) => {
+      applyGraphicsSettingChange("lodStrength", Number(value));
+    },
+    forceUpdate: () => {
+      geonosisLodState.lastUpdateMs = 0;
+      updateGeonosisLod(player ? player.position : camera.position, performance.now());
+    },
+    dump: () => console.log(geonosisLodState)
+  };
 
   function animate() {
     animationLoopStarted = true;
