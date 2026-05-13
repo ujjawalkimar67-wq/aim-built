@@ -31359,73 +31359,230 @@ window.onload = () => {
   function findEnemySpawnPosition(index = 0, total = 1) {
     if (selectedMap === "geonosisArena") {
       const arenaCenter = new THREE.Vector3(19.1, 0.0, 2.0);
-      const minRadius = 22;
-      const maxRadius = 45;
-      const minPlayerDist = 18;
-      const arenaFloorY = typeof window.geonosisFinalFloorY !== "undefined" ? window.geonosisFinalFloorY : 1.2;
+      const minRadius = 10;
+      const maxRadius = 42;
+      const minPlayerDist = 16;
+      const baseFloorY = typeof window.geonosisFinalFloorY !== "undefined" ? window.geonosisFinalFloorY : 1.2;
 
-      for (let attempt = 0; attempt < 50; attempt++) {
+      let rejectedOutsideColliderCount = 0;
+      let rejectedTooCloseToPlayerCount = 0;
+      let rejectedFloorFailCount = 0;
+      let chosenSpawn = null;
+      let nearestColliderDistance = Infinity;
+      let nearestColliderMidpoint = null;
+      let centerSideDot = 0;
+      let candidateAttempts = 0;
+      const loadedSegments = collisionGunState.segments || [];
+
+      function getDistanceToSegmentXZ(px, pz, ax, az, bx, bz) {
+        const l2 = (bx - ax) ** 2 + (bz - az) ** 2;
+        if (l2 === 0) return Math.hypot(px - ax, pz - az);
+        let t = ((px - ax) * (bx - ax) + (pz - az) * (bz - az)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        const projx = ax + t * (bx - ax);
+        const projz = az + t * (bz - az);
+        return Math.hypot(px - projx, pz - projz);
+      }
+
+      for (let attempt = 0; attempt < 80; attempt++) {
+        candidateAttempts++;
         const angle = Math.random() * Math.PI * 2;
         const radius = minRadius + Math.random() * (maxRadius - minRadius);
-        const candidate = new THREE.Vector3(
-          arenaCenter.x + Math.cos(angle) * radius,
-          arenaFloorY,
-          arenaCenter.z + Math.sin(angle) * radius
-        );
+        const candX = arenaCenter.x + Math.cos(angle) * radius;
+        const candZ = arenaCenter.z + Math.sin(angle) * radius;
 
-        if (isEnemySpawnClear(candidate)) {
-          if (player && candidate.distanceTo(player.position) < minPlayerDist) {
-            continue;
+        // Perform nearest-collider side validation
+        let candMinDist = Infinity;
+        const segDistances = [];
+        for (const seg of loadedSegments) {
+          if (!seg || !seg.a || !seg.b) continue;
+          const dist = getDistanceToSegmentXZ(candX, candZ, seg.a.x, seg.a.z, seg.b.x, seg.b.z);
+          if (dist < candMinDist) {
+            candMinDist = dist;
           }
+          segDistances.push({ seg, dist });
+        }
 
-          console.log("[GEONOSIS ENEMY SPAWN CENTER FIX 002]", {
-            mapId: "geonosisArena",
-            arenaCenter: { x: arenaCenter.x, y: arenaCenter.y, z: arenaCenter.z },
-            playerPosition: player ? { x: player.position.x, y: player.position.y, z: player.position.z } : null,
-            chosenSpawn: { x: candidate.x, y: candidate.y, z: candidate.z },
-            radiusFromArenaCenter: radius,
-            distanceFromPlayer: player ? candidate.distanceTo(player.position) : null,
-            usedFallbackSpawn: false,
-            spawnAccepted: true
-          });
-          return candidate;
+        if (loadedSegments.length > 0 && candMinDist < 1.5) {
+          rejectedOutsideColliderCount++;
+          continue;
+        }
+
+        let isInsideColliderBoundary = true;
+        let candNearestMidpoint = null;
+        let candCenterSideDot = 0;
+
+        if (loadedSegments.length > 0) {
+          // Sort to find the nearest boundary segments around the candidate
+          segDistances.sort((a, b) => a.dist - b.dist);
+          const nearestCount = Math.min(5, segDistances.length);
+          for (let i = 0; i < nearestCount; i++) {
+            const { seg } = segDistances[i];
+            const mx = (seg.a.x + seg.b.x) / 2;
+            const mz = (seg.a.z + seg.b.z) / 2;
+            const safeDx = arenaCenter.x - mx;
+            const safeDz = arenaCenter.z - mz;
+            const safeLen = Math.hypot(safeDx, safeDz);
+            const candDx = candX - mx;
+            const candDz = candZ - mz;
+            const candLen = Math.hypot(candDx, candDz);
+
+            if (safeLen > 0.001 && candLen > 0.001) {
+              const dot = (safeDx * candDx + safeDz * candDz) / (safeLen * candLen);
+              if (dot < -0.05) {
+                isInsideColliderBoundary = false;
+                if (i === 0) {
+                  candCenterSideDot = dot;
+                  candNearestMidpoint = { x: mx, y: (seg.a.y + seg.b.y) / 2, z: mz };
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        if (!isInsideColliderBoundary) {
+          rejectedOutsideColliderCount++;
+          continue;
+        }
+
+        // Determine floor Y via raycast if possible
+        let floorY = baseFloorY;
+        if (typeof bulletCollisionMeshes !== "undefined" && bulletCollisionMeshes.length > 0) {
+          const rayOrigin = new THREE.Vector3(candX, baseFloorY + 500, candZ);
+          const raycaster = new THREE.Raycaster(rayOrigin, new THREE.Vector3(0, -1, 0));
+          const hits = raycaster.intersectObjects(bulletCollisionMeshes, false);
+          if (hits.length > 0) {
+            floorY = hits[0].point.y;
+          }
+        }
+
+        // Validate floor height bounds
+        if (floorY < baseFloorY - 10 || floorY > baseFloorY + 25) {
+          rejectedFloorFailCount++;
+          continue;
+        }
+
+        const candidate = new THREE.Vector3(candX, floorY, candZ);
+
+        if (!isEnemySpawnClear(candidate)) {
+          rejectedTooCloseToPlayerCount++;
+          continue;
+        }
+
+        if (player && candidate.distanceTo(player.position) < minPlayerDist) {
+          rejectedTooCloseToPlayerCount++;
+          continue;
+        }
+
+        chosenSpawn = candidate;
+        nearestColliderDistance = candMinDist;
+        if (segDistances.length > 0 && !candNearestMidpoint) {
+          const seg = segDistances[0].seg;
+          const mx = (seg.a.x + seg.b.x) / 2;
+          const mz = (seg.a.z + seg.b.z) / 2;
+          candNearestMidpoint = { x: mx, y: (seg.a.y + seg.b.y) / 2, z: mz };
+          const safeDx = arenaCenter.x - mx;
+          const safeDz = arenaCenter.z - mz;
+          const candDx = candX - mx;
+          const candDz = candZ - mz;
+          const sLen = Math.hypot(safeDx, safeDz);
+          const cLen = Math.hypot(candDx, candDz);
+          candCenterSideDot = (sLen > 0.001 && cLen > 0.001) ? (safeDx * candDx + safeDz * candDz) / (sLen * cLen) : 1;
+        }
+        nearestColliderMidpoint = candNearestMidpoint || { x: arenaCenter.x, y: baseFloorY, z: arenaCenter.z };
+        centerSideDot = candCenterSideDot;
+        break;
+      }
+
+      let usedFallbackSpawn = false;
+      if (!chosenSpawn) {
+        usedFallbackSpawn = true;
+        const newFallbackPoints = [
+          { x: 19.1, y: 1.2, z: 2.0 },
+          { x: 31.0, y: 1.2, z: 2.0 },
+          { x: 7.0, y: 1.2, z: 2.0 },
+          { x: 19.1, y: 1.2, z: 14.0 },
+          { x: 19.1, y: 1.2, z: -10.0 },
+          { x: 28.0, y: 1.2, z: 11.0 },
+          { x: 10.0, y: 1.2, z: -7.0 }
+        ];
+
+        for (const pt of newFallbackPoints) {
+          let floorY = typeof window.geonosisFinalFloorY !== "undefined" ? window.geonosisFinalFloorY : pt.y;
+          if (typeof bulletCollisionMeshes !== "undefined" && bulletCollisionMeshes.length > 0) {
+            const raycaster = new THREE.Raycaster(new THREE.Vector3(pt.x, floorY + 500, pt.z), new THREE.Vector3(0, -1, 0));
+            const hits = raycaster.intersectObjects(bulletCollisionMeshes, false);
+            if (hits.length > 0) {
+              floorY = hits[0].point.y;
+            }
+          }
+          const candidate = new THREE.Vector3(pt.x, floorY, pt.z);
+          if (isEnemySpawnClear(candidate) && (!player || candidate.distanceTo(player.position) >= minPlayerDist)) {
+            chosenSpawn = candidate;
+            break;
+          }
+        }
+
+        if (!chosenSpawn) {
+          let floorY = typeof window.geonosisFinalFloorY !== "undefined" ? window.geonosisFinalFloorY : newFallbackPoints[0].y;
+          chosenSpawn = new THREE.Vector3(newFallbackPoints[0].x, floorY, newFallbackPoints[0].z);
+        }
+
+        // Calculate nearest collider properties for the fallback point
+        if (loadedSegments.length > 0) {
+          let candMinDist = Infinity;
+          let bestSeg = null;
+          for (const seg of loadedSegments) {
+            if (!seg || !seg.a || !seg.b) continue;
+            const dist = getDistanceToSegmentXZ(chosenSpawn.x, chosenSpawn.z, seg.a.x, seg.a.z, seg.b.x, seg.b.z);
+            if (dist < candMinDist) {
+              candMinDist = dist;
+              bestSeg = seg;
+            }
+          }
+          nearestColliderDistance = candMinDist;
+          if (bestSeg) {
+            const mx = (bestSeg.a.x + bestSeg.b.x) / 2;
+            const mz = (bestSeg.a.z + bestSeg.b.z) / 2;
+            nearestColliderMidpoint = { x: mx, y: (bestSeg.a.y + bestSeg.b.y) / 2, z: mz };
+            const safeDx = arenaCenter.x - mx;
+            const safeDz = arenaCenter.z - mz;
+            const candDx = chosenSpawn.x - mx;
+            const candDz = chosenSpawn.z - mz;
+            const sLen = Math.hypot(safeDx, safeDz);
+            const cLen = Math.hypot(candDx, candDz);
+            centerSideDot = (sLen > 0.001 && cLen > 0.001) ? (safeDx * candDx + safeDz * candDz) / (sLen * cLen) : 1;
+          }
+        } else {
+          nearestColliderDistance = 0;
+          nearestColliderMidpoint = { x: arenaCenter.x, y: baseFloorY, z: arenaCenter.z };
+          centerSideDot = 1;
         }
       }
 
-      const fallbackPoints = [
-        { x: 49.1, y: 1.2, z: 2.0 },
-        { x: -10.9, y: 1.2, z: 2.0 },
-        { x: 19.1, y: 1.2, z: 32.0 },
-        { x: 19.1, y: 1.2, z: -28.0 },
-        { x: 43.1, y: 1.2, z: 26.0 },
-        { x: -4.9, y: 1.2, z: -22.0 }
-      ];
+      const distanceFromArenaCenter = new THREE.Vector2(chosenSpawn.x, chosenSpawn.z).distanceTo(new THREE.Vector2(arenaCenter.x, arenaCenter.z));
 
-      let chosenFallback = null;
-      for (const pt of fallbackPoints) {
-        const candidate = new THREE.Vector3(pt.x, arenaFloorY, pt.z);
-        if (isEnemySpawnClear(candidate) && (!player || candidate.distanceTo(player.position) >= minPlayerDist)) {
-          chosenFallback = candidate;
-          break;
-        }
-      }
-      if (!chosenFallback) {
-        chosenFallback = new THREE.Vector3(fallbackPoints[0].x, arenaFloorY, fallbackPoints[0].z);
-      }
-
-      const distToCenter = new THREE.Vector2(chosenFallback.x, chosenFallback.z).distanceTo(new THREE.Vector2(arenaCenter.x, arenaCenter.z));
-
-      console.log("[GEONOSIS ENEMY SPAWN CENTER FIX 002]", {
+      console.log("[GEONOSIS ENEMY INSIDE COLLIDER SPAWN 003]", {
         mapId: "geonosisArena",
         arenaCenter: { x: arenaCenter.x, y: arenaCenter.y, z: arenaCenter.z },
+        loadedColliderCount: loadedSegments.length,
         playerPosition: player ? { x: player.position.x, y: player.position.y, z: player.position.z } : null,
-        chosenSpawn: { x: chosenFallback.x, y: chosenFallback.y, z: chosenFallback.z },
-        radiusFromArenaCenter: distToCenter,
-        distanceFromPlayer: player ? chosenFallback.distanceTo(player.position) : null,
-        usedFallbackSpawn: true,
-        spawnAccepted: true
+        candidateAttempts,
+        chosenSpawn: { x: chosenSpawn.x, y: chosenSpawn.y, z: chosenSpawn.z },
+        distanceFromPlayer: player ? chosenSpawn.distanceTo(player.position) : null,
+        distanceFromArenaCenter,
+        nearestColliderDistance,
+        nearestColliderMidpoint: nearestColliderMidpoint ? { x: nearestColliderMidpoint.x, y: nearestColliderMidpoint.y, z: nearestColliderMidpoint.z } : null,
+        centerSideDot,
+        rejectedOutsideColliderCount,
+        rejectedTooCloseToPlayerCount,
+        rejectedFloorFailCount,
+        usedFallbackSpawn,
+        spawnAcceptedInsideCollider: true
       });
-      return chosenFallback;
+
+      return chosenSpawn;
     }
 
     for (let attempt = 0; attempt < enemySpawnPoints.length * 3; attempt += 1) {
